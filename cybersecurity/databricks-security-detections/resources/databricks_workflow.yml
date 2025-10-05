@@ -1,0 +1,97 @@
+# A job running detection rules using Databricks system tables
+resources:
+  jobs:
+    databricks_authoring_security_detection_job:
+      name: databricks_authoring_security_detection
+      
+      tags:
+        workload: databricks_authoring_security_detection
+        type: security_detection
+        version: 2.0.0
+      
+      # trigger:
+      #   # https://docs.databricks.com/api/workspace/jobs/create#trigger
+      #   periodic:
+      #     interval: 4
+      #     unit: HOURS
+
+      # email_notifications:
+      #   on_failure:
+      #     - your_email
+
+      parameters:
+        - name: catalog
+          default: ${var.catalog}
+        - name: schema
+          default: ${var.schema}
+        - name: bundle_target
+          default: ${bundle.target}
+
+      tasks:
+          
+        # Failed Login Detection
+        - task_key: failed_login_detection
+          notebook_task:
+            notebook_path: ../src/detections/failed_login_detection.sql
+            source: WORKSPACE
+            warehouse_id: ${var.warehouse_id}
+          
+        # Privilege Escalation Detection
+        - task_key: privilege_escalation_detection
+          notebook_task:
+            notebook_path: ../src/detections/privilege_escalation_detection.sql
+            source: WORKSPACE
+            warehouse_id: ${var.warehouse_id}
+          
+        # Data Exfiltration Detection
+        - task_key: data_exfiltration_detection
+          notebook_task:
+            notebook_path: ../src/detections/large_data_export_detection.sql
+            source: WORKSPACE
+            warehouse_id: ${var.warehouse_id}
+        
+        # AI Analysis
+        - task_key: ai_analysis
+          depends_on:
+            - task_key: failed_login_detection
+            - task_key: privilege_escalation_detection
+            - task_key: data_exfiltration_detection
+          notebook_task:
+            notebook_path: ../src/ai_analysis/ai_security_analysis.sql
+            source: WORKSPACE
+            warehouse_id: ${var.warehouse_id}
+
+        # Create Alert functions
+        - task_key: alert_functions
+          depends_on:
+            - task_key: ai_analysis
+          notebook_task:
+            notebook_path: ../src/utils/alert_function.sql
+            source: WORKSPACE
+            base_parameters:
+              user_email: anhhoang.chu@databricks.com
+              host: ${var.workspace_host}
+              warehouse_id: ${var.warehouse_id}
+        
+        # Create Alerts
+        - task_key: create_alerts
+          depends_on:
+            - task_key: alert_functions
+          notebook_task:
+            notebook_path: ../src/create_alerts.sql
+            source: WORKSPACE
+            warehouse_id: ${var.warehouse_id}
+            base_parameters:
+              user_email: anhhoang.chu@databricks.com
+              host: ${var.workspace_host}
+              warehouse_id: ${var.warehouse_id}
+              
+
+        # Create/refresh dashboard
+        - task_key: refresh_dashboard
+          depends_on:
+            - task_key: ai_analysis
+          dashboard_task:
+            subscription: {}
+            warehouse_id: ${var.warehouse_id}
+            dashboard_id: ${resources.dashboards.security_detection_report_dashboard.id}

@@ -1,0 +1,109 @@
+# Databricks Security Detection Alert Rules
+# This file consolidates all alert configurations for easy management
+
+# Global settings that apply to all alerts
+global:
+  catalog: :catalog
+  schema: :schema
+  warehouse_id: :warehouse_id
+  user_email: :user_email
+  timezone_id: "UTC"
+  pause_status: "PAUSED" # Options: PAUSED, UNPAUSED
+  notify_on_ok: true
+  retrigger_seconds: 0
+
+# Time intervals for queries (in hours)
+# Use these names in the time_interval field of each alert
+time_intervals:
+  short: 24     # 1 day - for frequent, real-time alerts
+  medium: 168   # 7 days - for weekly monitoring
+  long: 720     # 30 days - for monthly compliance checks
+  default: 168  # 7 days - fallback interval
+
+# Alert configurations
+# Each alert can specify its own time_interval from the options above
+alerts:
+  failed_login_alert:
+    display_name: "failed_login_alert"
+    description: "Alert for failed login attempts"
+    time_interval: "short"  # Options: short(24h), medium(168h), long(720h), default(168h)
+    query_template: |
+        SELECT COUNT(*) AS value
+         FROM %s.%s.sec_v_auth_events
+         WHERE event_time >= current_timestamp() - INTERVAL {time_interval} HOURS
+    comparison_operator: "GREATER_THAN"
+    threshold_value: 0
+    cron_schedule: "0 0 10 1/7 * ?"
+    empty_result_state: "UNKNOWN"
+
+  account_admin_assignment:
+    display_name: "account_admin_assignment"
+    description: "Alert for account admin assignments"
+    time_interval: "short"  # Options: short(24h), medium(168h), long(720h), default(168h)
+    query_template: |
+      SELECT COUNT(*) AS value
+         FROM %s.%s.sec_v_account_admin_assignments
+         WHERE event_time >= current_timestamp() - INTERVAL {time_interval} HOURS
+    comparison_operator: "GREATER_THAN"
+    threshold_value: 5
+    cron_schedule: "0 0 10 1/7 * ?"
+    empty_result_state: "UNKNOWN"
+
+  data_export_alert:
+    display_name: "data_export_alert"
+    description: "Alert for large data exports"
+    time_interval: "medium"  # Options: short(24h), medium(168h), long(720h), default(168h)
+    query_template: |
+        SELECT count(*) AS value
+         FROM %s.%s.sec_mv_data_export_detection
+         WHERE event_time >= current_timestamp() - INTERVAL {time_interval} HOURS
+    comparison_operator: "GREATER_THAN"
+    threshold_value: 10
+    cron_schedule: "0 0 10 1/7 * ?"
+    empty_result_state: "UNKNOWN"
+
+  uc_permission_escalation:
+    display_name: "uc_permission_escalation"
+    description: "Alert for Unity Catalog permission escalations"
+    time_interval: "long"  # Options: short(24h), medium(168h), long(720h), default(168h)
+    query_template: |
+      SELECT COUNT(*) AS value
+         FROM %s.%s.sec_v_uc_permission_escalations
+         WHERE event_time >= current_timestamp() - INTERVAL {time_interval} HOURS
+    comparison_operator: "GREATER_THAN"
+    threshold_value: 5
+    cron_schedule: "0 0 10 1/7 * ?"
+    empty_result_state: "UNKNOWN"
+
+  data_export_ai_alert:
+    display_name: "data_export_ai_alert"
+    description: "Alert for data exports based on AI analysis"
+    time_interval: "short"  # Options: short(24h), medium(168h), long(720h), default(168h)
+    query_template: |
+        SELECT sum(export_count) AS value
+         FROM %s.%s.sec_mv_ai_data_export_analysis
+         WHERE get_json_object(ai_comprehensive_analysis, "$.risk_level") IN ("HIGH", "CRITICAL")
+    comparison_operator: "GREATER_THAN"
+    threshold_value: 10
+    cron_schedule: "0 0 10 1/7 * ?"
+    empty_result_state: "UNKNOWN"
+
+# Alert function configuration
+alert_function:
+  aggregation: "FIRST"
+  display: "value"
+  name: "value"
+  cron_schedule: "0 0 10 1/7 * ?"  # Default: Every Monday at 10 AM UTC
+  timezone_id: "UTC"
+  pause_status: "PAUSED"
+  notify_on_ok: true
+  retrigger_seconds: 0
+
+# Supported comparison operators
+comparison_operators:
+  - "GREATER_THAN"
+  - "GREATER_THAN_OR_EQUAL"
+  - "LESS_THAN"
+  - "LESS_THAN_OR_EQUAL"
+  - "EQUAL"
+  - "NOT_EQUAL"
