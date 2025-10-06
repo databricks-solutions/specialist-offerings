@@ -30,24 +30,24 @@ targets:
     mode: development
     default: true
     workspace:
-      host: https://e2-demo-field-eng.cloud.databricks.com
+      host: https://company-dev.cloud.databricks.com
     variables:
       warehouse_id: 8baced1ff014912d
       catalog: users
       schema: ${workspace.current_user.short_name}
-      workspace_host: https://e2-demo-field-eng.cloud.databricks.com
+      workspace_host: https://company-dev.cloud.databricks.com
 
   prod:
     mode: production
     workspace:
-      host: https://adb-984752964297111.11.azuredatabricks.net
+      host: https://company-prd.cloud.databricks.com
       # Deploy to a fixed location in production
       root_path: /Workspace/${bundle.name}
     variables:
       warehouse_id: 148ccb90800933a1
       catalog: users
       schema: ${workspace.current_user.short_name}
-      workspace_host: https://adb-984752964297111.11.azuredatabricks.net
+      workspace_host: https://company-prd.cloud.databricks.com
     permissions:
-      - user_name: anhhoang.chu@databricks.com
+      - user_name: user@company.com
         level: CAN_MANAGE

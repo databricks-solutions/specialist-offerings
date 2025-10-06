@@ -1,3 +1,0 @@
-[submodule "cybersecurity/databricks-security-detections"]
-	path = cybersecurity/databricks-security-detections
-	url = https://github.com/anhhchu/databricks-security-detections.git
