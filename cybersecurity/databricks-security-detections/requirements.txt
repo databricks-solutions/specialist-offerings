@@ -1,0 +1,42 @@
+# Core data processing
+pandas>=1.5.0
+numpy>=1.21.0
+
+# Databricks SDK and utilities
+databricks-sdk>=0.12.0
+
+# Testing framework
+pytest>=7.0.0
+pytest-mock>=3.10.0
+great-expectations>=0.17.0
+
+# Data validation and quality
+pandera>=0.14.0
+pydantic>=2.0.0
+
+# Visualization and reporting
+matplotlib>=3.6.0
+seaborn>=0.12.0
+plotly>=5.15.0
+
+# Configuration management
+pyyaml>=6.0
+python-dotenv>=1.0.0
+
+# Alerting and notifications
+slack-sdk>=3.20.0
+requests>=2.28.0
+
+# Utilities
+jsonschema>=4.17.0
+python-dateutil>=2.8.0
+croniter>=1.3.0
+
+# Development tools
+black>=22.0.0
+flake8>=6.0.0
+mypy>=1.0.0
+
+# Documentation
+mkdocs>=1.4.0
+mkdocs-material>=9.0.0 
