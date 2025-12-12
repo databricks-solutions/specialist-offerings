@@ -2,7 +2,7 @@
 # This file defines the catalog listing for the Databricks Security Detection-as-Code offering
 
 # Required fields
-title: "Security Detection-as-Code with Databricks"
+title: "Security Detection-as-Code with Databricks Alerts"
 
 # Industry and categorization
 industry: "SSA"
