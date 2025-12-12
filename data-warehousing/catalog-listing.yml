@@ -1,0 +1,111 @@
+# Security Detection-as-Code Catalog Listing
+# This file defines the catalog listing for the Databricks Security Detection-as-Code offering
+
+# Required fields
+title: "FinOps Alerts"
+
+# Industry and categorization
+industry: "SSA"
+secondary_industry: "Financial Services"
+subvertical: "Observability"
+
+# Status and priority
+status: "Complete"
+strategic_priority: "Medium"
+
+# Ownership and responsibility
+demo_owner: "akshay.amin@databricks.com"  
+industry_lead: "kristin.dahl@databricks.com"  
+
+# Business alignment
+imperative: "Security & Governance"
+business_outcome: "Enable real-time security monitoring, automated threat detection, and AI-powered risk assessment to reduce security incidents and improve compliance posture"
+
+# Quality and maintenance flags
+needs_fix: false
+business_user_friendly: true  # Includes AI/BI Dashboard for visualization
+
+# Timeline
+expected_delivery: "Q4 2024"
+last_certified: "2025-10-30"
+
+# Products and features (comma-separated lists)
+products: "Databricks SQL, Unity Catalog, Databricks AI/BI, System Tables, Databricks Asset Bundle, Foundation Model API"
+product_lines: "Data Intelligence Platform, Security & Governance, AI & Machine Learning"
+
+# Partner information
+partner_developed: false
+partner: ""
+
+# Description and details
+demo_description: |
+  ## Overview
+  
+  This project demonstrates how to author and deploy detection rules using SQL and Databricks notebooks for Security Detection-as-Code principles. The detection rules use Databricks system tables for real-time security monitoring and automatically create alerts for security incidents. Now enhanced with AI-powered security analysis for intelligent risk assessment and recommendations.
+  
+  ## Key Features
+  
+  - **SQL-based Detection Rules**: Leverage enterprise-grade SQL for sophisticated security detection logic
+  - **AI-Powered Security Analysis**: Intelligent risk assessment and recommendations using Databricks AI models (Meta Llama 3.3 70B)
+  - **Databricks System Tables**: Harness comprehensive operational data from your Databricks environment for deep visibility
+  - **Automated Alert Creation**: Streamline security operations with intelligent alert generation and management
+  - **Databricks Asset Bundle (DAB)**: Enable seamless deployment across development, testing and production environments
+  - **Workflow Orchestration**: Optimize detection rule execution with advanced dependency management and scheduling
+  - **Databricks AI/BI Dashboard**: Generate visualizations and interactive reports using Databricks SQL dashboards
+  
+  ## Security Detections Included
+  
+  1. **Failed Login Detection**: Monitor and analyze failed authentication attempts with AI-powered risk assessment
+  2. **Large Data Export Detection**: Track suspicious data exports with pattern analysis and sensitivity assessment
+  3. **Privilege Escalation Detection**: Detect unauthorized privilege changes across multiple vectors:
+     - Account admin assignments
+     - Workspace ACL changes
+     - Sensitive group additions
+     - Unity Catalog permission changes
+     - Account setting modifications
+  
+  ## AI-Powered Analysis Capabilities
+  
+  - **Risk Level Classification**: Automatic HIGH/MEDIUM/LOW/CRITICAL risk assessment
+  - **Pattern Analysis**: IP-based, user-based, and temporal pattern detection
+  - **Actionable Recommendations**: Immediate actions, investigation steps, and long-term controls
+  - **Security Posture Summary**: Consolidated view of overall security health
+  - **Compliance Reporting**: AI-assisted compliance tracking and reporting
+  
+  ## Technical Requirements
+  
+  - Databricks Workspace with Unity Catalog enabled
+  - Databricks SQL Warehouse access
+  - Access to System Tables (system.access.audit with 365-day retention)
+  - Python 3.11+ for development and customization
+  - Databricks CLI for deployment
+  
+  ## Deployment Model
+  
+  The offering uses Databricks Asset Bundles (DAB) for Infrastructure-as-Code deployment, enabling:
+  - Version-controlled security rules
+  - Multi-environment deployments (dev/prod)
+  - Automated workflow orchestration
+  - Configurable alert thresholds and schedules
+  - Customizable time intervals for monitoring (24h/7d/30d)
+  
+  ## Use Cases
+  
+  - **Security Operations Centers (SOC)**: Real-time threat detection and automated alerting
+  - **Compliance Teams**: Continuous monitoring for regulatory compliance (SOC 2, HIPAA, GDPR)
+  - **Platform Teams**: Proactive security monitoring for Databricks environments
+  - **Risk Management**: AI-powered risk assessment and prioritization
+  - **Incident Response**: Automated detection and investigation guidance
+  
+  ## Business Value
+  
+  - Reduce mean time to detection (MTTD) for security incidents
+  - Automate security monitoring to reduce manual effort by 80%+
+  - Leverage AI for intelligent risk prioritization and reduced false positives
+  - Enable Detection-as-Code principles for scalable security operations
+  - Improve compliance posture with continuous monitoring and reporting
+  - Accelerate incident response with automated investigation guidance
+
+# Installation availability
+installable: true  # Deployable via Databricks Asset Bundle with comprehensive documentation
+
