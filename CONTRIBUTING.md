@@ -6,6 +6,10 @@ We welcome contributions to this repository! This document outlines the process 
 
 All contributions are welcome for updates and improvements. However, for new contributions, we recommend checking with the specialization lead before contributing to ensure alignment with current priorities and avoid duplication of effort.
 
+This repo serves as an index of code offered by Databricks Specialists, and these Offerings take 2 forms:
+- Code lives OUTSIDE this repo: at minimum, you can create a new folder in the specialization area with a [catalog-listing.yml](templates/catalog-listing-template.yml) in it to point internal tooling to the code offering.
+- Code lives IN this repo: if you want to maintain and version your code in this repo, you can do that as well! Create a folder in the specialization area for the offering and add the required assets as described below. 
+
 ## Contribution Requirements
 
 All new contributions must meet the following requirements:
@@ -50,6 +54,7 @@ All new contributions must meet the following requirements:
 - [ ] Add comprehensive unit tests
 - [ ] Create or update documentation
 - [ ] Update the top-level README if new libraries are introduced
+- [ ] Add a [catalog-listing.yml](templates/catalog-listing-template.yml) file so the content can be indexed
 - [ ] Test your contribution thoroughly
 
 ### 3. Pull Request Process
