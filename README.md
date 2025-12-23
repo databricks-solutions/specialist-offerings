@@ -12,11 +12,13 @@ This repository provides a centralized location for SSAs to access, share, and c
 - Best practices and reference implementations
 - Training materials and knowledge sharing content
 
-Some content in this repository includes structured "offerings" - proactive, prescriptive engagement catalogs that focus on outcomes and optimize the ASQ process for driving momentum and results. These offerings are designed to:
+Some content in this repository includes structured "Offerings" - proactive, prescriptive engagement catalogs that focus on outcomes and optimize the ASQ process for driving momentum and results. These offerings are designed to:
 
 - Accelerate the adoption of new technologies (e.g., Unity Catalog, GenAI)
 - Expedite technical evaluation and competition (e.g., Databricks SQL, GenAI)
 - Streamline positioning and hand-off to Professional Services and Partners
+
+These Offerings should include a `catalog-listing.yml` file to promote discoverability with internal tooling. 
 
 ## Repository Structure
 

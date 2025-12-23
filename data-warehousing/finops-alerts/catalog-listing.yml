@@ -1,0 +1,52 @@
+# Security Detection-as-Code Catalog Listing
+# This file defines the catalog listing for the Databricks Security Detection-as-Code offering
+
+# Required fields
+title: "FinOps Alerts"
+
+# Industry and categorization
+industry: "SSA"
+secondary_industry: "Financial Services"
+subvertical: "Observability"
+
+# Status and priority
+status: "Complete"
+strategic_priority: "Medium"
+
+# Ownership and responsibility
+demo_owner: "akshay.amin@databricks.com"  
+industry_lead: "kristin.dahl@databricks.com"  
+
+# Business alignment
+imperative: "Security & Governance"
+business_outcome: "PLACEHOLDER"
+
+# Quality and maintenance flags
+needs_fix: false
+business_user_friendly: true  # Includes AI/BI Dashboard for visualization
+
+# Timeline
+expected_delivery: "Q4 2024"
+last_certified: "2025-10-30"
+
+# Products and features (comma-separated lists)
+products: "Databricks SQL, Unity Catalog, Databricks AI/BI, System Tables, Databricks Asset Bundle, Foundation Model API"
+product_lines: "Data Intelligence Platform, Security & Governance, AI & Machine Learning"
+
+# Partner information
+partner_developed: false
+partner: ""
+
+# Description and details
+demo_description: |
+  ## Overview
+  
+  PLACEHOLDER
+  
+  ## Key Features
+  
+  - 
+
+# Installation availability
+installable: true  # Deployable via Databricks Asset Bundle with comprehensive documentation
+

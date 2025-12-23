@@ -1,0 +1,49 @@
+# Demo Template YAML
+# This template defines the schema for demos that will be synchronized with a PostgreSQL database
+# Each demo entry should follow this structure
+
+# demo_id: Auto-incremented primary key (managed by database, do not include in new entries)
+
+# Required fields
+title: "Example Demo Title"  # Required, max 500 characters
+
+# Industry and categorization
+industry: "SSA"  # Max 255 characters
+secondary_industry: "Financial Services"  # Max 255 characters, optional
+subvertical: "Insurance"  # Max 255 characters
+
+# Status and priority
+status: "Complete"  # Max 50 characters (e.g., Complete, In Progress)
+strategic_priority: "High"  # Max 50 characters (e.g., High, Medium, Low)
+
+# Ownership and responsibility
+demo_owner: "john.doe@company.com"  # Max 255 characters
+industry_lead: "jane.smith@company.com"  # Max 255 characters
+
+# Business alignment
+imperative: "Revenue Growth"  # Max 255 characters
+business_outcome: "Reduce customer churn by 20%"  # Max 255 characters
+
+# Quality and maintenance flags
+needs_fix: false  # Boolean: true if demo requires fixes
+business_user_friendly: false  # Boolean: true if suitable for business users
+
+# Timeline
+expected_delivery: "Q2 2025"  # Max 255 characters
+last_certified: "2025-01-15"  # Date format: YYYY-MM-DD
+
+# Products and features (comma-separated lists)
+products: "Databricks SQL, Delta Lake, MLflow"  # Text field, comma-separated
+product_lines: "Data Engineering, Machine Learning"  # Text field, comma-separated
+
+# Partner information
+partner_developed: false  # Boolean: true if developed by partner
+partner: ""  # Max 255 characters, partner company name (when partner_developed is true)
+
+# Description and details
+demo_description: |
+  Markdown-formatted description of the catalog listing.
+
+# Installation availability
+installable: true  # Boolean: true if demo has dbdemos or github installation links
+
