@@ -1,0 +1,103 @@
+# EDW Ingestion Accelerator
+# Catalog listing for the EDW Ingestion Accelerator offering
+
+# Required fields
+title: "EDW Ingestion Accelerator"
+
+# Industry and categorization
+industry: "SSA"  # Max 255 characters
+secondary_industry: "Financial Services"  # Max 255 characters, optional
+subvertical: "Insurance"  # Max 255 characters
+
+# Status and priority
+status: "Complete"  # Max 50 characters (e.g., Complete, In Progress)
+strategic_priority: "High"  # Max 50 characters (e.g., High, Medium, Low)
+
+# Ownership and responsibility
+demo_owner: "chris.koester@databricks.com"  # Max 255 characters
+industry_lead: "chris.koester@databricks.com"  # Max 255 characters
+
+# Business alignment
+imperative: "Data Warehousing"  # Max 255 characters
+business_outcome: "Act on your data today without complex pipelines or 3rd-party tooling"  # Max 255 characters
+
+# Quality and maintenance flags
+needs_fix: false  # Boolean: true if demo requires fixes
+business_user_friendly: false  # Boolean: true if suitable for business users
+
+# Timeline
+expected_delivery: "Q1 FY24"  # Max 255 characters
+last_certified: "2027-01-01"  # Date format: YYYY-MM-DD
+
+# Products and features (comma-separated lists)
+products: "Databricks SQL, Serverless SQL Warehouses, Lakehouse Federation, Delta Lake, Databricks Jobs, Iceberg"  # Text field, comma-separated
+product_lines: "Data Warehousing, Data Engineering"  # Text field, comma-separated
+
+# Partner information
+partner_developed: false  # Boolean: true if developed by partner
+partner: ""  # Max 255 characters, partner company name (when partner_developed is true)
+
+# Description and details
+demo_description: |
+  ## EDW Ingestion Accelerator
+  
+  **GOAL:** Make it simple and fast to move priority subset of EDW tables to Databricks
+  
+  ### Overview
+  The EDW Ingestion Accelerator helps customers quickly migrate critical data warehouse tables to Databricks, enabling immediate business value without complex ETL pipelines or third-party tools.
+  
+  ### Key Benefits
+  - **Fast Deployment**: Quickly ingest tables from EDW into Databricks
+  - **Simplified Migration**: Act on your data today without complex pipelines or 3rd-party tooling
+  - **Immediate Value**: Unlock business-critical use cases in Databricks
+  
+  ### Use Cases
+  - BI Dashboarding and reporting
+  - Gen AI/BI applications (Genie)
+  - Platform technology evaluation and PoC
+  - Ad hoc development with production data
+  - Migration performance and cost comparison
+  
+  ### Technical Approach
+  - **Migration Focus**: Targets the DW serving layer (data marts) for accelerated PoC
+  - **Lakehouse Federation**: Utilizes partitioned copy jobs for efficient data transfer
+  - **Simple SQL Queries**: Short ingestion path with simple SQL queries
+  - **Control & Throughput**: Configurable partitions, concurrency, and partition size
+  - **Fast Deployment**: Quick setup using Databricks Asset Bundles (DAB)
+  
+  ### Engagement Process (5-Step Joint Execution Plan)
+  
+  **Step 1 - Connectivity Check & Installation** (4-8hrs FTE / 1wk)
+  - Preparation: Customer obtain approval for EDW connectivity from Databricks.  Customer set up network connectivity to EDW.  Databricks SA (Cloud Infra SSA) provides support if necessary.
+  - 1 Hour Session: Customer and SSA create a new UC connection to the EDW  and test connectivity
+  - Next Step:  Databricks SA set up a 1hr set up session. SA coordinates with customer on follow ups
+  
+  **Step 2 - Target Table(s) Selection** (4 hrs FTE / 1wk)
+  -Preparation: Databricks SA sends the questionnaire for customer to review and complete
+  - 1 Hour Session: Jointly select the target subset of tables and test queries
+  - Next Step: SSA provides tooling
+  
+  **Step 3 - Ingestion Accelerator Setup** (4 hrs FTE / 1wk)
+  - Preparation: Customer review the tooling documentation
+  - 1 Hour Session:  Customers set up the tool in their own environment. Customers kick off the ingestion process.  SSA provide advisory and support if necessary
+  - Next step:  Databricks SA set up two 1hr review session. SA coordinates with customer on follow ups
+
+  **Step 4 - Validate Test DBSQL** (2-4 hrs FTE / 1wk)
+  -Preparation: Ingestion job completed
+  - 1 Hour Session: Validate the ingestion was successful, and data in Delta Lake is accessible via UC.  Customer run test queries in DBSQL successfully
+  - Next Step:  Databricks SA set up two 1hr review session. SA coordinates with customer on follow ups
+
+  **Step 5 - Align Readout** (2hrs FTE / 1wk)
+  - Prerequisite: The PoC readout has been prepared by the customer and Databricks team
+  - 1 Hour Session: Customer business owner and technical team review readout with Databricks team
+  - Next step: Databricks AE/SA to schedule follow up to discuss next step with customers (e.g. handoff to Databricks SI Partners and PS)
+
+  
+  ### Customer Requirements
+  - EDW sysadmin to validate connectivity from Databricks to EDW
+  - Databricks workspace admin and UC Metastore admin (create Lakehouse Federation Connection privilege required)
+  - DBSQL + Serverless enabled
+
+# Installation availability
+installable: true  # Boolean: true if demo has dbdemos or github installation links
+
