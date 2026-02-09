@@ -17,6 +17,11 @@ strategic_priority: "High"  # Max 50 characters (e.g., High, Medium, Low)
 demo_owner: "chris.koester@databricks.com"  # Max 255 characters
 industry_lead: "chris.koester@databricks.com"  # Max 255 characters
 
+# Links to internal resources
+# [pitch_deck, genie, reprise, yoodli, dbdemos, personas, recording, case_studies, app, github, demo, marketing, script, dashboard]
+links:
+  pitch_deck: https://docs.google.com/presentation/d/1n-h0rGQNIEqKjGqck5Nb9Jd5vinqXj1PgrU7wx6Bq8c/edit?slide=id.g31df0a88c0b_10_0#slide=id.g31df0a88c0b_10_0 # Max 255 characters
+  
 # Business alignment
 imperative: "Data Warehousing"  # Max 255 characters
 business_outcome: "Act on your data today without complex pipelines or 3rd-party tooling"  # Max 255 characters
@@ -27,7 +32,7 @@ business_user_friendly: false  # Boolean: true if suitable for business users
 
 # Timeline
 expected_delivery: "Q1 FY24"  # Max 255 characters
-last_certified: "2027-01-01"  # Date format: YYYY-MM-DD
+last_certified: "2027-02-01"  # Date format: YYYY-MM-DD
 
 # Products and features (comma-separated lists)
 products: "Databricks SQL, Serverless SQL Warehouses, Lakehouse Federation, Delta Lake, Databricks Jobs, Iceberg"  # Text field, comma-separated
@@ -44,7 +49,7 @@ demo_description: |
   **GOAL:** Make it simple and fast to move priority subset of EDW tables to Databricks
   
   ### Overview
-  The EDW Ingestion Accelerator helps customers quickly migrate critical data warehouse tables to Databricks, enabling immediate business value without complex ETL pipelines or third-party tools.
+  The EDW Ingestion Accelerator helps customers quickly migrate critical data warehouse tables to Databricks, enabling immediate business value without complex ETL pipelines or third-party tools. 
   
   ### Key Benefits
   - **Fast Deployment**: Quickly ingest tables from EDW into Databricks

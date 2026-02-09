@@ -36,7 +36,24 @@ All new contributions must meet the following requirements:
   - A requirements.txt file within the contribution
 - **Top-level Documentation**: Any libraries used must be added to the top-level README libraries section
 
-### 4. Branch Management
+### 4. Image Assets
+- **Image Directory**: All images should be stored in an `images/` directory at the same level as the `catalog-listing.yml` file
+  - Example structure:
+    ```
+    /data-warehousing/my-offering/
+    ├── catalog-listing.yml
+    ├── images/
+    │   ├── thumbnail.png
+    │   ├── architecture-diagram.png
+    │   └── workflow.png
+    └── README.md
+    ```
+- **Thumbnail Requirement**: If you are contributing images, you must include at least one image titled "thumbnail" (e.g., `thumbnail.png`, `thumbnail.jpg`)
+  - This thumbnail image will be used as the display image in the Field Catalog
+  - Recommended size: 1200x630 pixels (or similar aspect ratio)
+- **Naming Conventions**: Use descriptive, lowercase names with hyphens (e.g., `architecture-diagram.png`, `execution-plan.png`)
+
+### 5. Branch Management
 - Create a feature branch with a descriptive name related to the new contribution
 - Use clear, descriptive branch names (e.g., `feature/data-quality-framework`, `feature/genai-rag-template`)
 - Keep branches focused on a single contribution or related set of changes
