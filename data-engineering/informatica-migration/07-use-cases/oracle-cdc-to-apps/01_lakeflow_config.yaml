@@ -1,0 +1,136 @@
+# =============================================================================
+# USE CASE 3: Oracle CDC → Application Serving
+# =============================================================================
+# STEP 1: LAKEFLOW CONNECT CDC CONFIGURATION
+#
+# SCENARIO:
+# Inventory data in Oracle OLTP needs to sync to application serving layer.
+# Previously used Informatica PowerExchange with complex CDC mappings.
+# Now using Lakeflow Connect for managed CDC with zero custom code.
+#
+# OLD PATTERN:
+#   Oracle → PowerExchange CDC → Informatica → SQL Server → Apps
+#   (Complex CDC mapping, manual change tracking)
+#
+# NEW PATTERN:
+#   Oracle → Lakeflow Connect CDC → Bronze → DLT → Gold → Lakebase → Apps
+#   (Managed CDC, automatic change tracking)
+#
+# BENEFITS:
+# - Zero-code CDC configuration
+# - Automatic schema evolution
+# - Built-in retry and error handling
+# - Minimal source system impact
+# - No SQL Server license needed
+#
+# NOTE: This is configured via Databricks UI. YAML shown for documentation.
+# =============================================================================
+
+# =============================================================================
+# Connection Configuration
+# =============================================================================
+connection:
+  name: oracle_inventory_cdc
+  type: oracle-cdc
+
+  # Oracle connection details
+  host: oracle-prod.company.com
+  port: 1521
+  database: INVENTORY_DB
+
+  # CDC method (depends on Oracle version and configuration)
+  # Options: logminer, oracle_cdc, change_tracking
+  cdc_method: logminer
+
+  # Credentials (configured via Databricks Secrets in UI)
+  # user: secret('db-scope', 'oracle-user')
+  # password: secret('db-scope', 'oracle-password')
+
+
+# =============================================================================
+# Tables to Replicate
+# =============================================================================
+tables:
+  # Main inventory table - real-time CDC
+  - source_table: INVENTORY.STOCK_LEVELS
+    destination_catalog: main
+    destination_schema: bronze
+    destination_table: inventory_stock_cdc
+    sync_mode: incremental-cdc
+    primary_keys:
+      - PRODUCT_ID
+      - WAREHOUSE_ID
+
+  # Inventory transactions - real-time CDC
+  - source_table: INVENTORY.STOCK_TRANSACTIONS
+    destination_catalog: main
+    destination_schema: bronze
+    destination_table: inventory_transactions_cdc
+    sync_mode: incremental-cdc
+    primary_keys:
+      - TRANSACTION_ID
+
+  # Product master - daily full refresh (small table)
+  - source_table: INVENTORY.PRODUCTS
+    destination_catalog: main
+    destination_schema: bronze
+    destination_table: inventory_products
+    sync_mode: full-refresh
+    primary_keys:
+      - PRODUCT_ID
+
+  # Warehouse master - daily full refresh (small table)
+  - source_table: INVENTORY.WAREHOUSES
+    destination_catalog: main
+    destination_schema: bronze
+    destination_table: inventory_warehouses
+    sync_mode: full-refresh
+    primary_keys:
+      - WAREHOUSE_ID
+
+
+# =============================================================================
+# Schedule Configuration
+# =============================================================================
+schedule:
+  # CDC tables: continuous real-time
+  cdc_mode: continuous
+
+  # Full refresh tables: daily at 2 AM
+  full_refresh_schedule: "0 2 * * *"
+
+
+# =============================================================================
+# CDC Metadata Columns Added to Bronze Tables
+# =============================================================================
+# Lakeflow Connect automatically adds these columns to CDC tables:
+#
+# _change_type: 'INSERT', 'UPDATE', 'DELETE'
+#   - Type of change operation
+#
+# _commit_timestamp: TIMESTAMP
+#   - When change was committed in source database
+#
+# _sequence_number: BIGINT
+#   - Ordering within transaction (for multi-row transactions)
+#
+# _operation_timestamp: TIMESTAMP
+#   - When change was captured by Lakeflow Connect
+#
+# These columns are used by DLT APPLY CHANGES for proper ordering
+# and handling of INSERT/UPDATE/DELETE operations.
+# =============================================================================
+
+
+# =============================================================================
+# Downstream Processing
+# =============================================================================
+# After CDC data lands in Bronze, use DLT pipeline (02_etl_merge.sql)
+# to process changes and maintain Silver/Gold tables.
+#
+# DLT APPLY CHANGES handles:
+# - Deduplication of multiple changes to same key
+# - Ordering by _commit_timestamp
+# - Applying DELETE operations
+# - SCD Type 1 (overwrite) or Type 2 (history)
+# =============================================================================
