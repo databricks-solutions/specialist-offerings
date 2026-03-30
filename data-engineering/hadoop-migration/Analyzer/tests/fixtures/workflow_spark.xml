@@ -1,0 +1,20 @@
+<workflow-app xmlns="uri:oozie:workflow:0.5" name="spark-etl-workflow">
+    <start to="spark-transform"/>
+    <action name="spark-transform">
+        <spark xmlns="uri:oozie:spark-action:0.2">
+            <master>yarn</master>
+            <mode>cluster</mode>
+            <name>ETL Transform</name>
+            <class>com.example.etl.SparkTransform</class>
+            <jar>lib/etl-transform.jar</jar>
+            <spark-opts>--jars lib/utils.jar,lib/common.jar --conf spark.executor.memory=4g</spark-opts>
+            <file>config/transform.properties</file>
+        </spark>
+        <ok to="end"/>
+        <error to="kill"/>
+    </action>
+    <kill name="kill">
+        <message>Workflow failed: [${wf:errorMessage(wf:lastErrorNode())}]</message>
+    </kill>
+    <end name="end"/>
+</workflow-app>

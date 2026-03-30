@@ -1,0 +1,29 @@
+<coordinator-app xmlns="uri:oozie:coordinator:0.4"
+    name="daily-etl-coordinator"
+    frequency="${coord:days(1)}"
+    start="2024-01-01T00:00Z"
+    end="2025-12-31T23:59Z"
+    timezone="UTC">
+    <datasets>
+        <dataset name="input" frequency="${coord:days(1)}"
+            initial-instance="2024-01-01T00:00Z" timezone="UTC">
+            <uri-template>/data/raw/${YEAR}/${MONTH}/${DAY}</uri-template>
+        </dataset>
+    </datasets>
+    <input-events>
+        <data-in name="input_data" dataset="input">
+            <instance>${coord:current(0)}</instance>
+        </data-in>
+    </input-events>
+    <action>
+        <workflow>
+            <app-path>/user/oozie/workflows/etl-daily</app-path>
+            <configuration>
+                <property>
+                    <name>date</name>
+                    <value>${coord:formatTime(coord:nominalTime(), 'yyyy-MM-dd')}</value>
+                </property>
+            </configuration>
+        </workflow>
+    </action>
+</coordinator-app>

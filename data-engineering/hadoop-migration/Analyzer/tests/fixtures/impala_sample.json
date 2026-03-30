@@ -1,0 +1,41 @@
+{
+  "queries": [
+    {
+      "queryId": "abc123:def456",
+      "statement": "SELECT department, AVG(salary) FROM employees GROUP BY department",
+      "queryType": "QUERY",
+      "queryState": "FINISHED",
+      "startTime": "2024-11-15T10:00:00.000Z",
+      "endTime": "2024-11-15T10:00:01.000Z",
+      "rowsProduced": 5,
+      "user": "analyst",
+      "database": "hr_db",
+      "durationMillis": 820,
+      "attributes": {
+        "connected_user": "analyst",
+        "query_status": "OK",
+        "file_formats": "PARQUET/SNAPPY"
+      },
+      "coordinator": {"hostId": "impalad-1.example.com"}
+    },
+    {
+      "queryId": "ghi789:jkl012",
+      "statement": "compute STATS employees",
+      "queryType": "DDL",
+      "queryState": "FINISHED",
+      "startTime": "2024-11-15T10:00:02.000Z",
+      "endTime": "2024-11-15T10:00:03.000Z",
+      "rowsProduced": null,
+      "user": "analyst",
+      "database": "hr_db",
+      "durationMillis": 1200,
+      "attributes": {
+        "connected_user": "analyst",
+        "query_status": "OK",
+        "ddl_type": "COMPUTE_STATS"
+      },
+      "coordinator": {"hostId": "impalad-1.example.com"}
+    }
+  ],
+  "warnings": []
+}
