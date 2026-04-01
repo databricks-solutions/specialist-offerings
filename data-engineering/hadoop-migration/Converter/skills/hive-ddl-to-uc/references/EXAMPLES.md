@@ -60,13 +60,50 @@ CREATE TABLE main.analytics.events (
     day INT
 )
 USING DELTA
-PARTITIONED BY (year, month, day)
+CLUSTER BY (year, month, day)
 COMMENT 'Migrated from Hive external table';
+-- Note: PARTITIONED BY converted to CLUSTER BY (Liquid Clustering)
 
 -- Load existing data:
 -- COPY INTO main.analytics.events
 --   FROM 's3://datalake/data/events'
 --   FILEFORMAT = PARQUET;
+```
+
+## Example 2b: Partitioned External Table (Iceberg)
+
+### Before (Hive)
+```sql
+CREATE EXTERNAL TABLE events (
+    event_id STRING,
+    user_id INT,
+    event_type STRING,
+    payload STRING
+)
+PARTITIONED BY (year INT, month INT, day INT)
+STORED AS PARQUET
+LOCATION 'hdfs:///data/events';
+```
+
+### After (Unity Catalog — Iceberg)
+```sql
+CREATE TABLE main.analytics.events (
+    event_id STRING,
+    user_id INT,
+    event_type STRING,
+    payload STRING,
+    year INT,
+    month INT,
+    day INT
+)
+USING ICEBERG
+CLUSTER BY (year, month, day)
+TBLPROPERTIES (
+    'delta.enableDeletionVectors' = false,
+    'delta.enableRowTracking' = false
+);
+-- Note: PARTITIONED BY converted to CLUSTER BY (Liquid Clustering)
+-- Note: Iceberg v2 requires disabling DVs and row tracking for Liquid Clustering
 ```
 
 ## Example 3: Bucketed Table with SerDe
@@ -211,7 +248,8 @@ CREATE TABLE main.analytics.fact_orders (
     month INT
 )
 USING DELTA
-PARTITIONED BY (year, month);
+CLUSTER BY (year, month);
+-- Note: PARTITIONED BY converted to CLUSTER BY (Liquid Clustering)
 
 CREATE VIEW main.analytics.monthly_revenue AS
 SELECT year, month, SUM(amount) as revenue

@@ -63,7 +63,12 @@ LOCATION 's3://bucket/data/raw/events';
 | `STORED AS RCFILE` | `USING DELTA` | Must convert |
 | `STORED AS JSONFILE` | `USING DELTA` or `USING JSON` | Convert to Delta |
 
-### Partitioning
+### Partitioning → Liquid Clustering
+
+Hive `PARTITIONED BY` should be converted to Delta `CLUSTER BY` (Liquid Clustering).
+Liquid Clustering is the recommended replacement for both partitioning and bucketing
+in Databricks — it provides automatic data layout optimization without the rigidity
+of static partitions.
 
 ```sql
 -- Hive (partition columns separate from schema)
@@ -74,7 +79,7 @@ CREATE TABLE events (
 PARTITIONED BY (year INT, month INT, day INT)
 STORED AS PARQUET;
 
--- Unity Catalog (partition columns are part of schema)
+-- Unity Catalog (partition columns merged into schema, use Liquid Clustering)
 CREATE TABLE main.default.events (
     event_id STRING,
     payload STRING,
@@ -83,7 +88,26 @@ CREATE TABLE main.default.events (
     day INT
 )
 USING DELTA
-PARTITIONED BY (year, month, day);
+CLUSTER BY (year, month, day);
+-- Note: PARTITIONED BY converted to CLUSTER BY (Liquid Clustering)
+-- Liquid Clustering replaces static partitioning with automatic data layout optimization
+
+-- Iceberg variant (must disable DVs and row tracking for Liquid Clustering):
+CREATE TABLE main.default.events (
+    event_id STRING,
+    payload STRING,
+    year INT,
+    month INT,
+    day INT
+)
+USING ICEBERG
+CLUSTER BY (year, month, day)
+TBLPROPERTIES (
+    'delta.enableDeletionVectors' = false,
+    'delta.enableRowTracking' = false
+);
+-- Note: Iceberg v2 does not support deletion vectors or row tracking.
+-- These must be explicitly disabled to enable Liquid Clustering on managed Iceberg tables.
 ```
 
 ### CLUSTERED BY / SORTED BY
@@ -144,12 +168,25 @@ These Hive-specific properties should be dropped:
 ### Properties to Add (recommended)
 
 ```sql
+-- For Delta tables:
 TBLPROPERTIES (
     'delta.autoOptimize.optimizeWrite' = 'true',
     'delta.autoOptimize.autoCompact' = 'true',
     'migrated_from' = 'hive',
     'migration_date' = '2026-03-24'
 )
+
+-- For Iceberg tables with Liquid Clustering (CLUSTER BY):
+TBLPROPERTIES (
+    'delta.enableDeletionVectors' = false,
+    'delta.enableRowTracking' = false,
+    'migrated_from' = 'hive',
+    'migration_date' = '2026-03-24'
+)
+-- Note: Iceberg v2 spec does not support deletion vectors or row tracking.
+-- These must be disabled to enable Liquid Clustering on managed Iceberg tables.
+-- Without this, CREATE TABLE will fail with:
+-- [MANAGED_ICEBERG_ATTEMPTED_TO_ENABLE_CLUSTERING_WITHOUT_DISABLING_DVS_OR_ROW_TRACKING]
 ```
 
 ## ALTER TABLE

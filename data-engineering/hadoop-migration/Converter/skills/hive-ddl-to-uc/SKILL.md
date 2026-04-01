@@ -31,8 +31,13 @@ When given Hive DDL to convert:
    c. Remove/convert `LOCATION` clauses (managed tables don't need LOCATION in UC)
    d. Convert SerDe definitions to format options
    e. Remove Hive-specific properties (`TBLPROPERTIES` that don't apply)
-   f. Convert partitioning syntax if needed
+   f. Convert `PARTITIONED BY` → `CLUSTER BY` (Liquid Clustering)
    g. Add `COMMENT` and `TBLPROPERTIES` for lineage tracking
+   h. **Iceberg-specific**: When target format is `USING ICEBERG`, any table with `CLUSTER BY`
+      must include `'delta.enableDeletionVectors' = false` and
+      `'delta.enableRowTracking' = false` in TBLPROPERTIES.
+      This is required because Iceberg v2 spec does not support deletion vectors or
+      row tracking, which are normally required for Liquid Clustering concurrency control.
 
 3. **Output** the converted DDL with inline comments explaining each change
 
