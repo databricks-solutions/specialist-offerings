@@ -11,6 +11,7 @@ Route to the appropriate conversion skill based on the first argument.
 
 ```
 /convert hive-ddl <file-or-code>     → hive-ddl-to-uc skill
+/convert hive-ddl-sqlglot <file>     → hive-ddl-to-uc-sqlglot skill (sqlglot-powered)
 /convert spark <file-or-code>        → spark-to-databricks skill
 /convert hive-sql <file-or-code>     → hive-sql-to-spark-sql skill
 /convert sqoop <command-or-file>     → sqoop-to-databricks skill

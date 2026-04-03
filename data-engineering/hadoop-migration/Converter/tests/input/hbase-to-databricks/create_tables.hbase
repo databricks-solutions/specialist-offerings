@@ -1,0 +1,37 @@
+# HBase shell commands to create tables
+
+# Customer table with multiple column families
+create 'customers',
+  {NAME => 'info', VERSIONS => 3, TTL => 2592000, BLOOMFILTER => 'ROW', COMPRESSION => 'SNAPPY'},
+  {NAME => 'address', VERSIONS => 1, BLOOMFILTER => 'ROWCOL'},
+  {NAME => 'orders', VERSIONS => 10, TTL => 7776000, COMPRESSION => 'LZ4'}
+
+# Product catalog table
+create 'products',
+  {NAME => 'details', VERSIONS => 5, COMPRESSION => 'SNAPPY', BLOCKSIZE => 65536},
+  {NAME => 'pricing', VERSIONS => 100, TTL => 31536000},
+  {NAME => 'inventory', VERSIONS => 1, BLOOMFILTER => 'ROW'}
+
+# Transactions table with pre-split regions
+create 'transactions',
+  {NAME => 'txn', VERSIONS => 1, COMPRESSION => 'SNAPPY', DATA_BLOCK_ENCODING => 'FAST_DIFF'},
+  {NAME => 'metadata', VERSIONS => 1},
+  SPLITS => ['10', '20', '30', '40', '50', '60', '70', '80', '90']
+
+# Time-series events table
+create 'events',
+  {NAME => 'data', VERSIONS => 1, TTL => 604800, COMPRESSION => 'GZ', BLOOMFILTER => 'ROW'},
+  {NAME => 'tags', VERSIONS => 1, TTL => 604800}
+
+# Add some sample data
+put 'customers', 'cust001', 'info:name', 'John Doe'
+put 'customers', 'cust001', 'info:email', 'john.doe@example.com'
+put 'customers', 'cust001', 'address:street', '123 Main St'
+put 'customers', 'cust001', 'address:city', 'Springfield'
+put 'customers', 'cust001', 'address:state', 'IL'
+put 'customers', 'cust001', 'orders:ord001', '{"product":"widget","qty":5,"total":49.95}'
+
+put 'products', 'prod001', 'details:name', 'Premium Widget'
+put 'products', 'prod001', 'details:category', 'Electronics'
+put 'products', 'prod001', 'pricing:list_price', '12.99'
+put 'products', 'prod001', 'inventory:count', '1500'
