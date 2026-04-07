@@ -60,7 +60,7 @@ def create_hourly_yarn_view(conn) -> int:
     conn.execute("""
         CREATE TABLE hourly_yarn_view AS
         SELECT
-            strftime(to_timestamp(started_time / 1000), '%Y-%m-%d %H:00:00') AS hour_bucket,
+            strftime(to_timestamp(CAST(started_time / 1000 AS BIGINT)), '%Y-%m-%d %H:00:00') AS hour_bucket,
             COUNT(*) AS total_apps,
             SUM(memory_gb_hours) AS total_memory_gb_hours,
             SUM(vcore_hours) AS total_vcore_hours,
