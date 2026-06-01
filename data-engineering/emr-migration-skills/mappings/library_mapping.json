@@ -1,0 +1,180 @@
+{
+  "description": "EMR bundled library versions mapped to Databricks Runtime equivalents",
+  "notes": "Libraries marked 'pre-installed' are included in DBR and should NOT be separately installed. Libraries marked 'install_required' must be added as cluster libraries or via %pip.",
+  "core_libraries": [
+    {
+      "library": "hadoop-aws",
+      "emr_6_15": "3.3.6",
+      "emr_7_0": "3.3.6",
+      "emr_7_2": "3.4.0",
+      "dbr_14_3": "Bundled (optimized)",
+      "dbr_15_4": "Bundled (optimized)",
+      "status": "pre-installed",
+      "notes": "Databricks uses its own optimized S3 connector. Do NOT install hadoop-aws separately."
+    },
+    {
+      "library": "aws-java-sdk-bundle",
+      "emr_6_15": "1.12.x",
+      "emr_7_0": "1.12.x",
+      "emr_7_2": "1.12.x",
+      "dbr_14_3": "1.12.x (bundled)",
+      "dbr_15_4": "1.12.x (bundled)",
+      "status": "pre-installed",
+      "notes": "Bundled with Databricks. Version conflicts are common if you bring your own."
+    },
+    {
+      "library": "delta-core",
+      "emr_6_15": "Not bundled (manual install)",
+      "emr_7_0": "Not bundled (manual install)",
+      "emr_7_2": "Not bundled (manual install)",
+      "dbr_14_3": "3.1.0 (pre-installed)",
+      "dbr_15_4": "3.2.0 (pre-installed)",
+      "status": "pre-installed",
+      "notes": "Native on Databricks. Remove any manual delta-core installation."
+    },
+    {
+      "library": "iceberg-spark-runtime",
+      "emr_6_15": "1.3.x (optional)",
+      "emr_7_0": "1.4.x (optional)",
+      "emr_7_2": "1.5.x (optional)",
+      "dbr_14_3": "1.4.x (pre-installed)",
+      "dbr_15_4": "1.5.x (pre-installed)",
+      "status": "pre-installed",
+      "notes": "Pre-installed on DBR 14.3+. Remove manual installation."
+    },
+    {
+      "library": "hive-metastore-client",
+      "emr_6_15": "3.1.3",
+      "emr_7_0": "3.1.3",
+      "emr_7_2": "4.0.0",
+      "dbr_14_3": "Not needed (Unity Catalog)",
+      "dbr_15_4": "Not needed (Unity Catalog)",
+      "status": "remove",
+      "notes": "Unity Catalog replaces Hive metastore. Remove hive-metastore dependencies."
+    },
+    {
+      "library": "guava",
+      "emr_6_15": "29.0",
+      "emr_7_0": "31.1",
+      "emr_7_2": "33.0",
+      "dbr_14_3": "31.1",
+      "dbr_15_4": "32.1",
+      "status": "pre-installed",
+      "notes": "Version conflicts are the #1 cause of ClassNotFoundException. Do NOT shade or bundle your own Guava."
+    },
+    {
+      "library": "jackson-databind",
+      "emr_6_15": "2.14.x",
+      "emr_7_0": "2.15.x",
+      "emr_7_2": "2.16.x",
+      "dbr_14_3": "2.15.x",
+      "dbr_15_4": "2.16.x",
+      "status": "pre-installed",
+      "notes": "Bundled. Mismatched Jackson versions cause serialization errors."
+    }
+  ],
+  "python_libraries": [
+    {
+      "library": "pandas",
+      "emr_6_15": "1.5.x",
+      "emr_7_0": "2.0.x",
+      "emr_7_2": "2.1.x",
+      "dbr_14_3": "1.5.3",
+      "dbr_15_4": "2.1.x",
+      "status": "pre-installed",
+      "notes": "Pre-installed. Check for pandas 1.x vs 2.x API changes."
+    },
+    {
+      "library": "numpy",
+      "emr_6_15": "1.24.x",
+      "emr_7_0": "1.25.x",
+      "emr_7_2": "1.26.x",
+      "dbr_14_3": "1.24.x",
+      "dbr_15_4": "1.26.x",
+      "status": "pre-installed",
+      "notes": "Pre-installed."
+    },
+    {
+      "library": "scikit-learn",
+      "emr_6_15": "1.2.x",
+      "emr_7_0": "1.3.x",
+      "emr_7_2": "1.3.x",
+      "dbr_14_3": "1.3.x",
+      "dbr_15_4": "1.4.x",
+      "status": "pre-installed",
+      "notes": "Pre-installed on Databricks ML Runtime."
+    },
+    {
+      "library": "boto3",
+      "emr_6_15": "1.28.x",
+      "emr_7_0": "1.29.x",
+      "emr_7_2": "1.34.x",
+      "dbr_14_3": "Not installed",
+      "dbr_15_4": "Not installed",
+      "status": "install_required",
+      "notes": "Must install via %pip if AWS API access is needed from Databricks."
+    },
+    {
+      "library": "pyarrow",
+      "emr_6_15": "12.0.x",
+      "emr_7_0": "14.0.x",
+      "emr_7_2": "15.0.x",
+      "dbr_14_3": "14.0.x",
+      "dbr_15_4": "15.0.x",
+      "status": "pre-installed",
+      "notes": "Pre-installed. Used by Spark for Arrow-based UDFs."
+    },
+    {
+      "library": "tensorflow",
+      "emr_6_15": "2.12.x (optional)",
+      "emr_7_0": "2.14.x (optional)",
+      "emr_7_2": "2.15.x (optional)",
+      "dbr_14_3": "2.14.x (ML Runtime)",
+      "dbr_15_4": "2.15.x (ML Runtime)",
+      "status": "pre-installed",
+      "notes": "Pre-installed on Databricks ML Runtime. Use standard Runtime + %pip if ML Runtime is not used."
+    },
+    {
+      "library": "torch",
+      "emr_6_15": "2.0.x (optional)",
+      "emr_7_0": "2.1.x (optional)",
+      "emr_7_2": "2.2.x (optional)",
+      "dbr_14_3": "2.1.x (ML Runtime)",
+      "dbr_15_4": "2.3.x (ML Runtime)",
+      "status": "pre-installed",
+      "notes": "Pre-installed on Databricks ML Runtime with GPU support."
+    }
+  ],
+  "common_third_party": [
+    {
+      "library": "mysql-connector-java",
+      "status": "install_required",
+      "install_method": "Maven library on cluster: mysql:mysql-connector-java:8.0.x",
+      "notes": "For JDBC connections to MySQL/Aurora"
+    },
+    {
+      "library": "postgresql",
+      "status": "install_required",
+      "install_method": "Maven: org.postgresql:postgresql:42.7.x",
+      "notes": "For JDBC connections to PostgreSQL"
+    },
+    {
+      "library": "spark-xml",
+      "status": "install_required",
+      "install_method": "Maven: com.databricks:spark-xml_2.12:0.18.0",
+      "notes": "For reading/writing XML files"
+    },
+    {
+      "library": "spark-avro",
+      "status": "pre-installed",
+      "install_method": null,
+      "notes": "Pre-installed on DBR. Remove manual installation."
+    },
+    {
+      "library": "spark-excel",
+      "status": "install_required",
+      "install_method": "Maven: com.crealytics:spark-excel_2.12:3.5.1_0.20.4",
+      "notes": "For reading Excel files"
+    }
+  ]
+}

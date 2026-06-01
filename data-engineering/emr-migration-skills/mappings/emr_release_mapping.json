@@ -1,0 +1,131 @@
+{
+  "description": "EMR release label to Databricks Runtime version mapping",
+  "mappings": [
+    {
+      "emr_release": "emr-6.10.0",
+      "spark_version": "3.3.1",
+      "scala_version": "2.12",
+      "java_versions": ["8", "11"],
+      "python_version": "3.7",
+      "delta_version": null,
+      "recommended_dbr": "13.3 LTS",
+      "dbr_spark_version": "3.4.1",
+      "dbr_delta_version": "2.4",
+      "notes": "Older EMR; DBR 13.3 LTS is closest Spark match"
+    },
+    {
+      "emr_release": "emr-6.12.0",
+      "spark_version": "3.4.0",
+      "scala_version": "2.12",
+      "java_versions": ["8", "11"],
+      "python_version": "3.7",
+      "delta_version": null,
+      "recommended_dbr": "13.3 LTS",
+      "dbr_spark_version": "3.4.1",
+      "dbr_delta_version": "2.4",
+      "notes": "Good Spark version alignment with DBR 13.3 LTS"
+    },
+    {
+      "emr_release": "emr-6.15.0",
+      "spark_version": "3.4.1",
+      "scala_version": "2.12",
+      "java_versions": ["8", "11"],
+      "python_version": "3.9",
+      "delta_version": null,
+      "recommended_dbr": "14.3 LTS",
+      "dbr_spark_version": "3.5.0",
+      "dbr_delta_version": "3.1",
+      "notes": "Recommended: DBR 14.3 LTS. Minor Spark version bump (3.4→3.5) is safe."
+    },
+    {
+      "emr_release": "emr-7.0.0",
+      "spark_version": "3.5.0",
+      "scala_version": "2.12",
+      "java_versions": ["8", "11", "17"],
+      "python_version": "3.9",
+      "delta_version": null,
+      "recommended_dbr": "14.3 LTS",
+      "dbr_spark_version": "3.5.0",
+      "dbr_delta_version": "3.1",
+      "notes": "Exact Spark version match with DBR 14.3 LTS"
+    },
+    {
+      "emr_release": "emr-7.1.0",
+      "spark_version": "3.5.1",
+      "scala_version": "2.12",
+      "java_versions": ["8", "11", "17"],
+      "python_version": "3.9",
+      "delta_version": null,
+      "recommended_dbr": "15.4 LTS",
+      "dbr_spark_version": "3.5.0",
+      "dbr_delta_version": "3.2",
+      "notes": "DBR 15.4 LTS recommended for Java 17 support"
+    },
+    {
+      "emr_release": "emr-7.2.0",
+      "spark_version": "3.5.3",
+      "scala_version": "2.12",
+      "java_versions": ["8", "11", "17"],
+      "python_version": "3.9",
+      "delta_version": null,
+      "recommended_dbr": "15.4 LTS",
+      "dbr_spark_version": "3.5.0",
+      "dbr_delta_version": "3.2",
+      "notes": "Latest EMR 7.x; DBR 15.4 LTS is best match"
+    },
+    {
+      "emr_release": "emr-7.3.0",
+      "spark_version": "3.5.3",
+      "scala_version": "2.12",
+      "java_versions": ["11", "17"],
+      "python_version": "3.9",
+      "delta_version": null,
+      "recommended_dbr": "15.4 LTS",
+      "dbr_spark_version": "3.5.0",
+      "dbr_delta_version": "3.2",
+      "notes": "Java 8 dropped; aligns with DBR 15.4 LTS Java 17 default"
+    }
+  ],
+  "databricks_runtimes": [
+    {
+      "dbr_version": "13.3 LTS",
+      "spark_version": "3.4.1",
+      "scala_version": "2.12",
+      "java_version": "8",
+      "python_version": "3.10",
+      "delta_version": "2.4",
+      "eol_date": "2025-09",
+      "notes": "Legacy LTS; use for EMR 6.x migrations only"
+    },
+    {
+      "dbr_version": "14.3 LTS",
+      "spark_version": "3.5.0",
+      "scala_version": "2.12",
+      "java_version": "8",
+      "python_version": "3.10",
+      "delta_version": "3.1",
+      "eol_date": "2026-06",
+      "notes": "Current recommended LTS for most EMR migrations"
+    },
+    {
+      "dbr_version": "15.4 LTS",
+      "spark_version": "3.5.0",
+      "scala_version": "2.12",
+      "java_version": "17",
+      "python_version": "3.11",
+      "delta_version": "3.2",
+      "eol_date": "2027-03",
+      "notes": "Latest LTS; recommended for new migrations and Java 17"
+    },
+    {
+      "dbr_version": "16.0",
+      "spark_version": "4.0.0",
+      "scala_version": "2.13",
+      "java_version": "17",
+      "python_version": "3.12",
+      "delta_version": "4.0",
+      "eol_date": null,
+      "notes": "Spark 4.0; Scala 2.13 binary incompatibility — only for greenfield"
+    }
+  ]
+}

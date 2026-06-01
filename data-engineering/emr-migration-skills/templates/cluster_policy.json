@@ -1,0 +1,73 @@
+{
+  "name": "EMR Migration - Standard Policy",
+  "description": "Cluster policy for migrated EMR workloads. Enforces instance types, autoscaling limits, and Spark versions equivalent to the source EMR configuration.",
+  "definition": {
+    "spark_version": {
+      "type": "allowlist",
+      "values": [
+        "15.4.x-scala2.12",
+        "14.3.x-scala2.12"
+      ],
+      "defaultValue": "15.4.x-scala2.12"
+    },
+    "node_type_id": {
+      "type": "allowlist",
+      "values": [
+        "m5.xlarge",
+        "m5.2xlarge",
+        "m5.4xlarge",
+        "m5a.xlarge",
+        "m5a.2xlarge",
+        "r5.xlarge",
+        "r5.2xlarge",
+        "c5.xlarge",
+        "c5.2xlarge",
+        "i3.xlarge",
+        "i3.2xlarge"
+      ],
+      "defaultValue": "m5.xlarge"
+    },
+    "driver_node_type_id": {
+      "type": "allowlist",
+      "values": [
+        "m5.xlarge",
+        "m5.2xlarge"
+      ],
+      "defaultValue": "m5.xlarge"
+    },
+    "autoscale.min_workers": {
+      "type": "range",
+      "minValue": 1,
+      "maxValue": 4,
+      "defaultValue": 1
+    },
+    "autoscale.max_workers": {
+      "type": "range",
+      "minValue": 2,
+      "maxValue": 20,
+      "defaultValue": 8
+    },
+    "autotermination_minutes": {
+      "type": "range",
+      "minValue": 10,
+      "maxValue": 120,
+      "defaultValue": 30
+    },
+    "custom_tags.migrated_from": {
+      "type": "fixed",
+      "value": "emr"
+    },
+    "aws_attributes.availability": {
+      "type": "allowlist",
+      "values": [
+        "SPOT_WITH_FALLBACK",
+        "ON_DEMAND"
+      ],
+      "defaultValue": "SPOT_WITH_FALLBACK"
+    },
+    "spark_conf.spark.sql.adaptive.enabled": {
+      "type": "fixed",
+      "value": "true"
+    }
+  }
+}

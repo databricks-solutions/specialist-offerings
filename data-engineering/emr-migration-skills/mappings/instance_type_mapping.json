@@ -1,0 +1,193 @@
+{
+  "description": "EC2 instance types commonly used in EMR mapped to Databricks node types",
+  "notes": "Databricks uses the same EC2 instance types on AWS. The key differences are: (1) not all instance types are available as Databricks node types, (2) DBU pricing varies by instance family, (3) Graviton/ARM instances have different DBU rates.",
+  "mappings": [
+    {
+      "ec2_type": "m5.xlarge",
+      "vcpu": 4,
+      "memory_gb": 16,
+      "dbr_node_type": "m5.xlarge",
+      "dbu_per_hour": 1.0,
+      "category": "general_purpose",
+      "recommended_for": "general workloads, driver nodes",
+      "notes": "Most common EMR instance; direct 1:1 mapping"
+    },
+    {
+      "ec2_type": "m5.2xlarge",
+      "vcpu": 8,
+      "memory_gb": 32,
+      "dbr_node_type": "m5.2xlarge",
+      "dbu_per_hour": 2.0,
+      "category": "general_purpose",
+      "recommended_for": "medium workloads",
+      "notes": "Direct mapping"
+    },
+    {
+      "ec2_type": "m5.4xlarge",
+      "vcpu": 16,
+      "memory_gb": 64,
+      "dbr_node_type": "m5.4xlarge",
+      "dbu_per_hour": 4.0,
+      "category": "general_purpose",
+      "recommended_for": "large general workloads",
+      "notes": "Direct mapping"
+    },
+    {
+      "ec2_type": "m5.8xlarge",
+      "vcpu": 32,
+      "memory_gb": 128,
+      "dbr_node_type": "m5.8xlarge",
+      "dbu_per_hour": 8.0,
+      "category": "general_purpose",
+      "recommended_for": "very large workloads",
+      "notes": "Direct mapping"
+    },
+    {
+      "ec2_type": "m5a.xlarge",
+      "vcpu": 4,
+      "memory_gb": 16,
+      "dbr_node_type": "m5a.xlarge",
+      "dbu_per_hour": 0.75,
+      "category": "general_purpose",
+      "recommended_for": "cost-optimized general workloads",
+      "notes": "AMD variant; lower DBU cost"
+    },
+    {
+      "ec2_type": "m5a.2xlarge",
+      "vcpu": 8,
+      "memory_gb": 32,
+      "dbr_node_type": "m5a.2xlarge",
+      "dbu_per_hour": 1.5,
+      "category": "general_purpose",
+      "recommended_for": "cost-optimized medium workloads",
+      "notes": "AMD variant"
+    },
+    {
+      "ec2_type": "m6g.xlarge",
+      "vcpu": 4,
+      "memory_gb": 16,
+      "dbr_node_type": "m6g.xlarge",
+      "dbu_per_hour": 0.75,
+      "category": "general_purpose_graviton",
+      "recommended_for": "cost-optimized, PySpark-only workloads",
+      "notes": "Graviton/ARM; lower cost, good perf; not all Scala JARs are ARM-compatible"
+    },
+    {
+      "ec2_type": "m6g.2xlarge",
+      "vcpu": 8,
+      "memory_gb": 32,
+      "dbr_node_type": "m6g.2xlarge",
+      "dbu_per_hour": 1.5,
+      "category": "general_purpose_graviton",
+      "recommended_for": "cost-optimized medium workloads",
+      "notes": "Graviton/ARM"
+    },
+    {
+      "ec2_type": "r5.xlarge",
+      "vcpu": 4,
+      "memory_gb": 32,
+      "dbr_node_type": "r5.xlarge",
+      "dbu_per_hour": 1.0,
+      "category": "memory_optimized",
+      "recommended_for": "memory-intensive workloads, caching, large shuffles",
+      "notes": "Direct mapping; consider for Spark caching and large joins"
+    },
+    {
+      "ec2_type": "r5.2xlarge",
+      "vcpu": 8,
+      "memory_gb": 64,
+      "dbr_node_type": "r5.2xlarge",
+      "dbu_per_hour": 2.0,
+      "category": "memory_optimized",
+      "recommended_for": "large caching/shuffle workloads",
+      "notes": "Direct mapping"
+    },
+    {
+      "ec2_type": "r5.4xlarge",
+      "vcpu": 16,
+      "memory_gb": 128,
+      "dbr_node_type": "r5.4xlarge",
+      "dbu_per_hour": 4.0,
+      "category": "memory_optimized",
+      "recommended_for": "very large caching workloads",
+      "notes": "Direct mapping"
+    },
+    {
+      "ec2_type": "c5.xlarge",
+      "vcpu": 4,
+      "memory_gb": 8,
+      "dbr_node_type": "c5.xlarge",
+      "dbu_per_hour": 0.75,
+      "category": "compute_optimized",
+      "recommended_for": "CPU-intensive ETL, ML training",
+      "notes": "Direct mapping; lower memory per core"
+    },
+    {
+      "ec2_type": "c5.2xlarge",
+      "vcpu": 8,
+      "memory_gb": 16,
+      "dbr_node_type": "c5.2xlarge",
+      "dbu_per_hour": 1.5,
+      "category": "compute_optimized",
+      "recommended_for": "CPU-intensive workloads",
+      "notes": "Direct mapping"
+    },
+    {
+      "ec2_type": "c5.4xlarge",
+      "vcpu": 16,
+      "memory_gb": 32,
+      "dbr_node_type": "c5.4xlarge",
+      "dbu_per_hour": 3.0,
+      "category": "compute_optimized",
+      "recommended_for": "large CPU-intensive workloads",
+      "notes": "Direct mapping"
+    },
+    {
+      "ec2_type": "i3.xlarge",
+      "vcpu": 4,
+      "memory_gb": 30.5,
+      "dbr_node_type": "i3.xlarge",
+      "dbu_per_hour": 1.0,
+      "category": "storage_optimized",
+      "recommended_for": "local SSD storage, shuffle-heavy workloads",
+      "notes": "NVMe local storage; good for large shuffles and spill"
+    },
+    {
+      "ec2_type": "i3.2xlarge",
+      "vcpu": 8,
+      "memory_gb": 61,
+      "dbr_node_type": "i3.2xlarge",
+      "dbu_per_hour": 2.0,
+      "category": "storage_optimized",
+      "recommended_for": "Delta cache, large shuffle",
+      "notes": "NVMe local storage"
+    },
+    {
+      "ec2_type": "p3.2xlarge",
+      "vcpu": 8,
+      "memory_gb": 61,
+      "dbr_node_type": "p3.2xlarge",
+      "dbu_per_hour": 5.5,
+      "category": "gpu",
+      "recommended_for": "ML training, deep learning",
+      "notes": "V100 GPU; use Databricks ML Runtime"
+    },
+    {
+      "ec2_type": "g4dn.xlarge",
+      "vcpu": 4,
+      "memory_gb": 16,
+      "dbr_node_type": "g4dn.xlarge",
+      "dbu_per_hour": 1.5,
+      "category": "gpu",
+      "recommended_for": "ML inference, light training",
+      "notes": "T4 GPU; cost-effective for inference"
+    }
+  ],
+  "recommendations": {
+    "general_rule": "Start with the same instance type you use on EMR. Databricks Photon engine often allows downsizing by 30-50%.",
+    "photon_savings": "With Photon enabled, workloads often complete 2-3x faster, allowing smaller clusters or autoscaling to zero sooner.",
+    "spot_instances": "Databricks supports spot instances for workers. If EMR uses spot, continue using spot on Databricks.",
+    "serverless": "For intermittent workloads, consider Databricks Serverless compute — no cluster management, pay-per-query.",
+    "graviton": "Graviton instances offer ~20% cost savings. Safe for PySpark; verify Scala JAR ARM compatibility."
+  }
+}
