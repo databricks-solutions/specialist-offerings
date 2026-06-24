@@ -1,0 +1,59 @@
+@define workspace_region   "eastus2"
+@define workspace_id       "984752964297111"
+@define workspace_url      "adb-984752964297111.11.azuredatabricks.net"
+@define client_id          "01a0ee40-5c2a-40ad-8974-caba9aedd1a5"
+@define client_secret      "..."
+@define catalog            "alexn"
+@define schema             "zb"
+@define table              "syslog"
+source s_src {
+       system();
+       internal();
+};
+# Zerobus
+destination d_zerobus_http {
+ http(
+   url("https://`workspace_id`.zerobus.`workspace_region`.azuredatabricks.net:443/zerobus/v1/tables/`catalog`.`schema`.`table`/insert")
+   method("POST")
+   headers(
+     "Content-Type: application/json"
+     "Connection: keep-alive"
+   )
+   cloud-auth(
+     oauth2(
+       client_id("`client_id`")
+       client_secret("`client_secret`")
+       token_url("https://`workspace_url`/oidc/v1/token")
+       scope("all-apis")
+       resource("api://databricks/workspaces/`workspace_id`/zerobusDirectWriteApi")
+       authorization_details('[
+             {"type":"unity_catalog_privileges","object_type":"CATALOG","object_full_path":"`catalog`","privileges":["USE CATALOG"]},
+             {"type":"unity_catalog_privileges","object_type":"SCHEMA","object_full_path":"`catalog`.`schema`","privileges":["USE SCHEMA"]},
+             {"type":"unity_catalog_privileges","object_type":"TABLE","object_full_path":"`catalog`.`schema`.`table`","privileges":["SELECT","MODIFY"]}]')
+       auth_method(basic)
+     )
+   )
+   body-prefix("[")
+   body('$(format-json --scope none --omit-empty-values
+           time="${UNIXTIME}${USEC}"
+           source="syslog-ng-oauth2"
+           facility="${FACILITY}"
+           level="${LEVEL}"
+           host="${HOST}"
+           event="${MSG}")'
+   )
+   body-suffix("]")
+   delimiter(",")
+   batch-lines(10000)
+   batch-timeout(10)
+   timeout(10)
+   retries(3)
+   workers(4)
+   disk-buffer(
+     reliable(yes)
+     capacity-bytes(536870912)
+     flow-control-window-bytes(10485760)
+   )
+ );
+};
+log { source(s_src); destination(d_zerobus_http); };
