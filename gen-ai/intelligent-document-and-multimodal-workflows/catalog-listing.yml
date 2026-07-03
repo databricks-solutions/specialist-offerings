@@ -1,8 +1,8 @@
-# Intelligent Data Processing
-# Catalog listing for the Intelligent Data Processing offering
+# Intelligent Document and Multimodal Workflows
+# Catalog listing for the Intelligent Document and Multimodal Workflows offering
 
 # Required fields
-title: "Intelligent Data Processing"
+title: "Intelligent Document and Multimodal Workflows"
 
 # Industry and categorization
 # Global offering — `industry` intentionally omitted (stores NULL, surfaces across all verticals).
@@ -20,7 +20,8 @@ industry_lead: "q.yu@databricks.com"  # Max 255 characters — TODO add secondar
 # Links to internal resources
 # [pitch_deck, genie, reprise, yoodli, dbdemos, personas, recording, case_studies, app, github, demo, marketing, script, dashboard]
 links:
-  github: https://github.com/databricks-solutions/specialist-offerings/tree/main/gen-ai/intelligent-data-processing  # TODO update after merge
+  github: https://github.com/databricks-solutions/advance-document-processing
+  pitch_deck: https://docs.google.com/presentation/d/1n-h0rGQNIEqKjGqck5Nb9Jd5vinqXj1PgrU7wx6Bq8c/edit?slide=id.g33f4bcee764_0_0#slide=id.g33f4bcee764_0_0
 
 # Business alignment
 imperative: "GenAI Adoption"  # Max 255 characters
@@ -44,9 +45,9 @@ partner: ""  # Max 255 characters
 
 # Description and details
 demo_description: |
-  ## Intelligent Data Processing
+  ## Intelligent Document and Multimodal Workflows
 
-  > **SSA offering — how to engage:** If you are interested in this SSA Offering, follow the ASQ process (go/gethelp): Product Help > Pilot/Production Advisory; then put the tag #ssa-offering #intelligent-data-processing in both the **Title** and **Description** fields.
+  > **SSA offering — how to engage:** If you are interested in this SSA Offering, follow the ASQ process (go/gethelp): Product Help > Pilot/Production Advisory; then put the tag #ssa-offering #intelligent-document-and-multimodal-workflows in both the **Title** and **Description** fields.
 
   **GOAL:** Accelerate the design, build, evaluate, and productionization of complex intelligent data processing workflows that turn unstructured and multi-modal data into governed assets on the Databricks Lakehouse — using AI Functions, FMAPI for batch and streaming inference.
 
