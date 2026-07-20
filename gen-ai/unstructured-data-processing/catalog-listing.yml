@@ -1,8 +1,8 @@
-# Intelligent Document and Multimodal Workflows
-# Catalog listing for the Intelligent Document and Multimodal Workflows offering
+# Unstructured Data Processing
+# Catalog listing for the Unstructured Data Processing offering
 
 # Required fields
-title: "Intelligent Document and Multimodal Workflows"
+title: "Unstructured Data Processing"
 
 # Industry and categorization
 # Global offering — `industry` intentionally omitted (stores NULL, surfaces across all verticals).
@@ -45,9 +45,9 @@ partner: ""  # Max 255 characters
 
 # Description and details
 demo_description: |
-  ## Intelligent Document and Multimodal Workflows
+  ## Unstructured Data Processing
 
-  > **SSA offering — how to engage:** If you are interested in this SSA Offering, follow the ASQ process (go/gethelp): Product Help > Pilot/Production Advisory; then put the tag #ssa-offering #intelligent-document-and-multimodal-workflows in both the **Title** and **Description** fields.
+  > **SSA offering — how to engage:** If you are interested in this SSA Offering, follow the ASQ process (go/gethelp): Product Help > Pilot/Production Advisory; then put the tag #ssa-offering #unstructured-data-processing in both the **Title** and **Description** fields.
 
   **GOAL:** Accelerate the design, build, evaluate, and productionization of complex intelligent data processing workflows that turn unstructured and multi-modal data into governed assets on the Databricks Lakehouse — using AI Functions, FMAPI for batch and streaming inference.
 

@@ -1,9 +1,5 @@
 # FINS SSA AI Team — Offering & FEIP Registry
 # ---------------------------------------------
-# Consumed by the `/refresh-offerings` skill (in databricks-ssa-ai-workflow plugin)
-# to refresh the Confluence "Offerings and Projects" page (ID 6239453331's sibling,
-# page 6237684017).
-#
 # This file is FINS-SSA-AI-team specific and intentionally lives ALONGSIDE — not inside —
 # the per-offering `catalog-listing.yml` files. The global Field Catalog schema
 # (catalog-listing.yml) is owned by the broader specialist-offerings program; this
@@ -18,20 +14,18 @@
 #   - Adding a brand-new FEIP idea: add to `feip_placeholders` and reference as
 #     PLACEHOLDER:slug under one or more offerings' `feips:` list. The same
 #     PLACEHOLDER:slug can appear under multiple offerings (shared component).
-#
-# Refresh:  Run `/fins-ssa-ai-confluence:refresh-offerings` from Claude Code.
 
 team: FINS SSA AI
 confluence_page_id: 6237684017
 last_updated: 2026-06-26
 
 offerings:
-  - id: intelligent-document-and-multimodal-workflows
-    name: Intelligent Document and Multimodal Workflows
+  - id: unstructured-data-processing
+    name: Unstructured Data Processing
     aka: Unstructured Data Parsing
     status: In Progress
-    catalog_listing: gen-ai/intelligent-document-and-multimodal-workflows/catalog-listing.yml
-    repo_url: https://github.com/databricks-solutions/specialist-offerings/tree/main/gen-ai/intelligent-document-and-multimodal-workflows
+    catalog_listing: gen-ai/unstructured-data-processing/catalog-listing.yml
+    repo_url: https://github.com/databricks-solutions/specialist-offerings/tree/main/gen-ai/unstructured-data-processing
     owners:
       - q.yu@databricks.com
     description: >-
@@ -54,7 +48,6 @@ offerings:
       primitives (harness, memory, retrieval) as a single drop-in offering.
     feips:
       - PLACEHOLDER:genai-skill-harness        # GenAI Skill Harness (Ben)
-      - PLACEHOLDER:agent-memory-pattern       # Agent Memory Pattern (Birbal)
       - PLACEHOLDER:agentic-retriever-mcp      # Agentic Retriever MCP Server (Ben)
       - PLACEHOLDER:vector-search-recipes      # Vector Search Index Recipes (Qian, shared)
 
@@ -65,11 +58,6 @@ feip_placeholders:
   genai-skill-harness:
     name: GenAI Skill Harness
     owner: Ben Doan
-    status: Not Started
-
-  agent-memory-pattern:
-    name: Agent Memory Pattern
-    owner: Birbal Das
     status: Not Started
 
   agentic-retriever-mcp:
