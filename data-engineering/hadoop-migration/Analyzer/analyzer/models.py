@@ -68,6 +68,14 @@ class WorkloadInventoryItem:
     rows_produced: Optional[int] = None
     duration_millis: Optional[int] = None
 
+    # Complexity scoring (Analyzer scoring module)
+    complexity: Optional[str] = None
+    complexity_signals: List[str] = field(default_factory=list)
+    complexity_reasons: List[str] = field(default_factory=list)
+    complexity_recommended_actions: List[str] = field(default_factory=list)
+    local_code_path: Optional[str] = None
+    convert_command: Optional[str] = None
+
     def to_dict(self) -> dict:
         d = {
             "workload_id": self.workload_id,
@@ -112,4 +120,16 @@ class WorkloadInventoryItem:
             d["rows_produced"] = self.rows_produced
         if self.duration_millis is not None:
             d["duration_millis"] = self.duration_millis
+        if self.complexity:
+            d["complexity"] = self.complexity
+        if self.complexity_signals:
+            d["complexity_signals"] = self.complexity_signals
+        if self.complexity_reasons:
+            d["complexity_reasons"] = self.complexity_reasons
+        if self.complexity_recommended_actions:
+            d["complexity_recommended_actions"] = self.complexity_recommended_actions
+        if self.local_code_path:
+            d["local_code_path"] = self.local_code_path
+        if self.convert_command:
+            d["convert_command"] = self.convert_command
         return d

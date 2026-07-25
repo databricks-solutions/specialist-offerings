@@ -28,6 +28,7 @@ def generate_csv_report(items: List[WorkloadInventoryItem], output_dir: str) -> 
         "code_artifact_paths", "dependency_paths",
         "oozie_workflow_name", "oozie_app_path",
         "database", "query_type", "duration_millis",
+        "complexity", "complexity_signals", "convert_command", "local_code_path",
     ]
 
     with open(output_path, "w", newline="") as f:
@@ -55,6 +56,10 @@ def generate_csv_report(items: List[WorkloadInventoryItem], output_dir: str) -> 
                 "database": item.database or "",
                 "query_type": item.query_type or "",
                 "duration_millis": item.duration_millis or "",
+                "complexity": item.complexity or "",
+                "complexity_signals": ";".join(item.complexity_signals),
+                "convert_command": item.convert_command or "",
+                "local_code_path": item.local_code_path or "",
             })
 
     logger.info("CSV report written to %s", output_path)

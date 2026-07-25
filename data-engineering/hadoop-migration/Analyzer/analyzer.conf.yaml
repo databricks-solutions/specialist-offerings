@@ -16,3 +16,8 @@ webhdfs:
 output:
   format: "json"
   dir: "./analyzer-output"
+
+complexity:
+  enabled: false
+  rules_dir: "./complexity_rules"
+  local_code_dir: ""

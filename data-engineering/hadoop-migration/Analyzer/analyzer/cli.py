@@ -8,8 +8,10 @@ import sys
 from analyzer.config import load_config
 from analyzer.inventory import InventoryBuilder
 from analyzer.models import WorkloadInventoryItem
+from analyzer.reporters.conversion_queue_reporter import generate_conversion_queue_report
 from analyzer.reporters.csv_reporter import generate_csv_report
 from analyzer.reporters.json_reporter import generate_json_report
+from analyzer.scoring.scorer import ComplexityScorer
 
 
 def setup_logging(verbose: bool = False):
@@ -29,6 +31,7 @@ def cmd_analyze(args):
     if config.webhdfs.enabled:
         items = builder.verify_paths(items)
 
+    _maybe_score(items, config, args.score_complexity)
     _output_report(items, config)
 
 
@@ -38,6 +41,7 @@ def cmd_parse_profiler(args):
     builder = InventoryBuilder(config)
     items = builder.build_from_profiler()
 
+    _maybe_score(items, config, args.score_complexity)
     _output_report(items, config)
 
 
@@ -47,6 +51,7 @@ def cmd_scan_oozie(args):
     builder = InventoryBuilder(config)
     items = builder.build_from_oozie()
 
+    _maybe_score(items, config, args.score_complexity)
     _output_report(items, config)
 
 
@@ -86,7 +91,16 @@ def cmd_verify_paths(args):
     builder = InventoryBuilder(config)
     items = builder.verify_paths(items)
 
+    _maybe_score(items, config, getattr(args, "score_complexity", False))
     _output_report(items, config)
+
+
+def _maybe_score(items, config, score_complexity: bool):
+    """Run complexity scoring when requested via CLI or config."""
+    if score_complexity:
+        config.complexity.enabled = True
+    if config.complexity.enabled:
+        ComplexityScorer(config).score_all(items)
 
 
 def _output_report(items, config):
@@ -102,12 +116,22 @@ def _output_report(items, config):
         path = generate_csv_report(items, output_dir)
         print(f"CSV report: {path}")
 
+    if any(item.complexity for item in items):
+        path = generate_conversion_queue_report(items, output_dir)
+        print(f"Conversion queue: {path}")
+
     # Print summary to stdout
     print(f"\nTotal workloads: {len(items)}")
     from collections import Counter
     type_counts = Counter(item.workload_type.value for item in items)
     for wtype, count in type_counts.most_common():
         print(f"  {wtype}: {count}")
+
+    complexity_counts = Counter(item.complexity for item in items if item.complexity)
+    if complexity_counts:
+        print("\nBy complexity:")
+        for tier, count in complexity_counts.most_common():
+            print(f"  {tier}: {count}")
 
 
 def main():
@@ -116,6 +140,11 @@ def main():
         description="Hadoop Workload Analyzer — build code-level inventory from profiler output and Oozie",
     )
     parser.add_argument("-v", "--verbose", action="store_true", help="Enable debug logging")
+    parser.add_argument(
+        "--score-complexity",
+        action="store_true",
+        help="Score code complexity (requires complexity.local_code_dir in config)",
+    )
 
     subparsers = parser.add_subparsers(dest="command", required=True)
 

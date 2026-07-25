@@ -26,12 +26,17 @@ def generate_json_report(items: List[WorkloadInventoryItem], output_dir: str) ->
         for src in item.source.split("+"):
             source_counts[src] += 1
 
+    complexity_counts = Counter(
+        item.complexity for item in items if item.complexity
+    )
+
     report = {
         "generated_at": datetime.now(timezone.utc).isoformat(),
         "total_workloads": len(items),
         "summary": {
             "by_type": dict(type_counts.most_common()),
             "by_source": dict(source_counts.most_common()),
+            "by_complexity": dict(complexity_counts.most_common()),
         },
         "inventory": [item.to_dict() for item in items],
     }
