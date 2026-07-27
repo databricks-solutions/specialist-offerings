@@ -1,0 +1,14 @@
+{
+  "name": "customer-uc1-rtm-fraud",
+  "max_concurrent_runs": 1,
+  "continuous": {"pause_status": "UNPAUSED"},
+  "tasks": [
+    {
+      "task_key": "uc1_rtm",
+      "existing_cluster_id": "<RTM_CLUSTER_ID>",
+      "notebook_task": {"notebook_path": "/Users/<USER_EMAIL>/customer_rtm/uc1_rtm_fraud"}
+    }
+  ],
+  "email_notifications": {"on_failure": ["<USER_EMAIL>"]},
+  "tags": {"project": "customer_rtm", "usecase": "uc1-rtm-fraud"}
+}

@@ -1,0 +1,9 @@
+# local sandbox state / secrets — never commit
+.customer_rtm/
+*.pem
+*.jks
+*.keystore
+.env
+.DS_Store
+__pycache__/
+*.pyc

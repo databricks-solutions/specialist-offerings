@@ -1,0 +1,25 @@
+{
+  "cluster_name": "customer-rtm-fraud",
+  "spark_version": "16.4.x-scala2.12",
+  "node_type_id": "i3.xlarge",
+  "driver_node_type_id": "i3.xlarge",
+  "num_workers": 4,
+  "autoscale": null,
+  "data_security_mode": "SINGLE_USER",
+  "runtime_engine": "PHOTON",
+  "autotermination_minutes": 60,
+  "spark_conf": {
+    "spark.databricks.streaming.realTimeMode.enabled": "true",
+    "spark.sql.streaming.stateStore.providerClass": "org.apache.spark.sql.execution.streaming.state.RocksDBStateStoreProvider",
+    "spark.sql.shuffle.partitions": "12"
+  },
+  "custom_tags": {
+    "project": "customer_rtm",
+    "usecase": "uc1-rtm-fraud",
+    "ephemeral": "true"
+  },
+  "aws_attributes": {
+    "availability": "ON_DEMAND",
+    "first_on_demand": 3
+  }
+}
