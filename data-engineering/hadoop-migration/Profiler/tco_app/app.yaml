@@ -4,10 +4,16 @@ command:
 env:
   - name: DATABRICKS_HOST
     valueFrom: host
+  # Resolved from the app's "sql-warehouse" resource rather than hardcoded, so
+  # this file is not tied to one workspace. Bind the warehouse at deploy time:
+  #
+  #   databricks apps update <app-name> --json '{
+  #     "resources": [{
+  #       "name": "sql-warehouse",
+  #       "sql_warehouse": {"id": "<warehouse-id>", "permission": "CAN_USE"}
+  #     }]
+  #   }'
+  #
+  # For local development, export DATABRICKS_SQL_WAREHOUSE_ID directly.
   - name: DATABRICKS_SQL_WAREHOUSE_ID
-    value: "80bb9cfd8c6e5b05"
-resources:
-  - name: sql-warehouse
-    sql_warehouse:
-      id: "80bb9cfd8c6e5b05"
-      permission: CAN_USE
+    valueFrom: sql-warehouse

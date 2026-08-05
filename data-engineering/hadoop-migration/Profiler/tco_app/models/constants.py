@@ -81,7 +81,19 @@ DBU_RATES = {
 # Hours per year for annualization
 HOURS_PER_YEAR = 8_760
 HOURS_PER_DAY = 24
+DAYS_PER_YEAR = 365
 QUARTERS_PER_YEAR = 4
+
+# Shortest profiler observation window trusted for annualizing DBU costs.
+# Profiler memory_gb_hours covers only the capture window, so it is scaled by
+# DAYS_PER_YEAR / window_days. Anything below this floor (e.g. a 15-minute
+# smoke-test capture) would extrapolate to an absurd annual figure, so the
+# floor is applied and the run is flagged as low confidence.
+MIN_WINDOW_DAYS = 1.0
+
+# A profiler capture shorter than this many days is statistically weak for
+# annualization even if it clears the floor — surfaced as a warning.
+RECOMMENDED_WINDOW_DAYS = 7.0
 
 # Instance catalog: Databricks-supported instance types with specs
 # Format: {cloud: [(instance_type, vcpus, memory_gb), ...]}

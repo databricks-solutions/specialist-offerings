@@ -126,3 +126,15 @@ ALTER TABLE tco_runs ADD COLUMN three_year_hadoop_total DOUBLE COMMENT '3-year H
 ALTER TABLE tco_runs ADD COLUMN three_year_databricks_total DOUBLE COMMENT '3-year Databricks total cost';
 ALTER TABLE tco_runs ADD COLUMN three_year_savings DOUBLE COMMENT '3-year net savings';
 ALTER TABLE tco_runs ADD COLUMN vm_price_fetch_id STRING COMMENT 'FK to tco_vm_price_history for audit';
+
+-- ============================================================
+-- 4. Observation window (DBU annualization audit trail)
+--    Profiler memory_gb_hours covers only the capture window, so DBU costs
+--    are scaled by DAYS_PER_YEAR / window_days. Persist the window so a run's
+--    annual figures can be traced back to the sample they came from.
+-- ============================================================
+
+ALTER TABLE tco_runs ADD COLUMN observation_window_days DOUBLE COMMENT 'Profiler window used to annualize DBU costs';
+ALTER TABLE tco_runs ADD COLUMN annualization_factor DOUBLE COMMENT 'DAYS_PER_YEAR / observation_window_days';
+ALTER TABLE tco_runs ADD COLUMN window_floored BOOLEAN COMMENT 'True when the measured window was below the trusted floor (low confidence)';
+ALTER TABLE tco_run_details ADD COLUMN window_dbu_hours DOUBLE COMMENT 'Un-annualized DBU-hours over the profiler window';

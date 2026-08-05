@@ -356,8 +356,12 @@ python app.py  # http://localhost:8050
 | Setting | Description |
 |---------|-------------|
 | `DATABRICKS_HOST` | Auto-injected from workspace (`valueFrom: host`) |
-| `DATABRICKS_SQL_WAREHOUSE_ID` | SQL warehouse for all queries |
-| `resources.sql_warehouse` | Grants CAN_USE to app service principal |
+| `DATABRICKS_SQL_WAREHOUSE_ID` | Resolved from the `sql-warehouse` resource (`valueFrom`), not hardcoded |
+
+`app.yaml` contains **no workspace-specific IDs** — the warehouse is bound at
+deploy time via `databricks apps update ... --json '{"resources": [...]}'`
+(step 4 under Deployment). Locally, export `DATABRICKS_SQL_WAREHOUSE_ID`
+yourself.
 
 Authentication is automatic: M2M OAuth in Databricks Apps, PAT/profile locally.
 
@@ -368,16 +372,42 @@ Authentication is automatic: M2M OAuth in Databricks Apps, PAT/profile locally.
 - **Editable mappings**: SKU mappings are stored in a table and editable in the UI, not hardcoded.
 - **System tables**: Pricing from `system.billing.list_prices`, node types from `system.compute.node_types` (requires account-level access).
 
+## DBU Annualization
+
+The source spreadsheet derives DBUs from static cluster **capacity**
+(nodes × vCores/node × %split × utilization) — a figure it labels
+"vCPUs 24/7/365", annual by construction with no observation window.
+
+This app deliberately deviates: it uses **measured** profiler workload
+(`memory_gb_hours`), which is a better basis but is only an accumulation over
+however long the profiler ran. `calculate_tco` therefore measures the window
+from `yarn_applications` and scales DBUs by `365 / window_days`:
+
+```
+window_dbus    = mem_gb_hours × utilization × overhead × (1 + dev_test) × (1 - perf_gain)
+estimated_dbus = window_dbus × annualization_factor
+```
+
+`get_observation_window_days()` prefers the count of distinct days over the
+wall-clock span, since profiler runs are typically daily snapshots rather than
+one continuous capture. A `MIN_WINDOW_DAYS = 1.0` floor prevents a short capture
+from extrapolating absurdly (a 15-minute smoke test would otherwise imply a
+~35,000× multiplier); when the floor is applied, the run is flagged
+`window_floored = true` and a warning is logged. Windows shorter than
+`RECOMMENDED_WINDOW_DAYS = 7.0` also warn, since they miss weekly seasonality.
+
+Each run persists `observation_window_days`, `annualization_factor` and
+`window_floored` on `tco_runs`, and `tco_run_details.window_dbu_hours` keeps the
+un-scaled measurement so any annual figure can be traced back to its sample.
+
+**Interpretation caveat:** on a small profiler capture, DBU and storage costs
+are genuinely tiny while `dbx_admin_cost` and `vm_cost_annual` are driven by
+assumption defaults (node count, admin headcount). `savings_pct` will therefore
+reflect those defaults more than measured workload until you profile a real
+estate for a week or more.
+
 ## Known Issues
 
-- **DBU compute cost is not annualized.** `total_compute_cost_annual`
-  (`models/cost_engine.py:334`) sums `mem_gb_hours × modifiers × price` over the
-  profiled window without scaling to a year. `HOURS_PER_YEAR` exists in
-  `models/constants.py:82` but is only applied to VM cost
-  (`cost_engine.py:269`), never to the DBU path. `total_storage_cost_annual`
-  has the same shape. Meanwhile `dbx_admin_cost` and `vm_cost_annual` *are*
-  genuinely annual, so they dominate the total and `savings_pct` largely
-  reflects the assumption defaults rather than measured workload.
-- Short profiler runs make this obvious: a CDH QuickStart capture of 35 apps /
-  0.46 total memory GB-hours yields `total_compute_cost_annual` = $0.04 while
-  reporting 88% savings.
+- `migration_timeline.py:60` documents a 43.75% (7/16) Hadoop shutdown threshold
+  from the spreadsheet, but the line below it uses `migration_pct >= 1.0`.
+  Either the comment is stale or the threshold was never implemented.

@@ -14,6 +14,7 @@ Cost categories:
 7. Migration (3-year timeline)
 """
 
+import logging
 import uuid
 from datetime import datetime
 import pandas as pd
@@ -27,7 +28,61 @@ from models.migration_timeline import (
 )
 from models.constants import (
     PERFORMANCE_GAINS, DBSQL_UTILIZATION, DEFAULT_ASSUMPTIONS, HOURS_PER_YEAR,
+    DAYS_PER_YEAR, MIN_WINDOW_DAYS, RECOMMENDED_WINDOW_DAYS,
 )
+
+logger = logging.getLogger(__name__)
+
+
+def get_observation_window_days(catalog: str, schema: str) -> dict:
+    """Measure the profiler observation window from yarn_applications.
+
+    Profiler memory_gb_hours is the raw total for however long the profiler
+    ran, so DBU costs must be scaled to a year before they can be compared
+    against the annual Hadoop/VM/admin figures.
+
+    Returns the measured span plus the annualization factor actually applied.
+    `distinct_days` is preferred over wall-clock span because profiler runs
+    are usually scheduled daily snapshots rather than one continuous capture.
+
+    A MIN_WINDOW_DAYS floor guards against extrapolating a tiny sample: a
+    15-minute smoke-test capture would otherwise imply a ~35,000x multiplier.
+    """
+    tbl = f"{catalog}.{schema}.yarn_applications"
+    try:
+        df = execute_query(f"""
+            SELECT
+                COUNT(DISTINCT to_date(from_unixtime(started_time / 1000))) AS distinct_days,
+                (MAX(finished_time) - MIN(started_time)) / 1000.0 / 86400 AS span_days,
+                COUNT(*) AS apps
+            FROM {tbl}
+            WHERE started_time IS NOT NULL AND started_time > 0
+        """)
+    except Exception:
+        logger.warning("Could not measure observation window; assuming 1 day")
+        return {"window_days": 1.0, "distinct_days": 0, "span_days": 0.0,
+                "annualization_factor": float(DAYS_PER_YEAR), "floored": True}
+
+    if df.empty or pd.isna(df.iloc[0]["distinct_days"]):
+        return {"window_days": 1.0, "distinct_days": 0, "span_days": 0.0,
+                "annualization_factor": float(DAYS_PER_YEAR), "floored": True}
+
+    row = df.iloc[0]
+    distinct_days = int(row["distinct_days"] or 0)
+    span_days = float(row["span_days"] or 0)
+
+    measured = max(float(distinct_days), span_days)
+    window_days = max(measured, MIN_WINDOW_DAYS)
+
+    return {
+        "window_days": round(window_days, 4),
+        "distinct_days": distinct_days,
+        "span_days": round(span_days, 4),
+        "annualization_factor": round(DAYS_PER_YEAR / window_days, 4),
+        # True when the measured window was too short to trust and the floor
+        # was applied instead — the caller should surface this as low confidence.
+        "floored": measured < MIN_WINDOW_DAYS,
+    }
 
 
 def get_workload_summary(catalog: str, schema: str) -> pd.DataFrame:
@@ -175,6 +230,33 @@ def calculate_tco(
     if hadoop_cost_annual and hadoop_cost_annual > 0:
         hadoop_annual = hadoop_cost_annual
 
+    # Step 4b: Measure the profiler observation window.
+    #
+    # NOTE ON DEVIATION FROM THE SOURCE SPREADSHEET:
+    # The sheet derives DBUs from static cluster *capacity*
+    # (nodes x vCores/node x %split x utilization), a figure it labels
+    # "vCPUs 24/7/365" — annual by construction, with no observation window.
+    # This app instead uses *measured* profiler workload (memory_gb_hours),
+    # which is a better basis but is only an accumulation over however long
+    # the profiler ran. It therefore has to be scaled to a year explicitly;
+    # otherwise DBU cost is understated by roughly DAYS_PER_YEAR / window_days
+    # while the Hadoop, VM and admin figures are already annual.
+    window = get_observation_window_days(catalog, schema)
+    annualization_factor = window["annualization_factor"]
+    if window["floored"]:
+        logger.warning(
+            "Profiler window is only %.4f days (%d distinct day(s)); using the "
+            "%.1f-day floor. Annualized DBU costs are extrapolated from a very "
+            "small sample and should be treated as low confidence.",
+            window["span_days"], window["distinct_days"], MIN_WINDOW_DAYS,
+        )
+    elif window["window_days"] < RECOMMENDED_WINDOW_DAYS:
+        logger.warning(
+            "Profiler window is %.2f days, below the recommended %.0f days; "
+            "annualized DBU costs may not reflect weekly seasonality.",
+            window["window_days"], RECOMMENDED_WINDOW_DAYS,
+        )
+
     # Step 5-6: Split workloads by compute_category and estimate DBUs
     run_id = str(uuid.uuid4())
     details = []
@@ -200,12 +282,15 @@ def calculate_tco(
         mem_gb_hours = float(row["total_memory_gb_hours"] or 0)
         compute_cat = row.get("compute_category", "jobs")
 
-        # Apply stream-specific modifiers
-        # Spreadsheet formula: vCPUs × utilization × (1 + dev_test) × HT_factor × (1 - perf_gain)
-        estimated_dbus = (
+        # Apply stream-specific modifiers.
+        # mem_gb_hours covers only the profiler window, so scale to a year.
+        # Modifiers mirror the sheet: utilization x overhead x (1 + dev_test)
+        # x (1 - perf_gain).
+        window_dbus = (
             mem_gb_hours * util_factor * overhead_factor
             * (1 + dev_test_uplift) * (1 - perf_gain)
         )
+        estimated_dbus = window_dbus * annualization_factor
 
         price_info = get_price_for_sku(snapshot_id, sku, cloud, catalog, schema)
         list_price = price_info["list_price"]
@@ -225,7 +310,10 @@ def calculate_tco(
             "total_apps": int(row["total_apps"]),
             "total_memory_gb_hours": mem_gb_hours,
             "total_vcore_hours": float(row["total_vcore_hours"] or 0),
+            # Annualized. window_dbu_hours keeps the un-scaled measurement
+            # visible so the extrapolation is auditable.
             "estimated_dbu_hours": round(estimated_dbus, 2),
+            "window_dbu_hours": round(window_dbus, 4),
             "dbu_list_price": list_price,
             "dbu_effective_price": effective_price,
             "estimated_cost": round(annual_cost, 2),
@@ -317,6 +405,7 @@ def calculate_tco(
         hadoop_annual=hadoop_annual,
         savings_pct=savings_pct,
         timeline_summary=timeline_summary,
+        observation_window=window,
     )
     _write_run_details(details, catalog, schema)
     _write_migration_timeline(run_id, timeline, catalog, schema)
@@ -340,6 +429,10 @@ def calculate_tco(
         "total_cost_annual": round(total_dbx_annual, 2),
         "savings_pct": round(savings_pct, 1) if savings_pct else None,
         "workload_count": len(details),
+        # Observation window used to annualize DBU costs. `floored` / a
+        # window_days below RECOMMENDED_WINDOW_DAYS means the annual figures
+        # are extrapolated from a short capture — surface this to the user.
+        "observation_window": window,
         "details": details,
         "storage": storage_result,
         "vm": vm_result,
@@ -363,7 +456,8 @@ def _category_to_stream(compute_category: str) -> str:
 def _write_run(run_id, run_name, assumption_id, snapshot_id,
                catalog, schema, *, hadoop_costs, stream_dbu_costs,
                vm_cost, storage_cost, dbx_support, dbx_admin,
-               total_dbx, hadoop_annual, savings_pct, timeline_summary):
+               total_dbx, hadoop_annual, savings_pct, timeline_summary,
+               observation_window):
     """Insert a row into tco_runs with full cost breakdown."""
     tbl = qualified_table("tco_runs", catalog, schema)
     now = datetime.utcnow().isoformat()
@@ -383,6 +477,7 @@ def _write_run(run_id, run_name, assumption_id, snapshot_id,
          dbx_vm_cost, dbx_support_cost, dbx_admin_cost,
          migration_cost_total, three_year_hadoop_total, three_year_databricks_total,
          three_year_savings,
+         observation_window_days, annualization_factor, window_floored,
          created_by, created_at)
         VALUES (
             '{run_id}', '{run_name}', '{assumption_id}', '{snapshot_id}',
@@ -399,6 +494,9 @@ def _write_run(run_id, run_name, assumption_id, snapshot_id,
             {timeline_summary.get('do_nothing_total', 0)},
             {timeline_summary.get('three_year_total', 0)},
             {timeline_summary.get('net_savings', 0)},
+            {observation_window['window_days']},
+            {observation_window['annualization_factor']},
+            {str(observation_window['floored']).lower()},
             'app', '{now}'
         )
     """)
@@ -412,12 +510,14 @@ def _write_run_details(details: list[dict], catalog: str, schema: str):
             INSERT INTO {tbl}
             (run_id, job_type, target_sku, total_apps,
              total_memory_gb_hours, total_vcore_hours,
-             estimated_dbu_hours, dbu_list_price, dbu_effective_price,
+             estimated_dbu_hours, window_dbu_hours,
+             dbu_list_price, dbu_effective_price,
              estimated_cost, hadoop_equivalent_cost)
             VALUES (
                 '{d["run_id"]}', '{d["job_type"]}', '{d["target_sku"]}',
                 {d["total_apps"]}, {d["total_memory_gb_hours"]},
                 {d["total_vcore_hours"]}, {d["estimated_dbu_hours"]},
+                {d["window_dbu_hours"]},
                 {d["dbu_list_price"]}, {d["dbu_effective_price"]},
                 {d["estimated_cost"]}, {d["hadoop_equivalent_cost"]}
             )
