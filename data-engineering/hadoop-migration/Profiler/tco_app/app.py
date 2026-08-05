@@ -132,5 +132,7 @@ def initialize_tco_tables(n_clicks, catalog, schema):
 
 
 if __name__ == "__main__":
-    port = int(os.getenv("PORT", 8050))
+    # Databricks Apps sets DATABRICKS_APP_PORT; PORT is the generic fallback,
+    # and 8050 is the Dash default for local development.
+    port = int(os.getenv("DATABRICKS_APP_PORT") or os.getenv("PORT") or 8050)
     app.run(host="0.0.0.0", port=port, debug=False)

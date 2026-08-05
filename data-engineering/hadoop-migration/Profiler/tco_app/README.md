@@ -266,8 +266,16 @@ tco_app/
 
 ```bash
 # 1. Upload source files
+#    import-dir does NOT respect .gitignore, so it will happily upload
+#    __pycache__/ and .databricks/ (which makes the build log emit spurious
+#    "Updated file: .../sync-snapshots/*.json" lines). Purge them after import.
 databricks workspace import-dir ./tco_app \
   /Workspace/Users/<you>/hadoop-tco-calculator --overwrite
+
+for d in __pycache__ models/__pycache__ pages/__pycache__ utils/__pycache__ .databricks; do
+  databricks workspace delete \
+    "/Workspace/Users/<you>/hadoop-tco-calculator/$d" --recursive 2>/dev/null
+done
 
 # 2. Create the app
 databricks apps create hadoop-tco-calculator \
@@ -355,8 +363,15 @@ python app.py  # http://localhost:8050
 
 | Setting | Description |
 |---------|-------------|
-| `DATABRICKS_HOST` | Auto-injected from workspace (`valueFrom: host`) |
+| `DATABRICKS_HOST` | Injected automatically by the Apps runtime — **do not declare in `app.yaml`** |
+| `DATABRICKS_CLIENT_ID` / `_SECRET` | Injected automatically for M2M OAuth |
+| `DATABRICKS_APP_PORT` | Port the runtime expects the app to bind (8000); `app.py` reads it |
 | `DATABRICKS_SQL_WAREHOUSE_ID` | Resolved from the `sql-warehouse` resource (`valueFrom`), not hardcoded |
+
+`valueFrom` takes a **resource name**, not a built-in. Declaring
+`DATABRICKS_HOST: {valueFrom: host}` produces a build-time error
+(`resource host not found`) even though the app still starts, because the
+runtime injects the variable anyway.
 
 `app.yaml` contains **no workspace-specific IDs** — the warehouse is bound at
 deploy time via `databricks apps update ... --json '{"resources": [...]}'`
