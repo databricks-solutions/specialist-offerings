@@ -443,7 +443,13 @@ def load_assumption_options(catalog, schema):
 
 
 @callback(
-    [Output(fid, "value") for fid in _FIELD_IDS],
+    # input-vm-mem is also written by auto_fill_vm_memory above, so it must be
+    # declared allow_duplicate here. Without it, Dash 2.x rejects the ENTIRE
+    # callback graph with "Duplicate callback outputs", which stops the
+    # dash.pages router from ever firing — every page body renders blank while
+    # the sidebar still shows. (Dash 4.x tolerates it, which masks the bug.)
+    [Output(fid, "value", allow_duplicate=True) if fid == "input-vm-mem"
+     else Output(fid, "value") for fid in _FIELD_IDS],
     Input("btn-load-assumption", "n_clicks"),
     State("load-assumption-select", "value"),
     State("store-catalog", "data"),

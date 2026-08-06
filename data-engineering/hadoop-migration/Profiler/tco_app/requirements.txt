@@ -1,7 +1,11 @@
-dash>=2.14.0
-dash-bootstrap-components>=1.5.0
-plotly>=5.18.0
-pandas>=2.0.0
-databricks-sql-connector>=3.0.0
+# Pinned to major versions. The Databricks Apps runtime resolves dash 2.18.x,
+# and Dash 2 vs 4 differ in callback-graph validation strictness -- an
+# unpinned `dash>=2.14.0` let local testing pass on Dash 4 while the deployed
+# app failed on 2.18. Keep the ceiling so local and deployed behaviour match.
+dash>=2.18.0,<3.0.0
+dash-bootstrap-components>=1.6.0,<2.0.0
+plotly>=5.18.0,<6.0.0
+pandas>=2.0.0,<3.0.0
+databricks-sql-connector>=3.0.0,<5.0.0
 requests>=2.28.0
 boto3>=1.28.0
