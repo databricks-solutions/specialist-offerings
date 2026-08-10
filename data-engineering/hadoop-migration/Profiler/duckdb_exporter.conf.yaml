@@ -1,0 +1,16 @@
+profiler_output:
+  base_dir: "/path/to/profiler-output/Output"
+
+output:
+  db_path: "./hadoop_profiler.duckdb"
+  overwrite: true
+
+cost_rates:
+  dbu_rate: 0.15
+  vm_rate: 0.10
+
+sources:
+  yarn: true
+  spark: true
+  impala: true
+  cm: true

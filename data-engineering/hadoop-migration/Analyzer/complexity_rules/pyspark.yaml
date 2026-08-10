@@ -1,0 +1,406 @@
+# PySpark migration complexity scoring rules
+# -----------------------------------------------------------------------------
+# Purpose: Classify Hadoop-era PySpark jobs for Databricks migration effort.
+# Consumer: Analyzer complexity scorer (planned) — static analysis via AST + regex.
+# Output:   complexity tier + signals[] per workload_inventory item.
+#
+# Tiers align with Lakebridge (LOW/MEDIUM/HIGH/VERY_HIGH) but use Hadoop-specific
+# signals not covered by Lakebridge public docs.
+# -----------------------------------------------------------------------------
+
+version: "1.0"
+language: pyspark
+default_tier: easy
+
+tiers:
+  - id: easy
+    label: Easy
+    lakebridge_equivalent: LOW
+    description: >
+      Modern DataFrame/SQL API only. No legacy session init, no HDFS paths,
+      no RDD usage. Expected to convert with /convert spark and light review.
+
+  - id: medium
+    label: Medium
+    lakebridge_equivalent: MEDIUM
+    description: >
+      DataFrame API with Hadoop coupling — paths, legacy session init, Hive
+      metastore config, or Python 2 syntax. Mechanical migration plus review.
+
+  - id: hard
+    label: Hard
+    lakebridge_equivalent: HIGH
+    description: >
+      RDD API, heavy custom session/bootstrap, JVM interop, or patterns that
+      block shared/serverless clusters without rewrite.
+
+  - id: very_hard
+    label: Very Hard
+    lakebridge_equivalent: VERY_HIGH
+    description: >
+      Streaming (DStreams), GraphX/MLlib RDD, custom Hadoop I/O formats, or
+      multiple hard signals combined. Plan dedicated migration effort.
+
+# -----------------------------------------------------------------------------
+# Scoring algorithm (implement exactly)
+# -----------------------------------------------------------------------------
+# 1. Parse file with ast.parse (Python 3); for Python 2 source, pre-process or
+#    use regex-only fallback and add signal python2_syntax.
+# 2. Evaluate every signal below; collect all matches into signals[].
+# 3. tier = max(matched signal.tier) using order: easy < medium < hard < very_hard
+# 4. If no signals match, tier = default_tier (easy).
+# 5. Attach reasons[] from matched signal descriptions for human review.
+# -----------------------------------------------------------------------------
+
+tier_order: [easy, medium, hard, very_hard]
+
+signals:
+  # --- EASY (positive indicators — informational only, do not bump tier) ---
+  - id: dataframe_api
+    tier: easy
+    informational: true
+    description: Uses DataFrame/Dataset API (read, write, withColumn, groupBy, join).
+    detect:
+      ast_calls:
+        - pattern: "read"
+          receivers: [spark, sqlContext, hiveContext, "*"]
+        - pattern: "withColumn"
+        - pattern: "groupBy"
+        - pattern: "join"
+        - pattern: "select"
+        - pattern: "agg"
+        - pattern: "write"
+      ast_imports:
+        - pyspark.sql.functions
+        - pyspark.sql.window.Window
+
+  - id: spark_sql
+    tier: easy
+    informational: true
+    description: Uses spark.sql / sqlContext.sql for queries.
+    detect:
+      ast_calls:
+        - pattern: "sql"
+          receivers: [spark, sqlContext, hiveContext]
+
+  # --- MEDIUM ---
+  - id: hdfs_paths
+    tier: medium
+    description: Hard-coded HDFS or nameservice paths in strings.
+    detect:
+      regex:
+        - "hdfs://[^\\s\"']+"
+        - "[\"']/?(?:data|user|tmp|config|jars|lib)/[^\\s\"']*[\"']"
+
+  - id: legacy_hive_context
+    tier: medium
+    description: Legacy HiveContext or SQLContext entry point (Spark 1.x / CDH 5.x).
+    detect:
+      ast_imports:
+        - pyspark.sql.HiveContext
+        - pyspark.sql.SQLContext
+      ast_calls:
+        - pattern: "HiveContext"
+        - pattern: "SQLContext"
+
+  - id: legacy_spark_context_init
+    tier: medium
+    description: Manual SparkContext bootstrap (SparkConf + getOrCreate pattern).
+    detect:
+      ast_imports:
+        - pyspark.SparkContext
+        - pyspark.SparkConf
+      ast_calls:
+        - pattern: "SparkContext"
+        - pattern: "SparkConf"
+        - pattern: "getOrCreate"
+          receivers: [SparkSession]
+
+  - id: hadoop_spark_config
+    tier: medium
+    description: Hadoop/YARN/Hive metastore Spark configuration.
+    detect:
+      regex:
+        - 'spark\.yarn\.'
+        - 'spark\.hadoop\.'
+        - 'hive\.metastore\.'
+        - 'spark\.sql\.warehouse\.dir'
+        - 'fs\.defaultFS'
+        - 'enableHiveSupport'
+      ast_calls:
+        - pattern: "setConf"
+          receivers: [sqlContext, spark]
+
+  - id: python2_syntax
+    tier: medium
+    description: Python 2 syntax — requires Python 3 pass before Databricks.
+    detect:
+      regex:
+        - 'print\s+[^(]'           # print "..." without parens
+        - 'except\s+\w+\s*,\s*\w'  # except Exception, e
+        - '^\s*#!/usr/bin/env python\s*$'
+        - 'unicode\s*\('
+        - 'xrange\s*\('
+        - '\.iteritems\s*\('
+        - '\.has_key\s*\('
+
+  - id: two_part_table_names
+    tier: medium
+    description: Hive-style 2-part table names (db.table) — remap to UC 3-part.
+    detect:
+      regex:
+        - "saveAsTable\\s*\\(\\s*[\"'][a-zA-Z_][\\w]*\\.[a-zA-Z_][\\w]*[\"']"
+        - "spark\\.table\\s*\\(\\s*[\"'][a-zA-Z_][\\w]*\\.[a-zA-Z_][\\w]*[\"']"
+        - "sqlContext\\.sql\\s*\\(\\s*[\"'].*\\bFROM\\s+[a-zA-Z_][\\w]*\\.[a-zA-Z_][\\w]*"
+
+  - id: distributed_files_hdfs
+    tier: medium
+    description: Staged files or JARs from HDFS (--files, addFile, spark.jars).
+    detect:
+      regex:
+        - 'addFile\s*\('
+        - '--files\s+'
+        - '--jars\s+hdfs://'
+        - 'spark\.jars'
+      ast_calls:
+        - pattern: "addFile"
+          receivers: [sc, sparkContext]
+
+  - id: coalesce_single_file
+    tier: medium
+    description: coalesce(1) / repartition(1) for single output file — revisit on Databricks.
+    detect:
+      ast_calls:
+        - pattern: "coalesce"
+        - pattern: "repartition"
+
+  - id: explicit_format_parquet_hive
+    tier: medium
+    description: Explicit .format("parquet") + saveAsTable — verify UC/Delta target.
+    detect:
+      ast_calls:
+        - pattern: "format"
+          # often chained before saveAsTable; scorer may inspect call chain
+
+  # --- HARD ---
+  - id: rdd_api
+    tier: hard
+    description: RDD API usage — rewrite to DataFrame for shared/serverless compatibility.
+    detect:
+      ast_imports:
+        - pyspark.RDD
+      ast_calls:
+        - pattern: "parallelize"
+        - pattern: "textFile"
+        - pattern: "map"
+          receivers: [rdd, "*_rdd", "*RDD*"]
+        - pattern: "flatMap"
+        - pattern: "filter"
+          receivers: [rdd]
+        - pattern: "reduceByKey"
+        - pattern: "groupByKey"
+        - pattern: "mapPartitions"
+        - pattern: "foreachPartition"
+      regex:
+        - '\.toDF\s*\('          # RDD.toDF() — RDD origin
+        - '\.rdd\b'              # df.rdd round-trip
+        - 'sc\.parallelize'
+        - 'sc\.textFile'
+
+  - id: python_udf
+    tier: hard
+    description: Python UDF — review serverless compatibility and serialization.
+    detect:
+      ast_imports:
+        - pyspark.sql.functions.udf
+        - pyspark.sql.types
+      ast_calls:
+        - pattern: "udf"
+      regex:
+        - '@udf'
+        - 'registerTempTable'    # legacy temp view registration
+
+  - id: jvm_interop
+    tier: hard
+    description: JVM bridge access — unlikely to work unchanged on Databricks.
+    detect:
+      regex:
+        - '\._jvm\b'
+        - '\._java2py\b'
+        - 'sparkContext\._jvm'
+        - 'sc\._jvm'
+
+  - id: hadoop_configuration_api
+    tier: hard
+    description: Direct Hadoop Configuration / FileSystem API from Spark.
+    detect:
+      ast_imports:
+        - pyspark.hadoop
+      regex:
+        - 'hadoopConfiguration'
+        - 'org\.apache\.hadoop'
+        - 'FileSystem'
+        - 'Path\s*\('
+      ast_calls:
+        - pattern: "hadoopConfiguration"
+
+  - id: spark_context_stop_lifecycle
+    tier: medium
+    informational: true
+    description: Explicit sc.stop() / SparkContext lifecycle — adapt for Jobs vs notebooks.
+    detect:
+      ast_calls:
+        - pattern: "stop"
+          receivers: [sc, sparkContext, spark]
+
+  # --- VERY HARD ---
+  - id: spark_streaming_dstreams
+    tier: very_hard
+    description: Spark Streaming DStreams — migrate to Structured Streaming.
+    detect:
+      ast_imports:
+        - pyspark.streaming
+      regex:
+        - 'StreamingContext'
+        - 'DStream'
+        - 'socketTextStream'
+        - 'kafkaStream'          # old Kafka 0.8 API
+
+  - id: graphx_mllib_rdd
+    tier: very_hard
+    description: GraphX or MLlib RDD-based APIs — major rewrite to DataFrame ML/Graph APIs.
+    detect:
+      ast_imports:
+        - pyspark.mllib
+        - pyspark.mlllib
+      regex:
+        - 'GraphFrame'
+        - 'MatrixEntry'
+        - 'LabeledPoint'
+
+  - id: custom_hadoop_io
+    tier: very_hard
+    description: Custom Hadoop InputFormat/OutputFormat or RecordReader.
+    detect:
+      regex:
+        - 'InputFormat'
+        - 'OutputFormat'
+        - 'RecordReader'
+        - 'RecordWriter'
+        - 'NewHadoopRDD'
+
+  - id: accumulator_broadcast_legacy
+    tier: very_hard
+    description: Legacy accumulator/broadcast patterns tied to SparkContext.
+    detect:
+      ast_calls:
+        - pattern: "accumulator"
+          receivers: [sc, sparkContext]
+      regex:
+        - 'SparkContext\.Accumulator'
+
+# -----------------------------------------------------------------------------
+# Composite escalation rules (apply after base tier from signals)
+# -----------------------------------------------------------------------------
+escalation:
+  - id: multiple_medium_bumps_hard
+    description: Three or more distinct medium-tier signals → escalate to hard.
+    when:
+      medium_signal_count_gte: 3
+    set_tier: hard
+
+  - id: rdd_plus_hdfs
+    description: RDD API combined with HDFS paths → escalate to very_hard.
+    when:
+      all_signals: [rdd_api, hdfs_paths]
+    set_tier: very_hard
+
+  - id: legacy_context_plus_rdd
+    description: HiveContext/SparkContext init plus RDD usage → very_hard.
+    when:
+      any_signals: [legacy_hive_context, legacy_spark_context_init]
+      all_signals: [rdd_api]
+    set_tier: very_hard
+
+# -----------------------------------------------------------------------------
+# Recommended actions per tier (surface in inventory report)
+# -----------------------------------------------------------------------------
+actions:
+  easy:
+    - "Run /convert spark; spot-check UC table names."
+    - "Deploy as Databricks notebook or spark_python_task job."
+  medium:
+    - "Run /convert spark with PYSPARK_MIGRATION.md rules."
+    - "Replace hdfs:// paths with UC Volumes or managed tables."
+    - "Migrate HiveContext → spark; Python 2 → 3 if detected."
+    - "Review coalesce(1) and 2-part table names."
+  hard:
+    - "Plan RDD → DataFrame rewrite before conversion."
+    - "Review UDFs for serverless compatibility."
+    - "Remove JVM/Hadoop FileSystem calls; use dbutils.fs or cloud paths."
+  very_hard:
+    - "Allocate dedicated migration sprint."
+    - "Consider Structured Streaming rewrite for DStreams."
+    - "Engage Spark SME for custom InputFormat / GraphX / MLlib RDD."
+
+# -----------------------------------------------------------------------------
+# Reference fixtures (for unit tests when implementing)
+# -----------------------------------------------------------------------------
+fixtures:
+  easy:
+  - path: synthetic/dataframe_only.py
+    expected_tier: easy
+    expected_signals: [dataframe_api, spark_sql]
+
+  medium:
+  - path: cluster-setup/spark/clickstream_transform.py
+    source: https://github.com/akshayamin/hadoop_migration/blob/main/cluster-setup/spark/clickstream_transform.py
+    expected_tier: medium
+    expected_signals:
+      - legacy_hive_context
+      - legacy_spark_context_init
+      - hdfs_paths
+      - hadoop_spark_config
+      - python2_syntax
+      - two_part_table_names
+      - spark_context_stop_lifecycle
+
+  - path: cluster-setup/spark/session_metrics.py
+    source: https://github.com/akshayamin/hadoop_migration/blob/main/cluster-setup/spark/session_metrics.py
+    expected_tier: medium
+    expected_signals:
+      - legacy_hive_context
+      - legacy_spark_context_init
+      - hadoop_spark_config
+      - python2_syntax
+      - two_part_table_names
+      - coalesce_single_file
+      - spark_context_stop_lifecycle
+
+  hard:
+  - path: synthetic/rdd_wordcount.py
+    expected_tier: hard
+    expected_signals: [rdd_api, legacy_spark_context_init]
+
+  very_hard:
+  - path: synthetic/dstream_kafka.py
+    expected_tier: very_hard
+    expected_signals: [spark_streaming_dstreams]
+
+# -----------------------------------------------------------------------------
+# Output schema extension for workload_inventory.json
+# -----------------------------------------------------------------------------
+output_schema:
+  fields:
+    complexity:
+      type: string
+      enum: [easy, medium, hard, very_hard]
+    complexity_signals:
+      type: array
+      items: string
+    complexity_reasons:
+      type: array
+      items: string
+    complexity_recommended_actions:
+      type: array
+      items: string
