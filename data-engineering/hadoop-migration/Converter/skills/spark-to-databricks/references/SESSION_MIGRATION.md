@@ -69,16 +69,53 @@ val spark = SparkSession.builder()
 | `spark.serializer=org.apache.spark.serializer.KryoSerializer` | Keep (still valid) |
 | `spark.sql.sources.partitionOverwriteMode=dynamic` | Keep (same in Databricks) |
 
-## SparkContext / SQLContext
+## SparkContext / HiveContext / SQLContext (legacy CDH)
+
+Legacy CDH and Spark 1.x jobs often use the pre-SparkSession API. See `PYSPARK_MIGRATION.md` for the full checklist.
 
 ```python
-# Before
-sc = SparkContext(conf=conf)
-sqlContext = SQLContext(sc)
-hiveContext = HiveContext(sc)
+# Before (CDH 5.x / Spark 1.6)
+from pyspark import SparkContext, SparkConf
+from pyspark.sql import HiveContext
 
-# After (Databricks)
-# sc, spark, sqlContext are pre-initialized
-# Replace hiveContext with spark
-# Replace sqlContext with spark
+conf = SparkConf().setAppName("MyETL")
+sc = SparkContext(conf=conf)
+sqlContext = HiveContext(sc)
+sqlContext.setConf("spark.sql.shuffle.partitions", "10")
+
+df = sqlContext.read.json("hdfs:///data/raw/events/")
+sqlContext.sql("SELECT * FROM retail_analytics.events")
+
+# After (Databricks notebook)
+# spark is pre-initialized — remove all SparkContext/HiveContext imports
+spark.conf.set("spark.sql.shuffle.partitions", "10")
+
+df = spark.read.json("/Volumes/main/raw/events/")
+spark.sql("SELECT * FROM main.retail_analytics.events")
 ```
+
+### Variable rename map
+
+| Legacy | Databricks |
+|--------|------------|
+| `sc` | Not needed (or `spark.sparkContext` if required) |
+| `sqlContext` | `spark` |
+| `hiveContext` | `spark` |
+| `sqlContext.read.*` | `spark.read.*` |
+| `sqlContext.sql(...)` | `spark.sql(...)` |
+| `sqlContext.setConf(k, v)` | `spark.conf.set(k, v)` |
+| `sc.stop()` | Remove (notebooks) or `spark.stop()` (jobs) |
+
+### SparkConf settings
+
+```python
+# Before — configs on SparkConf
+conf = SparkConf().setAppName("ETL").set("spark.sql.shuffle.partitions", "10")
+sc = SparkContext(conf=conf)
+
+# After — configs on spark session
+spark = SparkSession.builder.appName("ETL").getOrCreate()
+spark.conf.set("spark.sql.shuffle.partitions", "10")
+```
+
+Do not port `SparkConf` entries for YARN, HDFS default FS, or Hive metastore URI — see configurations table above.
