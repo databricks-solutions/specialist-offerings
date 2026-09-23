@@ -1,0 +1,13 @@
+resources:
+  pipelines:
+    sdp_demo_pipeline:
+      name: sdp_demo_pipeline
+      catalog: ${var.catalog}
+      schema: ${var.schema}
+      serverless: true
+      root_path: ../src/sdp_demo
+      libraries:
+        - glob:
+            include: ../src/sdp_demo/transformations/**
+      configuration:
+        bundle.target: ${bundle.target}

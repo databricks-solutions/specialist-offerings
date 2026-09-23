@@ -1,0 +1,21 @@
+bundle:
+  name: sdp_demo
+
+variables:
+  catalog:
+    description: UC catalog for all demo objects
+    default: alexn
+  schema:
+    description: UC schema for all demo objects
+    default: sdp_demo
+
+include:
+  - resources/*.yml
+
+targets:
+  dev:
+    mode: development
+    default: true
+    workspace:
+      host: https://adb-984752964297111.11.azuredatabricks.net
+      profile: DEFAULT
