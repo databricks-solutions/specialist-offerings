@@ -37,6 +37,10 @@ last_certified: "2027-04-01"  # Date format: YYYY-MM-DD
 products: "Databricks SQL, Serverless SQL Warehouses, Delta Lake, Unity Catalog, Lakebridge, Lakehouse Federation, Delta Sharing"  # Text field, comma-separated
 product_lines: "Data Warehousing, Data Engineering"  # Text field, comma-separated
 
+# Sage discovery tags — curated keywords for human search + agent match (inline list).
+# Consumed verbatim by scripts/gen_sage_manifest.py; if omitted, tags are derived from the fields above.
+tags: [ssa-offering, data-warehousing, migration, databricks-sql, unity-catalog, lakebridge, lakehouse-federation, delta-sharing]
+
 # Partner information
 partner_developed: false  # Boolean: true if developed by partner
 partner: ""  # Max 255 characters

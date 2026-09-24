@@ -39,6 +39,10 @@ last_certified: "2026-05-08"  # Date format: YYYY-MM-DD
 products: "AI Functions, FMAPI, Model Serving, Lakeflow Jobs, Vector Search, Unity Catalog, Delta Lake"  # Text field, comma-separated
 product_lines: "AI, Data Engineering"  # Text field, comma-separated
 
+# Sage discovery tags — curated keywords for human search + agent match (inline list).
+# Consumed verbatim by scripts/gen_sage_manifest.py; if omitted, tags are derived from the fields above.
+tags: [ssa-offering, gen-ai, ai-functions, fmapi, model-serving, vector-search, unstructured-data, fins]
+
 # Partner information
 partner_developed: false  # Boolean: true if developed by partner
 partner: ""  # Max 255 characters
