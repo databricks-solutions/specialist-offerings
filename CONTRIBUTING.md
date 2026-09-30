@@ -7,7 +7,7 @@ We welcome contributions to this repository! This document outlines the process 
 All contributions are welcome for updates and improvements. However, for new contributions, we recommend checking with the specialization lead before contributing to ensure alignment with current priorities and avoid duplication of effort.
 
 This repo serves as an index of code offered by Databricks Specialists, and these Offerings take 2 forms:
-- Code lives OUTSIDE this repo: at minimum, you can create a new folder in the specialization area with a [catalog-listing.yml](templates/catalog-listing-template.yml) in it to point internal tooling to the code offering.
+- Code lives OUTSIDE this repo: at minimum, you can create a new folder in the specialization area with a [README.md](templates/README-template.md) in it (its YAML frontmatter points internal tooling to the code offering).
 - Code lives IN this repo: if you want to maintain and version your code in this repo, you can do that as well! Create a folder in the specialization area for the offering and add the required assets as described below. 
 
 ## Contribution Requirements
@@ -37,16 +37,16 @@ All new contributions must meet the following requirements:
 - **Top-level Documentation**: Any libraries used must be added to the top-level README libraries section
 
 ### 4. Image Assets
-- **Image Directory**: All images should be stored in an `images/` directory at the same level as the `catalog-listing.yml` file
+- **Image Directory**: All images should be stored in an `images/` directory at the same level as the offering `README.md`, and referenced from the README with relative markdown (e.g. `![architecture](images/architecture-diagram.png)`)
   - Example structure:
     ```
     /data-warehousing/my-offering/
-    ├── catalog-listing.yml
+    ├── README.md            # YAML frontmatter (metadata) + prose body
     ├── images/
     │   ├── thumbnail.png
     │   ├── architecture-diagram.png
     │   └── workflow.png
-    └── README.md
+    └── ...                  # optional code assets
     ```
 - **Thumbnail Requirement**: If you are contributing images, you must include at least one image titled "thumbnail" (e.g., `thumbnail.png`, `thumbnail.jpg`)
   - This thumbnail image will be used as the display image in the Field Catalog
@@ -71,7 +71,7 @@ All new contributions must meet the following requirements:
 - [ ] Add comprehensive unit tests
 - [ ] Create or update documentation
 - [ ] Update the top-level README if new libraries are introduced
-- [ ] Add a [catalog-listing.yml](templates/catalog-listing-template.yml) file so the content can be indexed
+- [ ] Author a [README.md](templates/README-template.md) with YAML frontmatter so the content can be indexed (run `python3 scripts/validate_specs.py` and `python3 scripts/gen_sage_manifest.py` before opening the PR)
 - [ ] Test your contribution thoroughly
 
 ### 3. Pull Request Process

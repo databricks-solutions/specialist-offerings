@@ -18,7 +18,7 @@ Some content in this repository includes structured "Offerings" - proactive, pre
 - Expedite technical evaluation and competition (e.g., Databricks SQL, GenAI)
 - Streamline positioning and hand-off to Professional Services and Partners
 
-These Offerings should include a `catalog-listing.yml` file to promote discoverability with internal tooling. 
+Each Offering is described by its `README.md`, whose YAML frontmatter is the machine-readable source that internal tooling reads to promote discoverability. 
 
 ## Repository Structure
 
@@ -79,7 +79,7 @@ This repository is organized into five main domains, each containing content foc
 - Security architecture and design patterns
 
 ### 📦 Archive (`/z-archive`)
-**Purpose:** Preserve retired Specialist offerings for reference. The `z-` prefix sorts this folder **last** in the repository root so active domain folders appear first. Folders here mirror domain structure (`z-archive/data-warehousing`, etc.) but are **not** part of active Field Catalog ingestion—downstream tooling should exclude `z-archive/` when syncing `catalog-listing.yml` files.
+**Purpose:** Preserve retired Specialist offerings for reference. The `z-` prefix sorts this folder **last** in the repository root so active domain folders appear first. Folders here mirror domain structure (`z-archive/data-warehousing`, etc.) but are **not** part of active Field Catalog ingestion—downstream tooling should exclude `z-archive/` when syncing offering `README.md` frontmatter.
 
 See [z-archive/README.md](z-archive/README.md) for policy and layout.
 

@@ -2,10 +2,10 @@
 """Generate the Sage managed-source manifest (sage/assets.yaml).
 
 Each SSA offering is registered in Sage as its OWN asset: one offering folder =
-one manifest entry. We walk `<category>/<slug>/catalog-listing.yml`, read the
-listing's structured metadata, and fan out to one asset per offering. The
-listing is the source of truth for name, description, tags, quality, and owner
--- there is nothing to hand-maintain in this manifest.
+one manifest entry. We walk `<category>/<slug>/README.md`, read the offering
+README's YAML frontmatter, and fan out to one asset per offering. The
+frontmatter is the source of truth for name, description, tags, quality, and
+owner -- there is nothing to hand-maintain in this manifest.
 
 Why one folder per offering (workaround): Sage's GitHub App crawler, given a
 path, still indexes the whole *surrounding folder* rather than a single file.
@@ -26,13 +26,14 @@ external_ref = ssa-offering-<folder-slug>, which is deliberately the SAME string
 an SA types as the ASQ hashtag (`#ssa-offering #<slug>`). That shared identifier
 is what lets a human, Isaac, and Sage all point at the same offering.
 
-Dependency-free by design (no PyYAML): a catalog-listing.yml is a full YAML file
-(it carries a multi-line `demo_description: |` block scalar and a `links:` map),
-but every field this manifest needs is a TOP-LEVEL scalar. So we parse only
-top-level `key: value` pairs and deterministically skip block scalars and nested
-maps. This keeps the generator runnable on a stock `python3` with no install,
-mirroring fde-specs' zero-dependency gate. (If listings ever need full YAML
-semantics here, swap read_listing for `yaml.safe_load` and add PyYAML to CI.)
+Dependency-free by design (no PyYAML): an offering README opens with a YAML
+frontmatter block (delimited by `---`) holding flat metadata; the markdown body
+after the closing fence is prose we ignore here. Every field this manifest needs
+is a flat frontmatter scalar (or an inline `[a, b]` list), so we parse only
+`key: value` pairs between the fences and stop at the closing `---`. This keeps
+the generator runnable on a stock `python3` with no install, mirroring fde-specs'
+zero-dependency gate. (If frontmatter ever needs full YAML semantics, swap
+read_frontmatter for `yaml.safe_load` and add PyYAML to CI.)
 
 Usage:  python3 scripts/gen_sage_manifest.py [--check]
   (no args)  write sage/assets.yaml
@@ -48,12 +49,13 @@ from pathlib import Path
 REPO = Path(__file__).resolve().parent.parent
 OUT = REPO / "sage" / "assets.yaml"
 
-# Offerings live at <category>/<slug>/catalog-listing.yml. This glob is two
-# levels deep, so archived offerings (z-archive/<category>/<slug>/...) and the
-# templates/ sample are naturally excluded; EXCLUDE_TOP is a belt-and-braces
-# guard in case a non-offering dir ever grows a matching path.
-LISTING_GLOB = "*/*/catalog-listing.yml"
-LISTING_FILENAME = "catalog-listing.yml"
+# Offerings live at <category>/<slug>/README.md. This glob is two levels deep,
+# so category-level indexes (<category>/README.md), the repo-root README, the
+# templates/ sample, and archived offerings (z-archive/...) are all naturally
+# excluded; EXCLUDE_TOP is a belt-and-braces guard in case a non-offering dir
+# ever grows a matching path.
+OFFERING_GLOB = "*/*/README.md"
+OFFERING_FILENAME = "README.md"
 EXCLUDE_TOP = {"z-archive", "templates", "sage", ".git", ".github", "images"}
 
 # Sage domain the source is bound to. Must match the slug in the UI.
@@ -93,29 +95,37 @@ def _parse_scalar(val: str) -> object:
     return val.split("#", 1)[0].strip()
 
 
-def read_listing(path: Path) -> dict:
-    """Return a catalog-listing's TOP-LEVEL fields as a flat dict.
+def read_frontmatter(path: Path) -> dict:
+    """Return an offering README's YAML frontmatter as a flat dict.
 
-    Only top-level `key: value` scalars (and inline lists) are captured. Block
-    scalars (`demo_description: |`) and nested maps (`links:`) are detected by an
-    empty or `|`/`>` value and their indented bodies are skipped, so the markdown
-    body -- with its own colons and `#` headings -- never leaks into the dict.
+    Frontmatter is the block delimited by a leading `---` and the next `---`.
+    Only flat `key: value` scalars (and inline `[a, b]` lists) between the fences
+    are captured; parsing stops at the closing `---`, so the markdown body -- with
+    its own colons and `#` headings -- never leaks into the dict. A nested map or
+    block scalar in the frontmatter is not expected, but if one appears its
+    indented body is skipped defensively. A file with no opening `---` returns {}.
     """
-    text = path.read_text(encoding="utf-8")
-    lines = text.splitlines()
+    lines = path.read_text(encoding="utf-8").splitlines()
+    n = len(lines)
     out: dict[str, object] = {}
 
+    # Frontmatter must open the file (allowing leading blank lines only).
     i = 0
-    n = len(lines)
+    while i < n and lines[i].strip() == "":
+        i += 1
+    if i >= n or lines[i].strip() != "---":
+        return out
+    i += 1  # step past the opening fence
+
     while i < n:
         raw = lines[i]
         i += 1
         stripped = raw.strip()
+        if stripped == "---":  # closing fence -> body starts here; stop.
+            break
         if not stripped or stripped.startswith("#"):
             continue
-        # Ignore anything indented at the top of the loop: a top-level key
-        # never is, and indented lines belong to a block we skip below.
-        if raw[0] in " \t":
+        if raw[0] in " \t":  # indented -> part of a skipped nested structure
             continue
         if ":" not in stripped:
             continue
@@ -124,15 +134,9 @@ def read_listing(path: Path) -> dict:
         val = val.strip()
 
         if val == "" or val in _BLOCK_INDICATORS or val[0] in "|>":
-            # Start of a block scalar or nested map: consume its indented body
-            # (plus blank lines) until the next top-level line or EOF.
-            while i < n:
-                nxt = lines[i]
-                if nxt.strip() == "":
-                    i += 1
-                    continue
-                if nxt[0] not in " \t":  # back to column 0 -> block is over
-                    break
+            # Unexpected nested map / block scalar: consume its indented body
+            # (plus blank lines) until the next top-level key or the fence.
+            while i < n and (lines[i].strip() == "" or lines[i][:1] in " \t"):
                 i += 1
             continue
 
@@ -196,7 +200,7 @@ def yaml_escape(s: str) -> str:
 
 def discover_offerings() -> list[Path]:
     paths = [
-        p for p in REPO.glob(LISTING_GLOB)
+        p for p in REPO.glob(OFFERING_GLOB)
         if p.relative_to(REPO).parts[0] not in EXCLUDE_TOP
     ]
     # Deterministic order by repo-relative path (category, then slug).
@@ -204,7 +208,7 @@ def discover_offerings() -> list[Path]:
 
 
 def render_asset(listing: Path) -> list[str]:
-    fm = read_listing(listing)
+    fm = read_frontmatter(listing)
     offering_dir = listing.parent
     rel_dir = offering_dir.relative_to(REPO).as_posix()
     slug = offering_dir.name
@@ -231,11 +235,11 @@ def render_asset(listing: Path) -> list[str]:
 def render() -> str:
     offerings = discover_offerings()
     if not offerings:
-        raise SystemExit(f"No offerings found under {LISTING_GLOB}")
+        raise SystemExit(f"No offerings found under {OFFERING_GLOB}")
 
     lines = [
         "# GENERATED by scripts/gen_sage_manifest.py -- do not edit by hand.",
-        "# Edit each offering's catalog-listing.yml and regenerate. See CONTRIBUTING.md.",
+        "# Edit each offering's README.md frontmatter and regenerate. See CONTRIBUTING.md.",
         "version: 1",
         f"domain: {DOMAIN}",
         "assets:",
