@@ -1,0 +1,24 @@
+command:
+  - python
+  - app.py
+env:
+  # DATABRICKS_HOST, DATABRICKS_CLIENT_ID and DATABRICKS_CLIENT_SECRET are
+  # injected automatically by the Databricks Apps runtime — do not declare them
+  # here. Declaring `valueFrom: host` makes the build log
+  # "error resolving resource host for env DATABRICKS_HOST: resource host not
+  # found", because valueFrom takes a *resource* name, not a built-in.
+  #
+  # Resolved from the app's "sql-warehouse" resource rather than hardcoded, so
+  # this file is not tied to one workspace. Bind the warehouse at deploy time:
+  #
+  #   databricks apps update <app-name> --json '{
+  #     "resources": [{
+  #       "name": "sql-warehouse",
+  #       "sql_warehouse": {"id": "<warehouse-id>", "permission": "CAN_USE"}
+  #     }]
+  #   }'
+  #
+  # For local development, export DATABRICKS_HOST and
+  # DATABRICKS_SQL_WAREHOUSE_ID directly.
+  - name: DATABRICKS_SQL_WAREHOUSE_ID
+    valueFrom: sql-warehouse

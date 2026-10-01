@@ -1,0 +1,23 @@
+<workflow-app xmlns="uri:oozie:workflow:0.5" name="hive-etl-workflow">
+    <start to="hive-load"/>
+    <action name="hive-load">
+        <hive xmlns="uri:oozie:hive-action:0.5">
+            <script>scripts/load_data.hql</script>
+            <file>lib/custom_udf.jar</file>
+        </hive>
+        <ok to="hive-transform"/>
+        <error to="kill"/>
+    </action>
+    <action name="hive-transform">
+        <hive2 xmlns="uri:oozie:hive2-action:0.2">
+            <jdbc-url>jdbc:hive2://hiveserver:10000/default</jdbc-url>
+            <query>INSERT OVERWRITE TABLE results SELECT * FROM staging WHERE dt='${date}'</query>
+        </hive2>
+        <ok to="end"/>
+        <error to="kill"/>
+    </action>
+    <kill name="kill">
+        <message>Workflow failed</message>
+    </kill>
+    <end name="end"/>
+</workflow-app>

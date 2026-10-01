@@ -1,0 +1,243 @@
+{
+  "serviceName": "retail_hive",
+  "serviceType": "hive",
+  "policies": [
+    {
+      "id": 1,
+      "name": "data_engineering_full_access",
+      "description": "Full access to all databases for the data engineering team",
+      "isEnabled": true,
+      "isAuditEnabled": true,
+      "resources": {
+        "database": {
+          "values": ["retail_analytics", "staging", "raw_data"],
+          "isRecursive": false,
+          "isExcludes": false
+        },
+        "table": {
+          "values": ["*"],
+          "isRecursive": false,
+          "isExcludes": false
+        },
+        "column": {
+          "values": ["*"],
+          "isRecursive": false,
+          "isExcludes": false
+        }
+      },
+      "policyItems": [
+        {
+          "accesses": [
+            {"type": "select", "isAllowed": true},
+            {"type": "update", "isAllowed": true},
+            {"type": "create", "isAllowed": true},
+            {"type": "drop", "isAllowed": true},
+            {"type": "alter", "isAllowed": true},
+            {"type": "index", "isAllowed": true},
+            {"type": "lock", "isAllowed": true},
+            {"type": "all", "isAllowed": true}
+          ],
+          "users": ["etl_service_account"],
+          "groups": ["data_engineering"],
+          "delegateAdmin": true
+        }
+      ]
+    },
+    {
+      "id": 2,
+      "name": "analyst_read_access",
+      "description": "Read-only access for analysts to production tables",
+      "isEnabled": true,
+      "isAuditEnabled": true,
+      "resources": {
+        "database": {
+          "values": ["retail_analytics"],
+          "isRecursive": false,
+          "isExcludes": false
+        },
+        "table": {
+          "values": ["dim_customers", "fact_orders", "product_catalog", "vw_active_customers"],
+          "isRecursive": false,
+          "isExcludes": false
+        },
+        "column": {
+          "values": ["*"],
+          "isRecursive": false,
+          "isExcludes": false
+        }
+      },
+      "policyItems": [
+        {
+          "accesses": [
+            {"type": "select", "isAllowed": true}
+          ],
+          "users": [],
+          "groups": ["data_analysts", "business_analysts"],
+          "delegateAdmin": false
+        }
+      ]
+    },
+    {
+      "id": 3,
+      "name": "pii_column_masking",
+      "description": "Mask PII columns for non-privileged users",
+      "isEnabled": true,
+      "isAuditEnabled": true,
+      "policyType": 1,
+      "resources": {
+        "database": {
+          "values": ["retail_analytics"],
+          "isRecursive": false,
+          "isExcludes": false
+        },
+        "table": {
+          "values": ["dim_customers"],
+          "isRecursive": false,
+          "isExcludes": false
+        },
+        "column": {
+          "values": ["email", "phone", "first_name", "last_name"],
+          "isRecursive": false,
+          "isExcludes": false
+        }
+      },
+      "dataMaskPolicyItems": [
+        {
+          "dataMaskInfo": {
+            "dataMaskType": "MASK_HASH"
+          },
+          "accesses": [
+            {"type": "select", "isAllowed": true}
+          ],
+          "users": [],
+          "groups": ["data_analysts"],
+          "delegateAdmin": false
+        }
+      ]
+    },
+    {
+      "id": 4,
+      "name": "row_level_security_orders",
+      "description": "Regional managers can only see their region's orders",
+      "isEnabled": true,
+      "isAuditEnabled": true,
+      "policyType": 2,
+      "resources": {
+        "database": {
+          "values": ["retail_analytics"],
+          "isRecursive": false,
+          "isExcludes": false
+        },
+        "table": {
+          "values": ["fact_orders"],
+          "isRecursive": false,
+          "isExcludes": false
+        }
+      },
+      "rowFilterPolicyItems": [
+        {
+          "rowFilterInfo": {
+            "filterExpr": "region = '{USER}.region'"
+          },
+          "accesses": [
+            {"type": "select", "isAllowed": true}
+          ],
+          "users": [],
+          "groups": ["regional_managers"],
+          "delegateAdmin": false
+        }
+      ]
+    },
+    {
+      "id": 5,
+      "name": "ml_team_staging_access",
+      "description": "ML team read/write on staging, read on production",
+      "isEnabled": true,
+      "isAuditEnabled": true,
+      "resources": {
+        "database": {
+          "values": ["staging"],
+          "isRecursive": false,
+          "isExcludes": false
+        },
+        "table": {
+          "values": ["*"],
+          "isRecursive": false,
+          "isExcludes": false
+        },
+        "column": {
+          "values": ["*"],
+          "isRecursive": false,
+          "isExcludes": false
+        }
+      },
+      "policyItems": [
+        {
+          "accesses": [
+            {"type": "select", "isAllowed": true},
+            {"type": "update", "isAllowed": true},
+            {"type": "create", "isAllowed": true},
+            {"type": "drop", "isAllowed": true}
+          ],
+          "users": ["ml_service_account"],
+          "groups": ["ml_engineering"],
+          "delegateAdmin": false
+        }
+      ]
+    },
+    {
+      "id": 6,
+      "name": "deny_raw_data_access",
+      "description": "Deny access to raw data for all except data engineering",
+      "isEnabled": true,
+      "isAuditEnabled": true,
+      "resources": {
+        "database": {
+          "values": ["raw_data"],
+          "isRecursive": false,
+          "isExcludes": false
+        },
+        "table": {
+          "values": ["*"],
+          "isRecursive": false,
+          "isExcludes": false
+        },
+        "column": {
+          "values": ["*"],
+          "isRecursive": false,
+          "isExcludes": false
+        }
+      },
+      "denyPolicyItems": [
+        {
+          "accesses": [
+            {"type": "select", "isAllowed": true},
+            {"type": "update", "isAllowed": true},
+            {"type": "create", "isAllowed": true},
+            {"type": "drop", "isAllowed": true},
+            {"type": "alter", "isAllowed": true},
+            {"type": "all", "isAllowed": true}
+          ],
+          "users": [],
+          "groups": ["public"],
+          "delegateAdmin": false
+        }
+      ],
+      "denyExceptions": [
+        {
+          "accesses": [
+            {"type": "select", "isAllowed": true},
+            {"type": "update", "isAllowed": true},
+            {"type": "create", "isAllowed": true},
+            {"type": "drop", "isAllowed": true},
+            {"type": "alter", "isAllowed": true},
+            {"type": "all", "isAllowed": true}
+          ],
+          "users": ["etl_service_account"],
+          "groups": ["data_engineering"],
+          "delegateAdmin": false
+        }
+      ]
+    }
+  ]
+}

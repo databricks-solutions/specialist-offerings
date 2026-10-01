@@ -1,0 +1,23 @@
+profiler_output:
+  base_dir: "/path/to/profiler-output/Output"
+
+oozie:
+  url: "http://oozie-host:11000"
+  auth: "simple"
+  kerberos_principal: ""
+  max_jobs: 5000
+  timeout: 30
+
+webhdfs:
+  enabled: false
+  url: "http://namenode:9870"
+  user: "hdfs"
+
+output:
+  format: "json"
+  dir: "./analyzer-output"
+
+complexity:
+  enabled: false
+  rules_dir: "./complexity_rules"
+  local_code_dir: ""
