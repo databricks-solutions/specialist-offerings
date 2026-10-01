@@ -172,8 +172,16 @@ AppKit app reaches parity (M4). The DuckDB→UC pipeline (incl. item 8) serves b
       - [ ] Capacity-DBU (#6) calibration — extract the sheet's exact per-stream vCPU→DBU
             chain (formula layer, not CSV values) and tune `computeCapacityDbu`.
       - [ ] Pricing snapshot (optional) — live system.billing.list_prices instead of SKU_DBU_RATE.
-      - [ ] Orchestrator `cost-engine.ts` + POST /api/tco/calculate route (ties Lakebase
-            assumptions + lookups + warehouse workload/observation-window queries + annualization,
-            writes run to tco.runs/run_details/migration_timeline). NEXT ACTION: confirm the
-            appkit server-side analytics query API (how server code runs a config/queries query).
-      - [ ] UI (React pages) — parallel track once the calculate contract is stable.
+      - [x] **Orchestrator `cost-engine.ts` + POST /api/tco/calculate — DONE + VALIDATED
+            end-to-end.** Server-side warehouse queries via `appkit.analytics.query(sql, params)`
+            (result shape `{data:[...rows]}`, numeric cells are strings). Live run on
+            `profiler.visa_dpi_mar`: hadoop $8,377,028 ✓, window 26.8d/annualize 13.6 (not floored),
+            measured DBU Other→interactive $16.45M, VM $114k, support $4.11M, admin $1.125M,
+            total dbx $21.8M; run persisted to tco.runs/run_details/migration_timeline. Typecheck
+            + 20 tests green. (`dbu_method` defaults 'measured'; capacity path runs but see below.)
+      REMAINING:
+      - [ ] Capacity-DBU #6: calibrate formula to the sheet AND wire `dbu_method` through the
+            DB column + assumptions CRUD + CalculateRequest so it's selectable.
+      - [ ] Pricing snapshot (optional).
+      - [ ] (housekeeping) 2 stale empty runs in tco.runs from pre-fix probes — harmless.
+      - [ ] UI (React pages) — now unblocked; calculate contract is stable (TcoResult).

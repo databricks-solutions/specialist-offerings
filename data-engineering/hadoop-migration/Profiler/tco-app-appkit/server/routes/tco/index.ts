@@ -2,16 +2,17 @@
 // register the assumptions + reference/run routes. Called from onPluginsReady.
 
 import { Application } from 'express';
-import { setupTcoSchema, type LakebaseQuery } from '../../db/schema';
+import { setupTcoSchema } from '../../db/schema';
 import { registerAssumptionsRoutes } from './assumptions-routes';
 import { registerReferenceRoutes } from './reference-routes';
+import { registerCalculateRoutes } from './calculate-routes';
+import type { EngineAppKit } from '../../engine/cost-engine';
 
-interface AppKitWithLakebase {
-  lakebase: { query: LakebaseQuery };
+type TcoAppKit = EngineAppKit & {
   server: { extend(fn: (app: Application) => void): void };
-}
+};
 
-export async function setupTco(appkit: AppKitWithLakebase): Promise<void> {
+export async function setupTco(appkit: TcoAppKit): Promise<void> {
   try {
     await setupTcoSchema(appkit.lakebase.query);
     console.log(`[tco] schema ready (${'tco'}.*) — tables provisioned + lookups seeded`);
@@ -22,4 +23,5 @@ export async function setupTco(appkit: AppKitWithLakebase): Promise<void> {
   }
   registerAssumptionsRoutes(appkit);
   registerReferenceRoutes(appkit);
+  registerCalculateRoutes(appkit);
 }
