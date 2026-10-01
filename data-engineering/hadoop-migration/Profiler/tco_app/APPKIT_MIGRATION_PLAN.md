@@ -184,4 +184,14 @@ AppKit app reaches parity (M4). The DuckDB→UC pipeline (incl. item 8) serves b
             DB column + assumptions CRUD + CalculateRequest so it's selectable.
       - [ ] Pricing snapshot (optional).
       - [ ] (housekeeping) 2 stale empty runs in tco.runs from pre-fix probes — harmless.
-      - [ ] UI (React pages) — now unblocked; calculate contract is stable (TcoResult).
+      - [~] UI (React pages) — STARTED + validated in browser:
+            - client/src/lib/api.ts (typed /api/tco client) + lib/catalog.tsx (catalog/schema
+              context, localStorage-persisted, header selector).
+            - CalculatorPage: assumption picker + Calculate → renders Hadoop/Databricks breakdown,
+              savings, per-workload table; timestamped success (UX #1/#4), low-confidence window warning.
+            - AssumptionsPage: live list panel (#9) + create/edit/delete + save confirmation (#2).
+            - App.tsx rewired (nav + routes + header selector); sample pages removed. Typecheck clean.
+            - Browser-validated on :8000: calculated profiler.visa_dpi → hadoop $8,377,028,
+              databricks $13.02M (close to sheet $13.54M for this window); Assumptions "Saved sets (5)".
+            REMAINING UI pages: Workload Profile (#3 auto-advance), Pricing & SKU Mapping,
+            Migration Timeline, Scenario Comparison.
