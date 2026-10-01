@@ -1,6 +1,16 @@
 bundle:
   name: tco-app-appkit
 
+# Force-include the tsconfig files: the repo-root .gitignore '*conf*.json' rule
+# matches ts*conf*ig*.json and otherwise excludes them from the deploy upload,
+# breaking the Apps-side build (tsc -b tsconfig.server.json → TS5083).
+sync:
+  include:
+    - tsconfig.json
+    - tsconfig.client.json
+    - tsconfig.server.json
+    - tsconfig.shared.json
+
 variables:
   sql_warehouse_id:
     description: SQL Warehouse ID
