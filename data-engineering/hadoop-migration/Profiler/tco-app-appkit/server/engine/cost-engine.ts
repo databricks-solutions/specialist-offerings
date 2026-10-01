@@ -90,7 +90,12 @@ export async function calculateTco(appkit: EngineAppKit, req: CalculateRequest):
 
   // 2. Load SKU mapping from Lakebase.
   const skuRows = await appkit.lakebase.query(`SELECT job_type, target_sku, target_sku_alt, compute_category FROM ${SCHEMA}.workload_sku_mapping`);
-  const skuMapping = skuRows.rows as unknown as SkuMappingRow[];
+  const skuMapping: SkuMappingRow[] = skuRows.rows.map((r) => ({
+    job_type: String(r.job_type),
+    target_sku: String(r.target_sku),
+    target_sku_alt: typeof r.target_sku_alt === 'string' ? r.target_sku_alt : null,
+    compute_category: String(r.compute_category),
+  }));
 
   // 3. Hadoop on-prem costs (assumption-driven).
   const hadoopCosts: HadoopCosts = calculateHadoopCosts(assumptions);
@@ -98,11 +103,16 @@ export async function calculateTco(appkit: EngineAppKit, req: CalculateRequest):
 
   // 4. Observation window + profiler workload (warehouse).
   const window = await getObservationWindow(appkit, catalog, database);
-  const workloadRows = (await warehouse(
+  const workloadRaw = await warehouse(
     appkit,
     `SELECT job_type, total_jobs, total_memory_gb_hours FROM ${identifier('workload_summary_by_type')} ORDER BY total_memory_gb_hours DESC`,
     { catalog: sql.string(catalog), database: sql.string(database) },
-  )) as unknown as WorkloadRow[];
+  );
+  const workloadRows: WorkloadRow[] = workloadRaw.map((r) => ({
+    job_type: String(r.job_type),
+    total_jobs: num(r.total_jobs),
+    total_memory_gb_hours: num(r.total_memory_gb_hours),
+  }));
 
   // 5. Databricks DBU — measured (profiler-driven) or capacity (sheet-style).
   const dbu = dbuMethod === 'capacity'
