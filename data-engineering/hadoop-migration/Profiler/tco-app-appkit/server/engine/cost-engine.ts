@@ -240,7 +240,7 @@ async function computeStorageForRun(
 
   const res = computeStorageCost({
     hdfsUsedGb,
-    manualTotalTb: num((a as Assumptions as { storage_total_tb?: number }).storage_total_tb),
+    manualTotalTb: num(a.storage_total_tb),
     hdfsReplFactor: a.hdfs_repl_factor || 3,
     deltaCompression: a.delta_compression || 0.5,
     hotPct: a.hot_storage_pct, coldPct: a.cold_storage_pct, archivePct: a.archive_storage_pct,

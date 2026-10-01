@@ -15,6 +15,7 @@ const NUM_FIELDS: Array<[keyof Assumptions, string]> = [
   ['etl_pct', 'ETL %'],
   ['interactive_pct', 'Interactive %'],
   ['bisql_pct', 'BI/SQL %'],
+  ['storage_total_tb', 'Storage (TB)'],
   ['migration_custom_cost', 'Migration cost $ (custom)'],
 ];
 

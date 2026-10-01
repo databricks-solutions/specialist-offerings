@@ -47,6 +47,10 @@ export interface Assumptions {
   hot_storage_pct?: number;
   cold_storage_pct?: number;
   archive_storage_pct?: number;
+  /** Manual storage override (TB of Delta storage to price). When set, used
+   *  instead of HDFS-derived storage — e.g. Visa's 34,000 TB from the sheet,
+   *  since Ambari clusters have no cm_hdfs_usage. */
+  storage_total_tb?: number;
   dbx_support_pct?: number;
   dbx_admin_overhead_pct?: number;
   migration_tshirt?: 'small' | 'medium' | 'large' | 'custom';

@@ -75,6 +75,7 @@ const DDL: string[] = [
      hot_storage_pct           DOUBLE PRECISION,
      cold_storage_pct          DOUBLE PRECISION,
      archive_storage_pct       DOUBLE PRECISION,
+     storage_total_tb          DOUBLE PRECISION,
      dbx_support_pct           DOUBLE PRECISION,
      dbx_admin_overhead_pct    DOUBLE PRECISION,
      migration_tshirt          TEXT,
@@ -215,6 +216,7 @@ const DDL: string[] = [
 
   // Additive migrations (idempotent) for columns added after a table first shipped.
   `ALTER TABLE ${SCHEMA}.assumptions ADD COLUMN IF NOT EXISTS dbu_method TEXT`,
+  `ALTER TABLE ${SCHEMA}.assumptions ADD COLUMN IF NOT EXISTS storage_total_tb DOUBLE PRECISION`,
 ];
 
 // ── Seed data (ported from seed_data.sql / seed_lookups.sql) ──────────────────

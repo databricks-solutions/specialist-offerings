@@ -199,16 +199,16 @@ export function computeStorageCost(
     tierPrice: { hot: number; cold: number; archive: number };
   },
 ): { delta_storage_gb: number; annual_cost: number } {
-  // Prefer a manual total (already logical, not HDFS-replicated) when given.
-  let logicalGb: number;
+  // Manual total = the Delta storage to price directly (no replication/compression
+  // adjustment); otherwise derive from HDFS used ÷ replication × compression.
+  let deltaGb: number;
   if (opts.manualTotalTb && opts.manualTotalTb > 0) {
-    logicalGb = opts.manualTotalTb * 1024;
+    deltaGb = opts.manualTotalTb * 1024;
   } else {
     const used = opts.hdfsUsedGb || 0;
     if (used === 0) return { delta_storage_gb: 0, annual_cost: 0 };
-    logicalGb = used / opts.hdfsReplFactor;
+    deltaGb = (used / opts.hdfsReplFactor) * opts.deltaCompression;
   }
-  const deltaGb = logicalGb * opts.deltaCompression;
   const discount = opts.discountPct / 100;
   let monthly = 0;
   for (const [tier, pct] of [['hot', opts.hotPct], ['cold', opts.coldPct], ['archive', opts.archivePct]] as const) {

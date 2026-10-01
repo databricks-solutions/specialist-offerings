@@ -54,6 +54,7 @@ const AssumptionFields = z
     hot_storage_pct: z.number(),
     cold_storage_pct: z.number(),
     archive_storage_pct: z.number(),
+    storage_total_tb: z.number(),
     dbx_support_pct: z.number(),
     dbx_admin_overhead_pct: z.number(),
     migration_tshirt: z.enum(['small', 'medium', 'large', 'custom']),
