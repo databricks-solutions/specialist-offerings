@@ -36,6 +36,7 @@ export function AssumptionsPage() {
     const b: Record<string, unknown> = {
       name: form.name, target_cloud: form.target_cloud, databricks_tier: form.databricks_tier,
       hadoop_vendor_type: form.hadoop_vendor_type, migration_tshirt: form.migration_tshirt,
+      dbu_method: form.dbu_method,
     };
     for (const [k] of NUM_FIELDS) {
       const v = form[k as string];
