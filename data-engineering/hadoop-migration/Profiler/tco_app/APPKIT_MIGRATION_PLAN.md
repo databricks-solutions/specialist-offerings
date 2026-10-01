@@ -209,3 +209,18 @@ AppKit app reaches parity (M4). The DuckDB→UC pipeline (incl. item 8) serves b
             - [x] ScenarioComparisonPage — all-runs comparison table (hadoop/databricks/savings).
             ===> UI COMPLETE (6 pages: Calculator, Workload, Pricing&SKU, Migration, Scenarios,
                  Assumptions). Full production build passes (vite + tsdown). <===
+
+
+## ===> M4 DEPLOYED (2026-10-01) <===
+AppKit app **tco-app-appkit** is LIVE on Databricks Apps (aws_sandbox):
+  https://tco-app-appkit-7474658366043447.aws.databricksapps.com  (status: RUNNING)
+Deploy = `databricks apps deploy` (bundle: validate build/typecheck/lint -> upload -> build -> start).
+Two deploy blockers fixed:
+  1) App service principal (6be4ba48-...) lacked UC access -> GRANT USE CATALOG/USE SCHEMA/SELECT
+     ON CATALOG profiler TO the SP (needed for typegen DESCRIBE at build + runtime queries).
+  2) Repo-root .gitignore '*conf*.json' matched ts*conf*ig*.json, excluding tsconfigs from the
+     bundle upload (Apps build TS5083). Fixed via sync.include in databricks.yml (+ committed tsconfigs).
+Runtime confirmed: Lakebase SP pool initialized, server running (production). Dash app
+`hadoop-tco-calculator` left running (M4 guardrail) pending parity sign-off.
+Remaining (optional): capacity serverless-ratio refinement; retire Dash after sign-off; shorten
+Lakebase scale-to-zero; cleanup stale runs.
