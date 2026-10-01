@@ -21,6 +21,8 @@ installable: true
 
 ## Unstructured Data Processing
 
+![Unstructured Data Processing — pitch deck cover](images/deck-cover.png)
+
 > **SSA offering — how to engage:** If you are interested in this SSA Offering, follow the ASQ process (go/gethelp): Product Help > Pilot/Production Advisory; then put the tag #ssa-offering #unstructured-data-processing in both the **Title** and **Description** fields.
 
 **GOAL:** Accelerate the design, build, evaluate, and productionization of complex intelligent data processing workflows that turn unstructured and multi-modal data into governed assets on the Databricks Lakehouse — using AI Functions, FMAPI for batch and streaming inference.

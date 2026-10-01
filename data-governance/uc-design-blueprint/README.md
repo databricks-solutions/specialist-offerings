@@ -21,6 +21,8 @@ installable: false
 
 ## UC Design Blueprint
 
+![UC Design Blueprint — pitch deck cover](images/deck-cover.png)
+
 > **SSA offering — how to engage:** If you are interested in this SSA Offering, follow the ASQ process (go/gethelp): Product Help > Pilot/Production Advisory; then put the tag #ssa-offering #uc-design-blueprint in both the **Title** and **Description** fields.
 
 **GOAL:** Simplify and accelerate UC design and deployment for customers with complex data governance needs via three working sessions

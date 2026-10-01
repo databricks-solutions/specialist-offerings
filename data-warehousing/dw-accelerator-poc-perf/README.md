@@ -21,6 +21,8 @@ installable: false
 
 ## DW Performance PoC Accelerator
 
+![DW Performance PoC Accelerator — pitch deck cover](images/deck-cover.png)
+
 > **SSA offering — how to engage:** If you are interested in this SSA Offering, follow the ASQ process (go/gethelp): Product Help > Pilot/Production Advisory; then put the tag #ssa-offering #dw-accelerator-poc-perf in both the **Title** and **Description** fields.
 
 **GOAL:** Validate DBSQL capabilities with an automated PoC — establish scalability, performance, and cost savings of DBSQL, compare against legacy EDW, and present findings to decision makers with a formal readout

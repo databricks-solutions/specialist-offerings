@@ -21,6 +21,8 @@ installable: false
 
 ## DW Migration Design Blueprint
 
+![DW Migration Design Blueprint — pitch deck cover](images/deck-cover.png)
+
 > **SSA offering — how to engage:** If you are interested in this SSA Offering, follow the ASQ process (go/gethelp): Product Help > Pilot/Production Advisory; then put the tag #ssa-offering #dw-migration-design-blueprint in both the **Title** and **Description** fields.
 
 **GOAL:** Help customers make an informed DW migration decision with confidence and clarity
