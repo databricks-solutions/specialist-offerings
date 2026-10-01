@@ -205,4 +205,7 @@ AppKit app reaches parity (M4). The DuckDB→UC pipeline (incl. item 8) serves b
                   stats + workload-by-type). Browser-validated on visa_dpi (1,325 apps, 5 days).
             - [x] PricingSkuPage — editable SKU mapping (the DBU-allocation lever) + VM/DBSQL
                   lookups by cloud. Browser-validated (23 rows render).
-            REMAINING UI pages: Migration Timeline, Scenario Comparison.
+            - [x] MigrationTimelinePage — run picker → 3-yr summary + quarterly ramp table (/api/tco/runs/:id).
+            - [x] ScenarioComparisonPage — all-runs comparison table (hadoop/databricks/savings).
+            ===> UI COMPLETE (6 pages: Calculator, Workload, Pricing&SKU, Migration, Scenarios,
+                 Assumptions). Full production build passes (vite + tsdown). <===

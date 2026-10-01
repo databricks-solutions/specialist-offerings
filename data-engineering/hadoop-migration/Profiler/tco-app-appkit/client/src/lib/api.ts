@@ -1,6 +1,25 @@
 // Typed client for the TCO backend routes (/api/tco/*).
 
-import type { Assumptions, TcoResult, CalculateRequest } from '../../../shared/tco-types';
+import type { Assumptions, TcoResult, CalculateRequest, TimelineQuarter } from '../../../shared/tco-types';
+
+export interface RunDetailFull {
+  run_id: string;
+  run_name: string;
+  total_hadoop_cost_annual: number;
+  total_databricks_cost_annual: number;
+  total_cost_annual: number;
+  savings_pct: number | null;
+  dbx_etl_dbu_cost: number;
+  dbx_interactive_dbu_cost: number;
+  dbx_bisql_dbu_cost: number;
+  dbx_vm_cost: number;
+  dbx_support_cost: number;
+  dbx_admin_cost: number;
+  three_year_savings: number;
+  created_at: string;
+  timeline: TimelineQuarter[];
+  details: Array<Record<string, unknown>>;
+}
 
 export interface AssumptionSummary {
   assumption_id: string;
@@ -76,5 +95,6 @@ export const api = {
   calculate: (req: CalculateRequest) =>
     fetch('/api/tco/calculate', jsonInit('POST', req)).then(unwrap<TcoResult>),
   listRuns: () => fetch('/api/tco/runs').then(unwrap<RunSummary[]>),
+  getRun: (id: string) => fetch(`/api/tco/runs/${id}`).then(unwrap<RunDetailFull>),
   skuMapping: () => fetch('/api/tco/sku-mapping').then(unwrap<SkuMappingRow[]>),
 };

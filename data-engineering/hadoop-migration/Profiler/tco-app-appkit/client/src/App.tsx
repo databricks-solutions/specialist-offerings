@@ -4,6 +4,8 @@ import { CalculatorPage } from '@/pages/tco/CalculatorPage';
 import { AssumptionsPage } from '@/pages/tco/AssumptionsPage';
 import { WorkloadProfilePage } from '@/pages/tco/WorkloadProfilePage';
 import { PricingSkuPage } from '@/pages/tco/PricingSkuPage';
+import { MigrationTimelinePage } from '@/pages/tco/MigrationTimelinePage';
+import { ScenarioComparisonPage } from '@/pages/tco/ScenarioComparisonPage';
 
 const navLinkClass = ({ isActive }: { isActive: boolean }) =>
   `px-3 py-1.5 rounded-md text-sm font-medium transition-colors ${
@@ -33,6 +35,8 @@ function Layout() {
           <NavLink to="/" end className={navLinkClass}>Calculator</NavLink>
           <NavLink to="/workload" className={navLinkClass}>Workload</NavLink>
           <NavLink to="/pricing" className={navLinkClass}>Pricing &amp; SKU</NavLink>
+          <NavLink to="/migration" className={navLinkClass}>Migration</NavLink>
+          <NavLink to="/scenarios" className={navLinkClass}>Scenarios</NavLink>
           <NavLink to="/assumptions" className={navLinkClass}>Assumptions</NavLink>
         </nav>
         <CatalogSelector />
@@ -51,6 +55,8 @@ const router = createBrowserRouter([
       { path: '/', element: <CalculatorPage /> },
       { path: '/workload', element: <WorkloadProfilePage /> },
       { path: '/pricing', element: <PricingSkuPage /> },
+      { path: '/migration', element: <MigrationTimelinePage /> },
+      { path: '/scenarios', element: <ScenarioComparisonPage /> },
       { path: '/assumptions', element: <AssumptionsPage /> },
     ],
   },
