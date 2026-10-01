@@ -12,3 +12,11 @@ playwright-report/
 # Auto-generated types (endpoint-specific, varies per developer)
 shared/appkit-types/serving.d.ts
 
+# Re-include tsconfigs: the repo-root '*conf*.json' rule accidentally matches
+# ts*conf*ig*.json, which excluded them from git AND the bundle deploy upload
+# (breaking the Databricks Apps build). Negate it here.
+!tsconfig.json
+!tsconfig.client.json
+!tsconfig.server.json
+!tsconfig.shared.json
+
