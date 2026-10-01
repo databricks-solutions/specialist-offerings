@@ -216,6 +216,113 @@ CM_TIMESERIES_TABLES = [
     "cm_impala_utilization",
 ]
 
+# ── Ambari Tables ────────────────────────────────────────────────────────────
+
+AMBARI_HOSTS = """
+CREATE TABLE IF NOT EXISTS ambari_hosts (
+    host_name VARCHAR PRIMARY KEY,
+    cpu_count INTEGER,
+    total_mem BIGINT,
+    os_type VARCHAR,
+    mountpoint VARCHAR,
+    disk_used_percent DOUBLE,
+    disk_size_mb BIGINT,
+    disk_used_mb BIGINT,
+    extraction_timestamp TIMESTAMP
+);
+"""
+
+AMBARI_HOST_COMPONENTS = """
+CREATE TABLE IF NOT EXISTS ambari_host_components (
+    cluster_name VARCHAR,
+    component_name VARCHAR,
+    host_name VARCHAR,
+    extraction_timestamp TIMESTAMP
+);
+"""
+
+AMBARI_STACK = """
+CREATE TABLE IF NOT EXISTS ambari_stack (
+    cluster_name VARCHAR,
+    stack VARCHAR,
+    version VARCHAR,
+    services VARCHAR[],
+    extraction_timestamp TIMESTAMP
+);
+"""
+
+AMBARI_SERVICES = """
+CREATE TABLE IF NOT EXISTS ambari_services (
+    service_installed VARCHAR,
+    extraction_timestamp TIMESTAMP
+);
+"""
+
+AMBARI_YARN_ALLOCATION = """
+CREATE TABLE IF NOT EXISTS ambari_yarn_allocation (
+    service VARCHAR,
+    total_vcores INTEGER,
+    total_memory BIGINT,
+    max_alloc_mb BIGINT,
+    max_alloc_vcores INTEGER,
+    min_alloc_mb BIGINT,
+    min_alloc_vcores INTEGER,
+    extraction_timestamp TIMESTAMP
+);
+"""
+
+AMBARI_HBASE_ALLOCATION = """
+CREATE TABLE IF NOT EXISTS ambari_hbase_allocation (
+    service VARCHAR,
+    hbase_region_memory BIGINT,
+    hbase_master_memory BIGINT,
+    extraction_timestamp TIMESTAMP
+);
+"""
+
+HDFS_STATS = """
+CREATE TABLE IF NOT EXISTS hdfs_stats (
+    capacity_total_gb DOUBLE,
+    capacity_remaining_gb DOUBLE,
+    capacity_used_gb DOUBLE,
+    cluster_name VARCHAR,
+    component_name VARCHAR,
+    service_name VARCHAR,
+    extraction_timestamp TIMESTAMP
+);
+"""
+
+# ── Ranger Tables ────────────────────────────────────────────────────────────
+
+RANGER_POLICIES = """
+CREATE TABLE IF NOT EXISTS ranger_policies (
+    description VARCHAR,
+    is_audit_enabled BOOLEAN,
+    is_enabled BOOLEAN,
+    is_recursive BOOLEAN,
+    permission_list JSON,
+    policy_name VARCHAR,
+    replace_perm VARCHAR,
+    repository_name VARCHAR,
+    repository_type VARCHAR,
+    resource_name VARCHAR,
+    udfs VARCHAR,
+    version INTEGER,
+    extraction_timestamp TIMESTAMP
+);
+"""
+
+RANGER_REPOS = """
+CREATE TABLE IF NOT EXISTS ranger_repos (
+    is_active BOOLEAN,
+    name VARCHAR,
+    owner VARCHAR,
+    repository_type VARCHAR,
+    config JSON,
+    extraction_timestamp TIMESTAMP
+);
+"""
+
 # ── Metadata Table ───────────────────────────────────────────────────────────
 
 EXPORT_METADATA = """
@@ -244,6 +351,15 @@ BASE_TABLES = [
     CM_CONFIG,
     CM_EXPORT,
     CM_HOST_ROLES,
+    AMBARI_HOSTS,
+    AMBARI_HOST_COMPONENTS,
+    AMBARI_STACK,
+    AMBARI_SERVICES,
+    AMBARI_YARN_ALLOCATION,
+    AMBARI_HBASE_ALLOCATION,
+    HDFS_STATS,
+    RANGER_POLICIES,
+    RANGER_REPOS,
     EXPORT_METADATA,
 ]
 

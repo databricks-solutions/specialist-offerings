@@ -82,6 +82,14 @@ def cmd_validate(args):
         ("CM", "cmYarnMemoryAndCPU_*.json", "CM YARN Memory/CPU"),
         ("CM", "cmYarnUtilization_*.json", "CM YARN Utilization"),
         ("CM", "cmImpalaUtilization_*.json", "CM Impala Utilization"),
+        ("AMBARI", "AmbariHost*.json", "Ambari Hosts"),
+        ("AMBARI", "AmbariComponents*.json", "Ambari Components"),
+        ("AMBARI", "AmbariStack*.json", "Ambari Stack"),
+        ("AMBARI", "AmbariServices*.json", "Ambari Services"),
+        ("AMBARI", "AmbariBlueprint*.json", "Ambari Blueprint"),
+        ("AMBARI", "AmbariHDFS*.json", "Ambari HDFS"),
+        ("RANGER", "Ranger_Policies*.json", "Ranger Policies"),
+        ("RANGER", "Ranger_Repos*.json", "Ranger Repositories"),
     ]:
         files = find_json_files(base_dir, subdir, pattern)
         count = len(files)

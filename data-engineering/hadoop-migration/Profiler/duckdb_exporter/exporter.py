@@ -14,6 +14,11 @@ from duckdb_exporter.loaders.yarn_loader import (
 from duckdb_exporter.loaders.spark_loader import load_spark_applications
 from duckdb_exporter.loaders.impala_loader import load_impala_queries
 from duckdb_exporter.loaders.cm_loader import load_all_cm
+from duckdb_exporter.loaders.ambari_loader import (
+    load_ambari_hosts, load_ambari_host_components, load_ambari_stack,
+    load_ambari_services, load_ambari_yarn_and_hbase_allocation, load_hdfs_stats,
+)
+from duckdb_exporter.loaders.ranger_loader import load_ranger_policies, load_ranger_repos
 from duckdb_exporter.transforms.yarn_analysis import create_all_yarn_analysis
 from duckdb_exporter.transforms.summary_tables import create_all_summary_tables
 
@@ -105,6 +110,53 @@ def run_export(config: ExporterConfig):
                         tables_created += 1
                 except Exception:
                     pass
+
+        # Load Ambari (HDP) data
+        logger.info("Loading Ambari data...")
+        rows = load_ambari_hosts(conn, base_dir)
+        if rows:
+            tables_created += 1
+        total_rows += rows
+
+        rows = load_ambari_host_components(conn, base_dir)
+        if rows:
+            tables_created += 1
+        total_rows += rows
+
+        rows = load_ambari_stack(conn, base_dir)
+        if rows:
+            tables_created += 1
+        total_rows += rows
+
+        rows = load_ambari_services(conn, base_dir)
+        if rows:
+            tables_created += 1
+        total_rows += rows
+
+        yarn_alloc_rows, hbase_alloc_rows = load_ambari_yarn_and_hbase_allocation(conn, base_dir)
+        if yarn_alloc_rows:
+            tables_created += 1
+        total_rows += yarn_alloc_rows
+        if hbase_alloc_rows:
+            tables_created += 1
+        total_rows += hbase_alloc_rows
+
+        rows = load_hdfs_stats(conn, base_dir)
+        if rows:
+            tables_created += 1
+        total_rows += rows
+
+        # Load Ranger security data
+        logger.info("Loading Ranger data...")
+        rows = load_ranger_policies(conn, base_dir)
+        if rows:
+            tables_created += 1
+        total_rows += rows
+
+        rows = load_ranger_repos(conn, base_dir)
+        if rows:
+            tables_created += 1
+        total_rows += rows
 
         # Create derived tables (only if YARN data was loaded)
         yarn_count = 0

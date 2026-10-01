@@ -88,6 +88,10 @@ if overwrite:
         "impala_extract", "cm_hostroles", "cm_roleconfig",
         "cm_clustercpu", "cm_clustermemory", "cm_hdfsstats",
         "cm_ts_impala_utlization", "cm_ts_yarn_memory_allocation",
+        "Ambari_Hosts", "Ambari_HostComponents", "Ambari_stack",
+        "Ambari_Yarn_allocation", "Ambari_Hbase_allocation",
+        "Ambari_ServicesInstalled", "HDFS_Stats",
+        "Ranger_Policies", "Ranger_Repos",
     ]
     _RENAMED_TABLES = [
         ("_yarn_nodes", "yarn_nodes"),
@@ -424,6 +428,119 @@ SELECT
     MAX(CASE WHEN metric_name LIKE '%allocated_vcores%mean' THEN value END) AS total_allocated_vcores_across_yarn_pools_mean
 FROM `{catalog}`.`{schema}`.cm_yarn_memory_cpu
 GROUP BY metric_timestamp
+"""
+
+# Ambari_Hosts: alias DuckDB snake_case to original camelCase
+_COMPAT_VIEW_SQL["Ambari_Hosts"] = f"""
+CREATE OR REPLACE VIEW `{catalog}`.`{schema}`.Ambari_Hosts AS
+SELECT
+    host_name,
+    cpu_count AS cpuCount,
+    total_mem AS totalMem,
+    os_type AS osType,
+    mountpoint,
+    disk_used_percent AS diskUsedPercent,
+    disk_size_mb AS diskSizeMb,
+    disk_used_mb AS diskUsedMb
+FROM `{catalog}`.`{schema}`.ambari_hosts
+"""
+
+# Ambari_HostComponents: alias to original camelCase
+_COMPAT_VIEW_SQL["Ambari_HostComponents"] = f"""
+CREATE OR REPLACE VIEW `{catalog}`.`{schema}`.Ambari_HostComponents AS
+SELECT
+    cluster_name AS clusterName,
+    component_name AS componentName,
+    host_name AS hostName
+FROM `{catalog}`.`{schema}`.ambari_host_components
+"""
+
+# Ambari_stack: alias to original camelCase
+_COMPAT_VIEW_SQL["Ambari_stack"] = f"""
+CREATE OR REPLACE VIEW `{catalog}`.`{schema}`.Ambari_stack AS
+SELECT
+    cluster_name AS clusterName,
+    stack,
+    version,
+    services
+FROM `{catalog}`.`{schema}`.ambari_stack
+"""
+
+# Ambari_Yarn_allocation: alias to original camelCase
+_COMPAT_VIEW_SQL["Ambari_Yarn_allocation"] = f"""
+CREATE OR REPLACE VIEW `{catalog}`.`{schema}`.Ambari_Yarn_allocation AS
+SELECT
+    service,
+    total_vcores AS totalVcores,
+    total_memory AS totalMemory,
+    max_alloc_mb AS maxAllocMb,
+    max_alloc_vcores AS maxAllocVcores,
+    min_alloc_mb AS minAllocMb,
+    min_alloc_vcores AS minAllocVcores
+FROM `{catalog}`.`{schema}`.ambari_yarn_allocation
+"""
+
+# Ambari_Hbase_allocation: alias to original camelCase
+_COMPAT_VIEW_SQL["Ambari_Hbase_allocation"] = f"""
+CREATE OR REPLACE VIEW `{catalog}`.`{schema}`.Ambari_Hbase_allocation AS
+SELECT
+    service,
+    hbase_region_memory AS hbaseRegionMemory,
+    hbase_master_memory AS hbaseMasterMemory
+FROM `{catalog}`.`{schema}`.ambari_hbase_allocation
+"""
+
+# Ambari_ServicesInstalled: alias to original camelCase
+_COMPAT_VIEW_SQL["Ambari_ServicesInstalled"] = f"""
+CREATE OR REPLACE VIEW `{catalog}`.`{schema}`.Ambari_ServicesInstalled AS
+SELECT
+    service_installed AS Service_Installed
+FROM `{catalog}`.`{schema}`.ambari_services
+"""
+
+# HDFS_Stats: alias DuckDB snake_case to original camelCase (TCO use case: exposes total storage TB)
+_COMPAT_VIEW_SQL["HDFS_Stats"] = f"""
+CREATE OR REPLACE VIEW `{catalog}`.`{schema}`.HDFS_Stats AS
+SELECT
+    ROUND(capacity_total_gb / 1024.0, 2) AS capacity_total_tb,
+    capacity_total_gb AS CapacityTotalGB,
+    capacity_remaining_gb AS CapacityRemainingGB,
+    capacity_used_gb AS CapacityUsedGB,
+    cluster_name AS clusterName,
+    component_name AS componenetName,
+    service_name AS serviceName
+FROM `{catalog}`.`{schema}`.hdfs_stats
+"""
+
+# Ranger_Policies: alias to original camelCase
+_COMPAT_VIEW_SQL["Ranger_Policies"] = f"""
+CREATE OR REPLACE VIEW `{catalog}`.`{schema}`.Ranger_Policies AS
+SELECT
+    description,
+    is_audit_enabled AS isAuditEnabled,
+    is_enabled AS isEnabled,
+    is_recursive AS isRecursive,
+    permission_list AS permissionList,
+    policy_name AS policyName,
+    replace_perm AS replacePerm,
+    repository_name AS repositoryName,
+    repository_type AS repositoryType,
+    resource_name AS resourceName,
+    udfs,
+    version
+FROM `{catalog}`.`{schema}`.ranger_policies
+"""
+
+# Ranger_Repos: alias to original camelCase
+_COMPAT_VIEW_SQL["Ranger_Repos"] = f"""
+CREATE OR REPLACE VIEW `{catalog}`.`{schema}`.Ranger_Repos AS
+SELECT
+    is_active AS isActive,
+    name,
+    owner,
+    repository_type AS repositoryType,
+    config
+FROM `{catalog}`.`{schema}`.ranger_repos
 """
 
 created = 0
