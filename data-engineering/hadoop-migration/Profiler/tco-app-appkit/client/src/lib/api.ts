@@ -46,8 +46,24 @@ const jsonInit = (method: string, body: unknown): RequestInit => ({
   body: JSON.stringify(body),
 });
 
+export interface VmInstanceRow {
+  cloud: string; instance_type: string; vcpus: number; memory_gb: number;
+  on_demand_price: number; reserved_price: number; spot_price: number; region: string; category: string;
+}
+export interface DbsqlSizeRow {
+  size_name: string; worker_count: number; dbu_per_hour: number; vcpus: number; cloud: string; vm_cost_per_hour: number;
+}
+export interface StorageTierRow {
+  cloud: string; tier_name: string; volume_min_tb: number; volume_max_tb: number; price_per_gb: number;
+}
+
 export const api = {
   listAssumptions: () => fetch('/api/tco/assumptions').then(unwrap<AssumptionSummary[]>),
+  updateSkuMapping: (jobType: string, body: Partial<SkuMappingRow>) =>
+    fetch(`/api/tco/sku-mapping/${encodeURIComponent(jobType)}`, jsonInit('PUT', body)).then(unwrap<SkuMappingRow>),
+  vmInstances: (cloud: string) => fetch(`/api/tco/lookups/vm-instances?cloud=${cloud}`).then(unwrap<VmInstanceRow[]>),
+  dbsqlSizes: (cloud: string) => fetch(`/api/tco/lookups/dbsql-sizes?cloud=${cloud}`).then(unwrap<DbsqlSizeRow[]>),
+  storageTiers: (cloud: string) => fetch(`/api/tco/lookups/storage-tiers?cloud=${cloud}`).then(unwrap<StorageTierRow[]>),
   getAssumption: (id: string) => fetch(`/api/tco/assumptions/${id}`).then(unwrap<Assumptions>),
   createAssumption: (body: Assumptions) =>
     fetch('/api/tco/assumptions', jsonInit('POST', body)).then(unwrap<Assumptions>),

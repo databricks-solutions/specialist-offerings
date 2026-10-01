@@ -193,5 +193,8 @@ AppKit app reaches parity (M4). The DuckDB→UC pipeline (incl. item 8) serves b
             - App.tsx rewired (nav + routes + header selector); sample pages removed. Typecheck clean.
             - Browser-validated on :8000: calculated profiler.visa_dpi → hadoop $8,377,028,
               databricks $13.02M (close to sheet $13.54M for this window); Assumptions "Saved sets (5)".
-            REMAINING UI pages: Workload Profile (#3 auto-advance), Pricing & SKU Mapping,
-            Migration Timeline, Scenario Comparison.
+            - [x] WorkloadProfilePage (useAnalyticsQuery on the config queries — cluster/window
+                  stats + workload-by-type). Browser-validated on visa_dpi (1,325 apps, 5 days).
+            - [x] PricingSkuPage — editable SKU mapping (the DBU-allocation lever) + VM/DBSQL
+                  lookups by cloud. Browser-validated (23 rows render).
+            REMAINING UI pages: Migration Timeline, Scenario Comparison.
