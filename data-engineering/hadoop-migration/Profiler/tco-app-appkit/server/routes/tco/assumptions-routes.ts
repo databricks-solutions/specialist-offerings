@@ -60,6 +60,7 @@ const AssumptionFields = z
     migration_custom_cost: z.number(),
     ecif_credit: z.number(),
     migration_duration_quarters: z.number().int(),
+    dbu_method: z.enum(['measured', 'capacity']),
   })
   .partial();
 

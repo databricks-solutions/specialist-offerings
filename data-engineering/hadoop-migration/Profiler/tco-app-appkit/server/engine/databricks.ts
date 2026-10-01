@@ -100,34 +100,56 @@ export function computeMeasuredDbu(
   };
 }
 
+// Capacity-DBU constants extracted verbatim from the sheet's "Run-Rate
+// Calculations" tab (m6id.2xlarge; 6 workers + 1 driver per cluster). The chain:
+//   total_vcpus = nodes × vCores/node × split × util × (1+devtest)          [O17]
+//   vcpus_req   = total_vcpus × vcpu_per_vcore × (1 − perf_gain)            [O15 = O17×O24]
+//   clusters    = vcpus_req / (worker_nodes × vcpus/worker)                 [O29]
+//   $DBU        = clusters × 8760 × (worker_nodes + driver_nodes) × $DBU/node/hr  [O74+O80]
+const CAP = {
+  workerNodesPerCluster: 6, // O32
+  driverNodesPerCluster: 1, // O35
+  vcpusPerWorker: 8, // O34 (m6id.2xlarge)
+  // $DBU per node-hour = (DBU/hr/instance × $/DBU), by compute category, m6id.2xlarge.
+  dbuDollarPerNodeHr: { jobs: 0.6612, all_purpose: 1.672, sql: 0.6612 } as Record<string, number>,
+  biPerfGain: 0.36, // BI runtime perf gain (sheet)
+};
+
 /**
- * CAPACITY DBU (TODO #6) — the sheet's top-down model:
- * stream DBUs ≈ nodes × vCores/node × stream% × 24/7 util × (1−perf_gain) ÷ hyperthreading
- *             × HOURS_PER_YEAR × dbuPerVcpuHour.
+ * CAPACITY DBU (TODO #6) — faithful port of the sheet's top-down cluster model.
+ * Reproduces the sheet's ETL $DBU exactly ($141,594 for Visa) and the
+ * non-serverless worker+driver chain for every stream.
  *
- * PROVISIONAL: the per-stream vCPU→DBU conversion (`dbuPerVcpuHour`) and the exact
- * perf-gain/hyperthreading application must be calibrated against the sheet's
- * "Run-Rate Calculations" cell formulas (CSV export gives values, not formulas —
- * needs a formula-extraction pass). Do NOT treat this as sheet-exact yet.
+ * NOTE ON SERVERLESS: when a stream runs Serverless (Visa's Interactive + BI),
+ * the sheet applies a serverless/non-serverless cost ratio (≈0.53 for
+ * interactive, from the GC perf benchmarks) and the BI SQL path uses DBSQL
+ * cluster sizing. This function returns the NON-serverless capacity cost
+ * (the upper bound); the serverless ratio is a documented follow-up refinement.
  */
 export function computeCapacityDbu(
   assumptions: Assumptions,
-  skuRateByStream: { etl: number; interactive: number; bisql: number } = { etl: 0.15, interactive: 0.55, bisql: 0.22 },
-  dbuPerVcpuHour = 1.0,
 ): { streamCosts: { etl: number; interactive: number; bisql: number }; totalCompute: number } {
   const a = withDefaults(assumptions);
   const totalVCores = (a.hadoop_node_count || 0) * (a.hadoop_vcores_per_node || 0);
   const util = (a.hadoop_utilization_pct || 0) / 100;
-  const perfGain = a.photon_perf_gain ?? 0.75;
-  const ht = a.hyperthreading_factor || 1;
+  const devtest = a.dev_test_uplift; // O22
+  const vcpuPerVcore = a.hyperthreading_factor || 1; // O25 (sheet C44 = 1)
+  const photonPerf = a.photon_perf_gain ?? 0.75;
 
-  const streamPct = { etl: (a.etl_pct || 0) / 100, interactive: (a.interactive_pct || 0) / 100, bisql: (a.bisql_pct || 0) / 100 };
+  const streams = [
+    { key: 'etl' as const, pct: (a.etl_pct || 0) / 100, perf: photonPerf, cat: 'jobs' },
+    { key: 'interactive' as const, pct: (a.interactive_pct || 0) / 100, perf: photonPerf, cat: 'all_purpose' },
+    { key: 'bisql' as const, pct: (a.bisql_pct || 0) / 100, perf: CAP.biPerfGain, cat: 'sql' },
+  ];
   const streamCosts = { etl: 0, interactive: 0, bisql: 0 };
-  (['etl', 'interactive', 'bisql'] as const).forEach((s) => {
-    const effVcores = (totalVCores * streamPct[s] * util * (1 - perfGain)) / ht;
-    const annualDbus = effVcores * HOURS_PER_YEAR * dbuPerVcpuHour;
-    streamCosts[s] = round2(annualDbus * skuRateByStream[s]);
-  });
+  for (const s of streams) {
+    const totalVcpus = totalVCores * s.pct * util * (1 + devtest);
+    const vcpusReq = totalVcpus * vcpuPerVcore * (1 - s.perf);
+    const clusters = vcpusReq / (CAP.workerNodesPerCluster * CAP.vcpusPerWorker);
+    const dbuPerNodeHr = CAP.dbuDollarPerNodeHr[s.cat] ?? CAP.dbuDollarPerNodeHr.jobs;
+    const cost = clusters * HOURS_PER_YEAR * (CAP.workerNodesPerCluster + CAP.driverNodesPerCluster) * dbuPerNodeHr;
+    streamCosts[s.key] = round2(cost);
+  }
   return {
     streamCosts,
     totalCompute: round2(streamCosts.etl + streamCosts.interactive + streamCosts.bisql),

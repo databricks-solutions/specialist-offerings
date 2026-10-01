@@ -81,6 +81,7 @@ const DDL: string[] = [
      migration_custom_cost     DOUBLE PRECISION,
      ecif_credit               DOUBLE PRECISION,
      migration_duration_quarters INTEGER,
+     dbu_method                TEXT,
      created_by                TEXT,
      created_at                TIMESTAMPTZ NOT NULL DEFAULT now()
    )`,
@@ -211,6 +212,9 @@ const DDL: string[] = [
      api_source        TEXT,
      raw_response_hash TEXT
    )`,
+
+  // Additive migrations (idempotent) for columns added after a table first shipped.
+  `ALTER TABLE ${SCHEMA}.assumptions ADD COLUMN IF NOT EXISTS dbu_method TEXT`,
 ];
 
 // ── Seed data (ported from seed_data.sql / seed_lookups.sql) ──────────────────

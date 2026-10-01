@@ -180,8 +180,16 @@ AppKit app reaches parity (M4). The DuckDB→UC pipeline (incl. item 8) serves b
             total dbx $21.8M; run persisted to tco.runs/run_details/migration_timeline. Typecheck
             + 20 tests green. (`dbu_method` defaults 'measured'; capacity path runs but see below.)
       REMAINING:
-      - [ ] Capacity-DBU #6: calibrate formula to the sheet AND wire `dbu_method` through the
-            DB column + assumptions CRUD + CalculateRequest so it's selectable.
+      - [x] **Capacity-DBU #6 DONE** — extracted the sheet's Run-Rate Calculations formula layer
+            (via XLSX export + openpyxl) and ported the exact cluster chain into
+            `computeCapacityDbu`: nodes×vCores×split×util×(1+devtest)×(1−perf) → clusters
+            (6 workers+1 driver, 8 vCPU/worker) → ×8760×7×$DBU/node-hr. **ETL reconciles
+            EXACTLY ($141,594)**; interactive non-serverless $716,109 (= sheet S74+S80).
+            `dbu_method` wired through: tco.assumptions column (+ idempotent ADD COLUMN
+            migration), zod enum, UI select; orchestrator branches measured|capacity.
+            Live-validated: capacity DBU total $1.58M (vs sheet $2.0M; measured was $16M).
+            Documented refinement: Visa's Interactive/BI run SERVERLESS (≈0.53 GC-benchmark
+            ratio / DBSQL path) — capacity mode returns the non-serverless upper bound.
       - [ ] Pricing snapshot (optional).
       - [ ] (housekeeping) 2 stale empty runs in tco.runs from pre-fix probes — harmless.
       - [~] UI (React pages) — STARTED + validated in browser:

@@ -42,16 +42,21 @@ describe('Measured DBU (port of cost_engine.py loop)', () => {
   });
 });
 
-describe('Capacity DBU (#6, provisional)', () => {
+describe('Capacity DBU (#6) — reconciles to the sheet Run-Rate chain', () => {
   const visa: Assumptions = {
     hadoop_node_count: 643, hadoop_vcores_per_node: 79,
     hadoop_utilization_pct: 6, etl_pct: 20, interactive_pct: 40, bisql_pct: 40,
-    photon_perf_gain: 0.75, hyperthreading_factor: 1,
+    photon_perf_gain: 0.75, hyperthreading_factor: 1, dev_test_uplift: 0.1,
   };
-  it('produces positive per-stream costs with interactive > etl (bigger split)', () => {
-    const r = computeCapacityDbu(visa);
-    expect(r.totalCompute).toBeGreaterThan(0);
-    expect(r.streamCosts.interactive).toBeGreaterThan(r.streamCosts.etl);
+  const r = computeCapacityDbu(visa);
+
+  it('ETL $DBU matches the sheet exactly ($141,594)', () => {
+    // 643×79×0.2×0.06×1.1 ×0.25 /(6×8) clusters × 8760 × 7 × $0.6612
+    expect(Math.abs(r.streamCosts.etl - 141_594)).toBeLessThanOrEqual(10);
+  });
+
+  it('Interactive (non-serverless) matches the sheet chain (S74+S80 ≈ $716,109)', () => {
+    expect(Math.abs(r.streamCosts.interactive - 716_109)).toBeLessThanOrEqual(50);
   });
 });
 
