@@ -7,7 +7,7 @@ const usd = (n: number | null | undefined) =>
 
 export function ScenarioComparisonPage() {
   const [runs, setRuns] = useState<RunSummary[]>([]);
-  const refresh = () => api.listRuns().then(setRuns).catch(() => {});
+  const refresh = () => { void api.listRuns().then(setRuns).catch(() => {}); };
   useEffect(() => { refresh(); }, []);
 
   return (

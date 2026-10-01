@@ -16,6 +16,8 @@ export default tseslint.config(
       '**/coverage/**',
       'client/dist/**',
       '**.databricks/**',
+      // Auto-generated AppKit types (from `appkit generate-types`) — not hand-written.
+      'shared/appkit-types/**',
     ],
   },
 

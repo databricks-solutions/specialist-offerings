@@ -33,7 +33,7 @@ export function CalculatorPage() {
     api.listAssumptions().then((a) => {
       setAssumptions(a);
       if (a.length && !assumptionId) setAssumptionId(a[0].assumption_id);
-    }).catch((e) => setStatus({ kind: 'err', msg: String(e.message || e) }));
+    }).catch((e) => setStatus({ kind: 'err', msg: String((e as Error).message || e) }));
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
@@ -77,7 +77,7 @@ export function CalculatorPage() {
             <input className="w-full h-9 rounded-md border px-3 text-sm bg-background"
               value={runName} onChange={(e) => setRunName(e.target.value)} />
           </div>
-          <Button onClick={calculate} disabled={running}>
+          <Button onClick={() => void calculate()} disabled={running}>
             {running ? 'Calculating…' : 'Calculate TCO'}
           </Button>
           <div className="md:col-span-4 text-xs text-muted-foreground">

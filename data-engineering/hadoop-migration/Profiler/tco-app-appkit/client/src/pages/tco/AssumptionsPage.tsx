@@ -27,7 +27,7 @@ export function AssumptionsPage() {
   const [editId, setEditId] = useState<string | null>(null);
   const [status, setStatus] = useState<{ kind: 'ok' | 'err'; msg: string } | null>(null);
 
-  const refresh = () => api.listAssumptions().then(setList).catch((e) => setStatus({ kind: 'err', msg: String(e.message || e) }));
+  const refresh = () => { void api.listAssumptions().then(setList).catch((e) => setStatus({ kind: 'err', msg: String((e as Error).message || e) })); };
   useEffect(() => { refresh(); }, []);
 
   const set = (k: string, v: string) => setForm((f) => ({ ...f, [k]: v }));
@@ -99,8 +99,8 @@ export function AssumptionsPage() {
                   <td>{a.hadoop_node_count ?? '—'}</td>
                   <td>{a.hadoop_vcores_per_node ?? '—'}</td>
                   <td className="text-right space-x-2">
-                    <Button variant="ghost" size="sm" onClick={() => edit(a.assumption_id)}>Edit</Button>
-                    <Button variant="ghost" size="sm" onClick={() => remove(a.assumption_id, a.name)}>Delete</Button>
+                    <Button variant="ghost" size="sm" onClick={() => void edit(a.assumption_id)}>Edit</Button>
+                    <Button variant="ghost" size="sm" onClick={() => void remove(a.assumption_id, a.name)}>Delete</Button>
                   </td>
                 </tr>
               ))}
@@ -138,7 +138,7 @@ export function AssumptionsPage() {
             ))}
           </div>
           <div className="flex items-center gap-3">
-            <Button onClick={save}>{editId ? 'Update' : 'Save'} assumption</Button>
+            <Button onClick={() => void save()}>{editId ? 'Update' : 'Save'} assumption</Button>
             {editId && <Button variant="ghost" onClick={() => { setForm(blank()); setEditId(null); }}>Cancel</Button>}
             {status && <span className={`text-sm ${status.kind === 'ok' ? 'text-green-600' : 'text-red-600'}`}>{status.msg}</span>}
           </div>

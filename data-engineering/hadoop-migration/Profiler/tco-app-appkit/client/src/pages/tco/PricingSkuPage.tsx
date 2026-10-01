@@ -15,7 +15,7 @@ export function PricingSkuPage() {
   const [status, setStatus] = useState<string | null>(null);
 
   const refresh = useCallback(() => {
-    api.skuMapping().then(setMapping).catch((e) => setStatus(`Error: ${e.message}`));
+    api.skuMapping().then(setMapping).catch((e) => setStatus(`Error: ${(e as Error).message}`));
     api.vmInstances(cloud).then(setVm).catch(() => {});
     api.dbsqlSizes(cloud).then(setDbsql).catch(() => {});
   }, [cloud]);
@@ -73,7 +73,7 @@ export function PricingSkuPage() {
                       {CATEGORIES.map((c) => <option key={c} value={c}>{c}</option>)}
                     </select>
                   </td>
-                  <td className="text-right"><Button variant="ghost" size="sm" onClick={() => save(r)}>Save</Button></td>
+                  <td className="text-right"><Button variant="ghost" size="sm" onClick={() => void save(r)}>Save</Button></td>
                 </tr>
               ))}
             </tbody>
