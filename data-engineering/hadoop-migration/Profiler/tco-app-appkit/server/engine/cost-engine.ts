@@ -15,6 +15,7 @@ import {
   computeSupportCost, computeDbxAdminCost, priceKeyForDiscount,
   type WorkloadRow, type SkuMappingRow,
 } from './databricks';
+import { getPricingSnapshot } from './pricing';
 import { calculateMigrationTimeline, calculateDoNothing, summarizeTimeline } from './migration';
 
 // Bound SQL parameter marker (what sql.string()/sql.int()/… return).
@@ -115,9 +116,12 @@ export async function calculateTco(appkit: EngineAppKit, req: CalculateRequest):
   }));
 
   // 5. Databricks DBU — measured (profiler-driven) or capacity (sheet-style).
+  //    Measured mode prices per SKU; refresh $/DBU from the live pricing snapshot
+  //    (system.billing.list_prices) when available, else fall back to static rates.
+  const pricing = await getPricingSnapshot((q) => warehouse(appkit, q));
   const dbu = dbuMethod === 'capacity'
     ? { ...computeCapacityDbu(assumptions), details: [] as TcoResult['details'] }
-    : computeMeasuredDbu(workloadRows, skuMapping, assumptions, window.annualization_factor);
+    : computeMeasuredDbu(workloadRows, skuMapping, assumptions, window.annualization_factor, pricing.rates);
   const streamCosts = dbu.streamCosts;
   const totalCompute = dbu.totalCompute;
   const details = 'details' in dbu ? dbu.details : [];

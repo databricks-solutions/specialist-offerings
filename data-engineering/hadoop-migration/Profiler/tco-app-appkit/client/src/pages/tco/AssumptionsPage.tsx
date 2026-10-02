@@ -16,10 +16,11 @@ const NUM_FIELDS: Array<[keyof Assumptions, string]> = [
   ['interactive_pct', 'Interactive %'],
   ['bisql_pct', 'BI/SQL %'],
   ['storage_total_tb', 'Storage (TB)'],
+  ['serverless_dbu_ratio', 'Serverless DBU ratio'],
   ['migration_custom_cost', 'Migration cost $ (custom)'],
 ];
 
-const blank = (): Record<string, string> => ({ name: '', target_cloud: 'AWS', databricks_tier: 'PREMIUM', hadoop_vendor_type: 'Open Source', migration_tshirt: 'custom', dbu_method: 'measured' });
+const blank = (): Record<string, string> => ({ name: '', target_cloud: 'AWS', databricks_tier: 'PREMIUM', hadoop_vendor_type: 'Open Source', migration_tshirt: 'custom', dbu_method: 'measured', use_serverless: 'false' });
 
 export function AssumptionsPage() {
   const [list, setList] = useState<AssumptionSummary[]>([]);
@@ -36,7 +37,7 @@ export function AssumptionsPage() {
     const b: Record<string, unknown> = {
       name: form.name, target_cloud: form.target_cloud, databricks_tier: form.databricks_tier,
       hadoop_vendor_type: form.hadoop_vendor_type, migration_tshirt: form.migration_tshirt,
-      dbu_method: form.dbu_method,
+      dbu_method: form.dbu_method, use_serverless: form.use_serverless === 'true',
     };
     for (const [k] of NUM_FIELDS) {
       const v = form[k as string];
@@ -120,7 +121,7 @@ export function AssumptionsPage() {
               <Label>Name</Label>
               <input className="w-full h-9 rounded-md border px-3 text-sm bg-background" value={form.name} onChange={(e) => set('name', e.target.value)} />
             </div>
-            {([['target_cloud', 'Cloud', ['AWS', 'AZURE', 'GCP']], ['databricks_tier', 'Tier', ['STANDARD', 'PREMIUM', 'ENTERPRISE']], ['hadoop_vendor_type', 'Hadoop vendor', ['Open Source', 'Licensed']], ['migration_tshirt', 'Migration size', ['small', 'medium', 'large', 'custom']], ['dbu_method', 'DBU method', ['measured', 'capacity']]] as const).map(([k, label, opts]) => (
+            {([['target_cloud', 'Cloud', ['AWS', 'AZURE', 'GCP']], ['databricks_tier', 'Tier', ['STANDARD', 'PREMIUM', 'ENTERPRISE']], ['hadoop_vendor_type', 'Hadoop vendor', ['Open Source', 'Licensed']], ['migration_tshirt', 'Migration size', ['small', 'medium', 'large', 'custom']], ['dbu_method', 'DBU method', ['measured', 'capacity']], ['use_serverless', 'Serverless (capacity)', ['false', 'true']]] as const).map(([k, label, opts]) => (
               <div key={k}>
                 <Label>{label}</Label>
                 <select className="w-full h-9 rounded-md border px-2 text-sm bg-background" value={form[k]} onChange={(e) => set(k, e.target.value)}>

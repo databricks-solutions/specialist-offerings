@@ -5,6 +5,7 @@ import {
   computeStorageCost,
   computeSupportCost,
   computeDbxAdminCost,
+  SERVERLESS_DBU_RATIO,
   type WorkloadRow,
   type SkuMappingRow,
 } from './databricks';
@@ -57,6 +58,23 @@ describe('Capacity DBU (#6) — reconciles to the sheet Run-Rate chain', () => {
 
   it('Interactive (non-serverless) matches the sheet chain (S74+S80 ≈ $716,109)', () => {
     expect(Math.abs(r.streamCosts.interactive - 716_109)).toBeLessThanOrEqual(50);
+  });
+
+  it('serverless scales Interactive + BI/SQL by SERVERLESS_DBU_RATIO; ETL unaffected', () => {
+    const sl = computeCapacityDbu({ ...visa, use_serverless: true });
+    expect(sl.streamCosts.etl).toBeCloseTo(r.streamCosts.etl, 2); // jobs never serverless
+    expect(sl.streamCosts.interactive).toBeCloseTo(r.streamCosts.interactive * SERVERLESS_DBU_RATIO, 1);
+    expect(sl.streamCosts.bisql).toBeCloseTo(r.streamCosts.bisql * SERVERLESS_DBU_RATIO, 1);
+  });
+
+  it('honors an explicit serverless_dbu_ratio override', () => {
+    const sl = computeCapacityDbu({ ...visa, use_serverless: true, serverless_dbu_ratio: 0.4 });
+    expect(sl.streamCosts.interactive).toBeCloseTo(r.streamCosts.interactive * 0.4, 1);
+  });
+
+  it('is unchanged when use_serverless is off (default)', () => {
+    const off = computeCapacityDbu({ ...visa, use_serverless: false });
+    expect(off.totalCompute).toBeCloseTo(r.totalCompute, 2);
   });
 });
 

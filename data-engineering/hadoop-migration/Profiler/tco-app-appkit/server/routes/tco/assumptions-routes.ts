@@ -19,6 +19,7 @@ const AssumptionFields = z
     target_cloud: z.enum(['AWS', 'AZURE', 'GCP']),
     databricks_tier: z.enum(['STANDARD', 'PREMIUM', 'ENTERPRISE']),
     use_serverless: z.boolean(),
+    serverless_dbu_ratio: z.number(),
     photon_enabled: z.boolean(),
     utilization_factor: z.number(),
     overhead_factor: z.number(),

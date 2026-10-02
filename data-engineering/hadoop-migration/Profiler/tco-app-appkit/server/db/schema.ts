@@ -40,6 +40,7 @@ const DDL: string[] = [
      target_cloud              TEXT,
      databricks_tier           TEXT,
      use_serverless            BOOLEAN,
+     serverless_dbu_ratio      DOUBLE PRECISION,
      photon_enabled            BOOLEAN,
      utilization_factor        DOUBLE PRECISION,
      overhead_factor           DOUBLE PRECISION,
@@ -217,6 +218,7 @@ const DDL: string[] = [
   // Additive migrations (idempotent) for columns added after a table first shipped.
   `ALTER TABLE ${SCHEMA}.assumptions ADD COLUMN IF NOT EXISTS dbu_method TEXT`,
   `ALTER TABLE ${SCHEMA}.assumptions ADD COLUMN IF NOT EXISTS storage_total_tb DOUBLE PRECISION`,
+  `ALTER TABLE ${SCHEMA}.assumptions ADD COLUMN IF NOT EXISTS serverless_dbu_ratio DOUBLE PRECISION`,
 ];
 
 // ── Seed data (ported from seed_data.sql / seed_lookups.sql) ──────────────────

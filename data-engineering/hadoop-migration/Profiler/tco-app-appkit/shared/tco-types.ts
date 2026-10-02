@@ -10,6 +10,9 @@ export interface Assumptions {
   target_cloud?: 'AWS' | 'AZURE' | 'GCP';
   databricks_tier?: 'STANDARD' | 'PREMIUM' | 'ENTERPRISE';
   use_serverless?: boolean;
+  /** Serverless cost ratio for the capacity-mode Interactive + BI/SQL streams
+   *  when use_serverless is set. Defaults to SERVERLESS_DBU_RATIO (~0.53). */
+  serverless_dbu_ratio?: number;
   photon_enabled?: boolean;
   utilization_factor?: number;
   overhead_factor?: number;

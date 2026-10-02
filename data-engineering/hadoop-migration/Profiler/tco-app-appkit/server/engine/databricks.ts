@@ -115,16 +115,24 @@ const CAP = {
   biPerfGain: 0.36, // BI runtime perf gain (sheet)
 };
 
+// Serverless cost ratio applied to the Interactive + BI/SQL capacity streams when
+// `use_serverless` is set (the Visa DPI profile runs those serverless). This is the
+// documented GC-benchmark estimate (~0.53) and is OVERRIDABLE per assumption via
+// `serverless_dbu_ratio`. NOTE: pending exact calibration against the sheet's
+// serverless Run-Rate rows — treat as an estimate, not a reconciled figure. ETL
+// (jobs) is unaffected; it does not run serverless in the profile.
+export const SERVERLESS_DBU_RATIO = 0.53;
+
 /**
  * CAPACITY DBU (TODO #6) — faithful port of the sheet's top-down cluster model.
  * Reproduces the sheet's ETL $DBU exactly ($141,594 for Visa) and the
  * non-serverless worker+driver chain for every stream.
  *
- * NOTE ON SERVERLESS: when a stream runs Serverless (Visa's Interactive + BI),
- * the sheet applies a serverless/non-serverless cost ratio (≈0.53 for
- * interactive, from the GC perf benchmarks) and the BI SQL path uses DBSQL
- * cluster sizing. This function returns the NON-serverless capacity cost
- * (the upper bound); the serverless ratio is a documented follow-up refinement.
+ * SERVERLESS: when `use_serverless` is set, the Interactive + BI/SQL streams run
+ * serverless (as in the Visa profile) and their capacity cost is scaled by
+ * SERVERLESS_DBU_RATIO (overridable via `serverless_dbu_ratio`). With serverless
+ * off (the default) this returns the non-serverless worker+driver capacity cost,
+ * so existing behavior is unchanged. ETL (jobs) is never scaled.
  */
 export function computeCapacityDbu(
   assumptions: Assumptions,
@@ -136,10 +144,13 @@ export function computeCapacityDbu(
   const vcpuPerVcore = a.hyperthreading_factor || 1; // O25 (sheet C44 = 1)
   const photonPerf = a.photon_perf_gain ?? 0.75;
 
+  // Serverless scaling for the interactive + BI/SQL streams (ETL unaffected).
+  const serverlessRatio = a.use_serverless ? (a.serverless_dbu_ratio ?? SERVERLESS_DBU_RATIO) : 1;
+
   const streams = [
-    { key: 'etl' as const, pct: (a.etl_pct || 0) / 100, perf: photonPerf, cat: 'jobs' },
-    { key: 'interactive' as const, pct: (a.interactive_pct || 0) / 100, perf: photonPerf, cat: 'all_purpose' },
-    { key: 'bisql' as const, pct: (a.bisql_pct || 0) / 100, perf: CAP.biPerfGain, cat: 'sql' },
+    { key: 'etl' as const, pct: (a.etl_pct || 0) / 100, perf: photonPerf, cat: 'jobs', serverless: 1 },
+    { key: 'interactive' as const, pct: (a.interactive_pct || 0) / 100, perf: photonPerf, cat: 'all_purpose', serverless: serverlessRatio },
+    { key: 'bisql' as const, pct: (a.bisql_pct || 0) / 100, perf: CAP.biPerfGain, cat: 'sql', serverless: serverlessRatio },
   ];
   const streamCosts = { etl: 0, interactive: 0, bisql: 0 };
   for (const s of streams) {
@@ -147,7 +158,7 @@ export function computeCapacityDbu(
     const vcpusReq = totalVcpus * vcpuPerVcore * (1 - s.perf);
     const clusters = vcpusReq / (CAP.workerNodesPerCluster * CAP.vcpusPerWorker);
     const dbuPerNodeHr = CAP.dbuDollarPerNodeHr[s.cat] ?? CAP.dbuDollarPerNodeHr.jobs;
-    const cost = clusters * HOURS_PER_YEAR * (CAP.workerNodesPerCluster + CAP.driverNodesPerCluster) * dbuPerNodeHr;
+    const cost = clusters * HOURS_PER_YEAR * (CAP.workerNodesPerCluster + CAP.driverNodesPerCluster) * dbuPerNodeHr * s.serverless;
     streamCosts[s.key] = round2(cost);
   }
   return {
