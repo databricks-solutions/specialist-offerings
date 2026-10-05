@@ -1,5 +1,9 @@
 # Hadoop to Databricks TCO Calculator
 
+> ⚠️ **Legacy — superseded by the AppKit app at [`../tco-app-appkit/`](../tco-app-appkit/README.md).**
+> This is the original Dash implementation. It is kept running only until the AppKit
+> app completes parity sign-off; new work should go to `tco-app-appkit/`.
+
 A multi-page Dash application for estimating total cost of ownership when migrating Hadoop workloads to Databricks. Reads profiler data from Unity Catalog, applies configurable assumptions, and produces per-workload cost breakdowns with savings analysis.
 
 **Live URL:** `https://hadoop-tco-calculator-<workspace-id>.aws.databricksapps.com`

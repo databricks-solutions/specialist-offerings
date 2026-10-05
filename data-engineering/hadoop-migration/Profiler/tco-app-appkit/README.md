@@ -1,5 +1,9 @@
 # tco-app-appkit
 
+> ✅ **Current TCO app.** This is the maintained Hadoop → Databricks TCO calculator
+> (deployed on Databricks Apps), superseding the legacy Dash app at
+> [`../tco_app/`](../tco_app/README.md). New work goes here.
+
 A Databricks App powered by [AppKit](https://developers.databricks.com/docs/appkit/v0/), featuring React, TypeScript, and Tailwind CSS.
 
 **Enabled plugins:**

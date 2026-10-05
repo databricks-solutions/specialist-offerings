@@ -1,5 +1,10 @@
 # Design & Implementation Plan: DuckDB Export for Hadoop Profiler
 
+> 📋 **Working document — design/implementation notes, not user reference.**
+> To run the DuckDB export, see the root [`README.md`](../README.md) ("DuckDB Exporter")
+> and [`HADOOP_MIGRATION_TOOLKIT.md`](../HADOOP_MIGRATION_TOOLKIT.md). This file records
+> design decisions and may lag the shipped `duckdb_exporter/` code.
+
 ## Context
 
 The existing Profiler (`profiler.sh`) writes raw JSON files from REST API responses (YARN RM, Spark HS, Cloudera Manager, Impala). Currently, a separate Databricks notebook pipeline (7 stages, from `Profiler Extract V2_17.zip`) reads these JSON files and transforms them into ~35 Delta tables for analysis.

@@ -1,5 +1,9 @@
 # TCO App — TODO / Implementation Backlog
 
+> 📋 **Working backlog — not user reference.** Many items here were delivered by the
+> AppKit rewrite ([`../tco-app-appkit/`](../tco-app-appkit/README.md)); entries predating
+> it may be stale. For usage, see the app READMEs and the root `README.md`.
+
 Running list of improvements to implement. Newest feedback at top of each section.
 
 ## UX / Feedback (reported 2026-09-30)

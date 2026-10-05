@@ -1,5 +1,9 @@
 # TCO App → AppKit Migration Plan
 
+> 📋 **Working document — migration plan/progress log, not user reference.** The
+> AppKit rewrite shipped: the current app is [`../tco-app-appkit/`](../tco-app-appkit/README.md).
+> To use the TCO app, see its README. This file tracks the plan and may lag the code.
+
 **Decision (2026-09-30):** Adopt **AppKit (React/TS)** for the TCO Calculator app,
 rewrite modeled on the **"Vacation Rentals Ops Console"** template
 (https://developers.databricks.com/templates — SQL Warehouse queries + Lakebase

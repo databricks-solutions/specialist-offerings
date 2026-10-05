@@ -1,5 +1,10 @@
 # Implementation Plan: Analyzer + Converter Modules for Hadoop Migration Toolkit
 
+> 📋 **Working document — planning/implementation notes, not user reference.**
+> To run and use the toolkit, start with the root [`README.md`](README.md) and
+> [`HADOOP_MIGRATION_TOOLKIT.md`](HADOOP_MIGRATION_TOOLKIT.md). This file records
+> design decisions and build progress and may lag the shipped code.
+
 ## Context
 
 The existing Profiler (`src/hadoop/Profiler/profiler.sh`) extracts app-level metadata from YARN, Spark HS, CM, and Impala via REST APIs into JSON files. However, it captures **no code-level details** — no JAR paths, no script locations, no workflow definitions, no Oozie data. Two new modules address this gap:
