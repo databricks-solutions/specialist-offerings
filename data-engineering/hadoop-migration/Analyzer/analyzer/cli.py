@@ -25,24 +25,28 @@ def setup_logging(verbose: bool = False):
 def cmd_analyze(args):
     """Full analysis pipeline: profiler + Oozie + optional path verification."""
     config = load_config(args.config)
+    if args.duckdb:
+        config.duckdb.db_path = args.duckdb
     builder = InventoryBuilder(config)
-    items = builder.build_full()
+    items, summaries = builder.build_full()
 
     if config.webhdfs.enabled:
         items = builder.verify_paths(items)
 
     _maybe_score(items, config, args.score_complexity)
-    _output_report(items, config)
+    _output_report(items, config, summaries=summaries)
 
 
 def cmd_parse_profiler(args):
     """Parse profiler output only (no Oozie)."""
     config = load_config(args.config)
+    if args.duckdb:
+        config.duckdb.db_path = args.duckdb
     builder = InventoryBuilder(config)
-    items = builder.build_from_profiler()
+    items, summaries = builder.build_from_profiler()
 
     _maybe_score(items, config, args.score_complexity)
-    _output_report(items, config)
+    _output_report(items, config, summaries=summaries)
 
 
 def cmd_scan_oozie(args):
@@ -103,13 +107,13 @@ def _maybe_score(items, config, score_complexity: bool):
         ComplexityScorer(config).score_all(items)
 
 
-def _output_report(items, config):
+def _output_report(items, config, summaries=None):
     """Generate reports based on config."""
     output_dir = config.output.dir
     fmt = config.output.format
 
     if fmt in ("json", "both"):
-        path = generate_json_report(items, output_dir)
+        path = generate_json_report(items, output_dir, summaries=summaries)
         print(f"JSON report: {path}")
 
     if fmt in ("csv", "both"):
@@ -151,11 +155,13 @@ def main():
     # analyze
     p_analyze = subparsers.add_parser("analyze", help="Full pipeline: profiler + Oozie")
     p_analyze.add_argument("--config", required=True, help="Path to analyzer.conf.yaml")
+    p_analyze.add_argument("--duckdb", help="Path to .duckdb file (overrides profiler_output.base_dir)")
     p_analyze.set_defaults(func=cmd_analyze)
 
     # parse-profiler
     p_profiler = subparsers.add_parser("parse-profiler", help="Parse profiler output only")
     p_profiler.add_argument("--config", required=True, help="Path to analyzer.conf.yaml")
+    p_profiler.add_argument("--duckdb", help="Path to .duckdb file (overrides profiler_output.base_dir)")
     p_profiler.set_defaults(func=cmd_parse_profiler)
 
     # scan-oozie

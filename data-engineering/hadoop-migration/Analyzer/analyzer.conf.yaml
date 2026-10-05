@@ -1,6 +1,11 @@
 profiler_output:
   base_dir: "/path/to/profiler-output/Output"
 
+# DuckDB input (alternative to profiler JSON files)
+# If db_path is set, the analyzer reads from DuckDB tables instead of JSON
+duckdb:
+  db_path: ""  # e.g., "/path/to/hadoop_profiler.duckdb"
+
 oozie:
   url: "http://oozie-host:11000"
   auth: "simple"

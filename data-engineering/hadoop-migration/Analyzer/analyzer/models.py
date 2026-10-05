@@ -62,6 +62,15 @@ class WorkloadInventoryItem:
     vcore_seconds: Optional[int] = None
     diagnostics: Optional[str] = None
 
+    # Cost / normalized metrics (from DuckDB yarn_analysis_vw)
+    job_type: Optional[str] = None
+    memory_gb_hours: Optional[float] = None
+    vcore_hours: Optional[float] = None
+    elapsed_time_mins: Optional[float] = None
+    dollar_dbus: Optional[float] = None
+    dollar_vm: Optional[float] = None
+    total_cost: Optional[float] = None
+
     # Impala-specific
     database: Optional[str] = None
     query_type: Optional[str] = None
@@ -112,6 +121,20 @@ class WorkloadInventoryItem:
             d["memory_seconds"] = self.memory_seconds
         if self.vcore_seconds is not None:
             d["vcore_seconds"] = self.vcore_seconds
+        if self.job_type:
+            d["job_type"] = self.job_type
+        if self.memory_gb_hours is not None:
+            d["memory_gb_hours"] = self.memory_gb_hours
+        if self.vcore_hours is not None:
+            d["vcore_hours"] = self.vcore_hours
+        if self.elapsed_time_mins is not None:
+            d["elapsed_time_mins"] = self.elapsed_time_mins
+        if self.dollar_dbus is not None:
+            d["dollar_dbus"] = self.dollar_dbus
+        if self.dollar_vm is not None:
+            d["dollar_vm"] = self.dollar_vm
+        if self.total_cost is not None:
+            d["total_cost"] = self.total_cost
         if self.database:
             d["database"] = self.database
         if self.query_type:

@@ -36,8 +36,9 @@ class TestInventoryBuilderProfiler(unittest.TestCase):
         builder = InventoryBuilder(config)
         # This won't find files since fixtures aren't in YARN/ subdir
         # but it should not error out
-        items = builder.build_from_profiler()
+        items, summaries = builder.build_from_profiler()
         self.assertIsInstance(items, list)
+        self.assertIsInstance(summaries, dict)
 
     def test_merge_yarn_spark(self):
         """Test merging of YARN and Spark HS items."""

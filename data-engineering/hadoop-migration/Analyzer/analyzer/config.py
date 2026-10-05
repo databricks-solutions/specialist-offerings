@@ -29,6 +29,11 @@ class WebHDFSConfig:
 
 
 @dataclass
+class DuckDBConfig:
+    db_path: str = ""  # Path to .duckdb file; empty = disabled (use JSON parsers)
+
+
+@dataclass
 class OutputConfig:
     format: str = "json"
     dir: str = "./analyzer-output"
@@ -44,6 +49,7 @@ class ComplexityConfig:
 @dataclass
 class AnalyzerConfig:
     profiler_output: ProfilerOutputConfig = field(default_factory=ProfilerOutputConfig)
+    duckdb: DuckDBConfig = field(default_factory=DuckDBConfig)
     oozie: OozieConfig = field(default_factory=OozieConfig)
     webhdfs: WebHDFSConfig = field(default_factory=WebHDFSConfig)
     output: OutputConfig = field(default_factory=OutputConfig)
@@ -61,6 +67,12 @@ def load_config(config_path: str) -> AnalyzerConfig:
         po = raw["profiler_output"]
         config.profiler_output = ProfilerOutputConfig(
             base_dir=os.path.expanduser(po.get("base_dir", "")),
+        )
+
+    if "duckdb" in raw:
+        db = raw["duckdb"]
+        config.duckdb = DuckDBConfig(
+            db_path=os.path.expanduser(db.get("db_path", "")),
         )
 
     if "oozie" in raw:

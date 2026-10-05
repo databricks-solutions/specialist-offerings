@@ -3,7 +3,7 @@
 import logging
 import re
 import xml.etree.ElementTree as ET
-from typing import Dict, List, Optional
+from typing import Any, Dict, List, Optional, Tuple
 
 from analyzer.config import AnalyzerConfig
 from analyzer.connectors.oozie_client import OozieClient
@@ -74,17 +74,28 @@ class InventoryBuilder:
                 user=self.config.webhdfs.user,
             )
 
-    def build_from_profiler(self) -> List[WorkloadInventoryItem]:
-        """Build inventory from profiler output only (no Oozie)."""
-        base_dir = self.config.profiler_output.base_dir
-        if not base_dir:
-            logger.error("profiler_output.base_dir not configured")
-            return []
+    def build_from_profiler(self) -> Tuple[List[WorkloadInventoryItem], Dict[str, Any]]:
+        """Build inventory from profiler output only (no Oozie).
 
-        # Parse all profiler sources
-        yarn_items = find_and_parse_yarn_dumps(base_dir)
-        spark_items = find_and_parse_spark_apps(base_dir)
-        impala_items = find_and_parse_impala_queries(base_dir)
+        Returns (items, summaries). Summaries is populated from DuckDB
+        derived tables when available, empty dict otherwise.
+        """
+        summaries: Dict[str, Any] = {}
+
+        if self.config.duckdb.db_path:
+            from analyzer.parsers.duckdb_source import load_from_duckdb
+            logger.info("Using DuckDB input: %s", self.config.duckdb.db_path)
+            yarn_items, spark_items, impala_items, summaries = load_from_duckdb(
+                self.config.duckdb.db_path
+            )
+        else:
+            base_dir = self.config.profiler_output.base_dir
+            if not base_dir:
+                logger.error("Neither duckdb.db_path nor profiler_output.base_dir configured")
+                return [], {}
+            yarn_items = find_and_parse_yarn_dumps(base_dir)
+            spark_items = find_and_parse_spark_apps(base_dir)
+            impala_items = find_and_parse_impala_queries(base_dir)
 
         # Merge YARN + Spark HS (Spark HS may have additional detail)
         merged = self._merge_yarn_spark(yarn_items, spark_items)
@@ -93,7 +104,7 @@ class InventoryBuilder:
         merged.extend(impala_items)
 
         logger.info("Built inventory with %d items from profiler output", len(merged))
-        return merged
+        return merged, summaries
 
     def build_from_oozie(self) -> List[WorkloadInventoryItem]:
         """Build inventory from Oozie only (no profiler output)."""
@@ -120,16 +131,19 @@ class InventoryBuilder:
         logger.info("Built inventory with %d items from Oozie", len(items))
         return items
 
-    def build_full(self) -> List[WorkloadInventoryItem]:
-        """Build full inventory from profiler + Oozie, with correlation."""
-        profiler_items = self.build_from_profiler()
+    def build_full(self) -> Tuple[List[WorkloadInventoryItem], Dict[str, Any]]:
+        """Build full inventory from profiler + Oozie, with correlation.
+
+        Returns (items, summaries).
+        """
+        profiler_items, summaries = self.build_from_profiler()
         oozie_items = self.build_from_oozie()
 
         # Correlate: match YARN apps to Oozie actions
         merged = self._correlate(profiler_items, oozie_items)
 
         logger.info("Built full inventory with %d items", len(merged))
-        return merged
+        return merged, summaries
 
     def verify_paths(self, items: List[WorkloadInventoryItem]) -> List[WorkloadInventoryItem]:
         """Verify HDFS paths for all code artifacts using WebHDFS."""
