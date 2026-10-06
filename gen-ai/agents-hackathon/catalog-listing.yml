@@ -1,0 +1,109 @@
+title: "Agents Hackathon"
+
+industry: "FINS"
+status: "In Progress"
+strategic_priority: "High"
+
+demo_owner: "ben.doan@databricks.com"
+industry_lead: "ben.doan@databricks.com"
+
+links:
+  github: https://github.com/bendoan-db/databricks-agents-hackathon
+
+imperative: "GenAI Adoption"
+business_outcome: "Accelerate development, deployment, and quality improvement for agentic applications by partnering with customers to build a production-ready agent on their data, in their workspace, in 1-3 days"
+
+needs_fix: false
+business_user_friendly: false
+
+expected_delivery: "Q2 FY27"
+last_certified: "2026-05-27"
+
+products: "Mosaic AI Agent Framework, MLflow, Vector Search, Genie, Model Serving, FMAPI, AI Functions, Unity Catalog, Lakeflow Jobs"
+product_lines: "AI, Data Engineering"
+
+partner_developed: false
+partner: ""
+
+demo_description: |
+  ## Agents Hackathon
+
+  > **SSA offering — how to engage:** If you are interested in this SSA Offering, follow the ASQ process (go/gethelp): Product Help > Pilot/Production Advisory; then put the tag #ssa-offering #agents-hackathon in both the **Title** and **Description** fields. Submit ASQs with **1mo+ of lead time**.
+
+  **GOAL:** Accelerate development, deployment, and quality improvement for agentic applications. The Databricks Agents Hackathon is a 1-3 day focused engagement where customers work with Databricks ML Specialists to build an agentic application on their data, in their workspace — from requirements to a production-ready proof of concept.
+
+  ### Overview
+  This offering is a hands-on, on-site (preferred) hackathon that takes experienced GenAI customers with validated use cases from requirements to a deployed agent ready for user validation. Unlike workshops, hackathons are intended for advanced GenAI developers and customers with clearly defined scope, real data, and a path to production. The agenda is tailored to the customer's use case and combines targeted enablement with extended hands-on hacking sessions alongside Databricks specialists.
+
+  ### What's Included
+  - **In-depth implementation of the Databricks Agent Framework** and popular open source frameworks (LangGraph, OpenAI Agents API)
+  - **Advanced document RAG techniques**: document metadata enrichment, query expansion, self-querying retrieval, document pruning
+  - **Structured data retrieval with Genie**: Genie best practices, optimization with GenieRx, Genie API & MCP integration patterns
+  - **MLflow evaluation harnesses**: retrieval evaluation, parameter / retrieval sweeping, custom LLM judges for benchmarking agent quality
+  - **Multi-agent and deep research architectures**: planner / supervisor patterns, task coordination, guardrails, front-end integration
+  - **GenAI batch inference pipelines**: `ai_query`, `ai_parse_document`, and other AI Functions
+  - **Agent deployment & monitoring**: agent authentication patterns, "On-Behalf-Of" authentication, model serving deployment, production monitoring
+  - **Tailored enablement agenda** built around the customer's specific use case and requirements
+
+  ### Key Benefits
+  - **Real Data, Real Workspace**: customers build with their own data inside their own Databricks workspace, not sandbox environments
+  - **Field-Tested Techniques**: advanced retrieval, evaluation, and multi-agent patterns proven across CDPQ, Northwestern Mutual, EY, and Markel engagements
+  - **Outperforms Competing Stacks**: at Northwestern Mutual, the hackathon-built agent reached ~70% correctness vs. ~51% (Azure Foundry, current state) and ~19% (AWS Knowledge Spaces)
+  - **Accelerates Consumption**: hackathon engagements have driven step-change increases in GenAI DBU consumption (Vector Search, Model Serving, Batch Inference, AI Gateway) immediately post-event
+  - **Path to Production**: walk away with a deployed agent ready for user validation, security review, and scaling — not a slideware demo
+
+  ### GTM Signals — When to Engage
+  - Advanced GenAI developer customers with **validated use cases, clear requirements, and a path to production**
+  - Customers with an **existing GenAI application** who are struggling with quality (correctness, retrieval, hallucinations)
+  - Complex use cases: deep research agents, multi-agent reasoning, claims research, knowledge portals, internal copilots
+  - Customers with high gravity in Unity Catalog and Databricks already
+  - Customers evaluating Databricks Agent Framework vs. Azure Foundry, AWS Bedrock / Knowledge Spaces, or other vendor agent platforms
+  - Customer asking: "How do I improve the quality of my agent?", "How do I deploy an agent in production on Databricks?", "How do I evaluate my agent objectively?"
+
+  > **Note:** Hackathons are NOT intended for enablement. Customers who are still getting familiar with GenAI on Databricks, have simple RAG/Genie use cases, or lack GenAI experience should be routed to a Workshop instead.
+
+  ### Technical Readiness Criteria
+  - Unity Catalog enabled on the target workspace
+  - Serverless SQL and partner-powered AI assistive features enabled
+  - Workspace supports AI Functions (`ai_query`, `ai_parse_document`, etc.)
+  - Available workspace admin to run pre-hackathon smoke tests / readiness scripts
+  - Hackathon participants have experience with MLflow and at least one of: LangGraph, Mosaic Agent Framework, OpenAI Agents API
+  - Full participant availability for the 2-3 day window
+  - Clearly documented requirements for the hackathon use case(s)
+
+  ### Engagement Process (4-Step Joint Execution Plan)
+
+  **Step 1 — Use Case Discovery & Qualification** (8hrs FTE / 1-2 wks)
+  - Prerequisite: Customer has identified candidate agent use cases and has executive buy-in
+  - 1-2 Hour Sync: Qualify the customer against hackathon vs. workshop criteria; document task descriptions, current state processes/workflows, key knowledge sources, example inputs and outputs, and other agent requirements
+  - Next Steps: Confirm champion + executive support, lock the use case scope, and submit the ASQ with 1mo+ of lead time
+
+  **Step 2 — Pre-Hackathon Environment Readiness** (8hrs FTE / 1-2 wks)
+  - Prerequisite: Workspace identified; workspace admin available
+  - 1 Hour Session: Walk through the Environment Readiness Checklist; run smoke test notebooks in the customer workspace to validate Unity Catalog, Serverless SQL, AI Functions, Vector Search, and Model Serving access
+  - Next Steps: Resolve any blockers (entitlements, network, catalog permissions); confirm sample data, ground-truth labels, and document quality; tailor the hackathon agenda to the customer's use case
+
+  **Step 3 — Hackathon Delivery** (16-24hrs FTE / 2-3 days, on-site preferred)
+  - Prerequisite: Environment ready, agenda tailored, participants confirmed
+  - 2-3 Day On-Site Engagement: Combination of targeted enablement (advanced document RAG, MLflow evaluation, Genie optimization, multi-agent architectures, deployment & monitoring) plus extended working sessions where the customer builds and optimizes their agent with a Databricks specialist in the room
+  - Next Steps: Customer ends the hackathon with a deployed agent on Model Serving, an MLflow evaluation harness, and realistic benchmarks against their target quality bar
+
+  **Step 4 — Post-Hackathon Productionization** (8+ hrs FTE / 2-4 wks)
+  - Prerequisite: Hackathon-built agent deployed to a Model Serving endpoint; eval baseline captured in MLflow
+  - 1-2 Hour Debrief & Follow-Up: Present and discuss the solution; identify remaining gaps for security review, guardrails, and front-end integration; document a path to production rollout
+  - Next Steps: Customer owns the production agent; specialist provides a 30-day check-in template and identifies follow-on agent use cases for the next engagement
+
+  ### Customer Requirements
+  - Audience of experienced GenAI developers (MLflow + LangGraph / Agent Framework / OpenAI Agents experience)
+  - 1-3 validated agent use cases with clearly documented requirements, knowledge sources, and example inputs/outputs
+  - Representative real data accessible in the target workspace (UC Volumes, Delta tables, cloud storage)
+  - Workspace admin / catalog admin to provision UC objects, Vector Search indices, Model Serving endpoints, and Lakeflow Jobs
+  - Executive sponsorship and champion to ensure full participant availability across the hackathon window
+  - Stakeholders for downstream consumption (end users, app developers, governance, security review)
+
+  ### Recent Success Stories
+  - **Northwestern Mutual (Insurance)**: 2-day, 20+ participants. Built a production-ready Deep Research Agent for claims adjusters that outperformed both the customer's Azure Foundry current state (~51%) and an AWS Knowledge Spaces PoC (~19%), reaching ~70% correctness. Agent is going through security and guardrail review to replace the existing GenAI application in production.
+  - **CDPQ**: 3-day, 15+ participants. Production agents built in the hackathon were deployed and now play a key role in CDPQ's internal knowledge portal. Identified and validated new AI/BI and agent use cases with teams that previously had limited Databricks exposure. Hackathon drove a step-change increase in GenAI DBU consumption (Vector Search, Model Serving, Batch Inference) in the months following.
+  - **Additional engagements**: EY, Markel
+
+installable: true
