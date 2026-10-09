@@ -32,12 +32,12 @@ function Layout() {
       <header className="border-b px-4 md:px-6 py-3 flex items-center gap-4 flex-wrap">
         <h1 className="text-lg font-semibold text-foreground">Hadoop → Databricks TCO</h1>
         <nav className="flex gap-1 flex-wrap">
-          <NavLink to="/" end className={navLinkClass}>Calculator</NavLink>
+          <NavLink to="/" end className={navLinkClass}>Assumptions</NavLink>
           <NavLink to="/workload" className={navLinkClass}>Workload</NavLink>
           <NavLink to="/pricing" className={navLinkClass}>Pricing &amp; SKU</NavLink>
+          <NavLink to="/calculator" className={navLinkClass}>Calculator</NavLink>
           <NavLink to="/migration" className={navLinkClass}>Migration</NavLink>
           <NavLink to="/scenarios" className={navLinkClass}>Scenarios</NavLink>
-          <NavLink to="/assumptions" className={navLinkClass}>Assumptions</NavLink>
         </nav>
         <CatalogSelector />
       </header>
@@ -52,12 +52,12 @@ const router = createBrowserRouter([
   {
     element: <Layout />,
     children: [
-      { path: '/', element: <CalculatorPage /> },
+      { path: '/', element: <AssumptionsPage /> },
       { path: '/workload', element: <WorkloadProfilePage /> },
       { path: '/pricing', element: <PricingSkuPage /> },
+      { path: '/calculator', element: <CalculatorPage /> },
       { path: '/migration', element: <MigrationTimelinePage /> },
       { path: '/scenarios', element: <ScenarioComparisonPage /> },
-      { path: '/assumptions', element: <AssumptionsPage /> },
     ],
   },
 ]);

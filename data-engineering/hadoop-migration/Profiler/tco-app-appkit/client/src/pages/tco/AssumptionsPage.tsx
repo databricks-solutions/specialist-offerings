@@ -12,6 +12,7 @@ const NUM_FIELDS: Array<[keyof Assumptions, string]> = [
   ['hadoop_hardware_per_node', 'Hardware $/node'],
   ['hadoop_admin_count', '# Admins'],
   ['hadoop_admin_salary', 'Admin salary $'],
+  ['hadoop_license_per_node', 'License $/node (Licensed)'],
   ['etl_pct', 'ETL %'],
   ['interactive_pct', 'Interactive %'],
   ['bisql_pct', 'BI/SQL %'],
@@ -20,7 +21,9 @@ const NUM_FIELDS: Array<[keyof Assumptions, string]> = [
   ['migration_custom_cost', 'Migration cost $ (custom)'],
 ];
 
-const blank = (): Record<string, string> => ({ name: '', target_cloud: 'AWS', databricks_tier: 'PREMIUM', hadoop_vendor_type: 'Open Source', migration_tshirt: 'custom', dbu_method: 'measured', use_serverless: 'false' });
+// hadoop_license_per_node is pre-filled with the engine default ($11,200, see
+// DEFAULT_ASSUMPTIONS) so it's visible/editable; it only applies when the vendor is Licensed.
+const blank = (): Record<string, string> => ({ name: '', target_cloud: 'AWS', databricks_tier: 'PREMIUM', hadoop_vendor_type: 'Open Source', migration_tshirt: 'custom', dbu_method: 'measured', use_serverless: 'false', hadoop_license_per_node: '11200' });
 
 export function AssumptionsPage() {
   const [list, setList] = useState<AssumptionSummary[]>([]);
