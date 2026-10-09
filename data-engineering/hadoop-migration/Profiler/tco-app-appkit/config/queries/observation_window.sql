@@ -1,7 +1,7 @@
 -- Profiler observation window — used to annualize measured DBU costs
 -- (DAYS_PER_YEAR / window_days). distinct_days is preferred over wall-clock span.
 -- @param catalog STRING = profiler
--- @param database STRING = demo
+-- @param database STRING = visa_dpi_mar
 SELECT
   COUNT(DISTINCT to_date(from_unixtime(started_time / 1000))) AS distinct_days,
   (MAX(finished_time) - MIN(started_time)) / 1000.0 / 86400 AS span_days,

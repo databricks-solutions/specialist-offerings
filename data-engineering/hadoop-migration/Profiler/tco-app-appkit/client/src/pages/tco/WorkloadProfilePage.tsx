@@ -26,7 +26,11 @@ export function WorkloadProfilePage() {
   const hosts = useAnalyticsQuery('cluster_hosts', params);
 
   const loading = window.loading || workload.loading || peak.loading || hosts.loading;
-  const err = window.error || workload.error || peak.error || hosts.error;
+  // Only the observation window + workload are core. Host (cm_hosts) and peak
+  // (CM timeseries) are supplementary and are legitimately empty/absent for
+  // Ambari/HDP clusters, so their errors must not blank the whole page.
+  const coreErr = window.error || workload.error;
+  const cmUnavailable = Boolean(hosts.error || peak.error) || n(((hosts.data ?? []) as Row[])[0]?.node_count) === 0;
 
   const w = ((window.data ?? []) as Row[])[0] ?? {};
   const h = ((hosts.data ?? []) as Row[])[0] ?? {};
@@ -40,10 +44,10 @@ export function WorkloadProfilePage() {
         Source: <span className="font-mono">{catalog}.{database}</span>
       </p>
 
-      {err && <div className="text-sm text-red-600">{String(err)}</div>}
+      {coreErr && <div className="text-sm text-red-600">{String(coreErr)}</div>}
       {loading && <Skeleton className="h-32 w-full" />}
 
-      {!loading && !err && (
+      {!loading && !coreErr && (
         <>
           <Card>
             <CardHeader><CardTitle>Cluster &amp; Observation Window</CardTitle></CardHeader>
@@ -53,6 +57,11 @@ export function WorkloadProfilePage() {
               <Stat label="YARN apps" value={fmt(w.apps)} />
               <Stat label="Distinct days" value={fmt(w.distinct_days)} />
               <Stat label="Peak vCores" value={fmt(p.peak_vcores)} />
+              {cmUnavailable && (
+                <p className="text-xs text-muted-foreground md:col-span-5">
+                  No Cloudera Manager host/timeseries data for this schema (Ambari/HDP cluster) — node count &amp; sizing are manual TCO inputs.
+                </p>
+              )}
             </CardContent>
           </Card>
 
