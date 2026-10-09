@@ -73,9 +73,14 @@ display(spark.createDataFrame(summary_df))
 
 # COMMAND ----------
 
-# Create catalog and schema
-spark.sql(f"CREATE CATALOG IF NOT EXISTS `{catalog}`")
-spark.sql(f"CREATE SCHEMA IF NOT EXISTS `{catalog}`.`{schema}`")
+# Create catalog and schema only if missing. On a metastore with no default
+# storage root, a bare `CREATE CATALOG IF NOT EXISTS` fails ("Metastore storage
+# root URL does not exist") even when the catalog already exists — so guard the
+# creates and just USE what's already there.
+if spark.sql(f"SHOW CATALOGS LIKE '{catalog}'").count() == 0:
+    spark.sql(f"CREATE CATALOG IF NOT EXISTS `{catalog}`")
+if spark.sql(f"SHOW SCHEMAS IN `{catalog}` LIKE '{schema}'").count() == 0:
+    spark.sql(f"CREATE SCHEMA IF NOT EXISTS `{catalog}`.`{schema}`")
 spark.sql(f"USE CATALOG `{catalog}`")
 spark.sql(f"USE SCHEMA `{schema}`")
 print(f"Using: {catalog}.{schema}")
