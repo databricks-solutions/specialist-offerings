@@ -1,0 +1,91 @@
+{
+  "apps": {
+    "app": [
+      {
+        "id": "application_1234567890_0001",
+        "user": "dataeng",
+        "name": "SELECT department, COUNT(*) FROM employees GROUP BY department(Stage-1)",
+        "queue": "root.production",
+        "state": "FINISHED",
+        "finalStatus": "SUCCEEDED",
+        "progress": 100.0,
+        "applicationType": "MAPREDUCE",
+        "applicationTags": "",
+        "startedTime": 1700000000000,
+        "finishedTime": 1700000010000,
+        "elapsedTime": 10000,
+        "memorySeconds": 15000,
+        "vcoreSeconds": 30,
+        "diagnostics": ""
+      },
+      {
+        "id": "application_1234567890_0002",
+        "user": "dataeng",
+        "name": "PySpark ETL Job",
+        "queue": "root.production",
+        "state": "FINISHED",
+        "finalStatus": "SUCCEEDED",
+        "progress": 100.0,
+        "applicationType": "SPARK",
+        "applicationTags": "",
+        "startedTime": 1700000020000,
+        "finishedTime": 1700000050000,
+        "elapsedTime": 30000,
+        "memorySeconds": 90000,
+        "vcoreSeconds": 80,
+        "diagnostics": ""
+      },
+      {
+        "id": "application_1234567890_0003",
+        "user": "dataeng",
+        "name": "customers.jar",
+        "queue": "root.batch",
+        "state": "FINISHED",
+        "finalStatus": "SUCCEEDED",
+        "progress": 100.0,
+        "applicationType": "MAPREDUCE",
+        "applicationTags": "",
+        "startedTime": 1700000060000,
+        "finishedTime": 1700000070000,
+        "elapsedTime": 10000,
+        "memorySeconds": 12000,
+        "vcoreSeconds": 22,
+        "diagnostics": ""
+      },
+      {
+        "id": "application_1234567890_0004",
+        "user": "oozie",
+        "name": "oozie:launcher:T=spark:W=etl-daily:A=spark-transform:ID=0000001-230101-C@1",
+        "queue": "root.production",
+        "state": "FINISHED",
+        "finalStatus": "SUCCEEDED",
+        "progress": 100.0,
+        "applicationType": "MAPREDUCE",
+        "applicationTags": "",
+        "startedTime": 1700000080000,
+        "finishedTime": 1700000090000,
+        "elapsedTime": 10000,
+        "memorySeconds": 11000,
+        "vcoreSeconds": 20,
+        "diagnostics": ""
+      },
+      {
+        "id": "application_1234567890_0005",
+        "user": "dataeng",
+        "name": "org.apache.spark.examples.SparkPi",
+        "queue": "root.default",
+        "state": "FINISHED",
+        "finalStatus": "FAILED",
+        "progress": 100.0,
+        "applicationType": "SPARK",
+        "applicationTags": "",
+        "startedTime": 1700000100000,
+        "finishedTime": 1700000110000,
+        "elapsedTime": 10000,
+        "memorySeconds": 20000,
+        "vcoreSeconds": 15,
+        "diagnostics": "java.lang.NumberFormatException"
+      }
+    ]
+  }
+}
