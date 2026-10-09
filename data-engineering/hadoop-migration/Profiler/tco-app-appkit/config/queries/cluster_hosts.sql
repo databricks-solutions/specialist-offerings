@@ -1,7 +1,7 @@
 -- Source-cluster host summary (CDH/CM clusters) for the workload-profile fingerprint.
 -- Ambari (HDP) clusters have an empty cm_hosts; node count is a manual TCO input there.
 -- @param catalog STRING = profiler
--- @param database STRING = visa_dpi_mar
+-- @param database STRING = demo
 SELECT
   COUNT(*)                        AS node_count,
   SUM(num_cores)                  AS total_vcores,

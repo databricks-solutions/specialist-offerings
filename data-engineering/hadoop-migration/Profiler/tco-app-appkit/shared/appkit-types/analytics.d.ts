@@ -80,9 +80,9 @@ declare module "@databricks/appkit-ui/react" {
           database: SQLStringMarker;
         };
         result: Array<{
-          /** @sqlType DECIMAL(23,1) */
+          /** @sqlType DOUBLE */
           peak_memory_gb: number;
-          /** @sqlType BIGINT */
+          /** @sqlType DOUBLE */
           peak_vcores: number;
           /** @sqlType DOUBLE */
           avg_memory_gb: number;

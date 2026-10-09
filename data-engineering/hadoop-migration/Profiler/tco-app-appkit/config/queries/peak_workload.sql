@@ -3,7 +3,7 @@
 -- Empty for Ambari/HDP clusters (no Cloudera Manager timeseries) — the UI tolerates
 -- nulls there and treats node count / sizing as a manual TCO input.
 -- @param catalog STRING = profiler
--- @param database STRING = visa_dpi_mar
+-- @param database STRING = demo
 SELECT
   ROUND(MAX(total_allocated_memory_mb_across_yarn_pools_mean) / 1024.0, 1) AS peak_memory_gb,
   ROUND(MAX(total_allocated_vcores_across_yarn_pools_mean), 0)             AS peak_vcores,
