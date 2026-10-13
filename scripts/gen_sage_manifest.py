@@ -7,6 +7,11 @@ README's YAML frontmatter, and fan out to one asset per offering. The
 frontmatter is the source of truth for name, description, tags, quality, and
 owner -- there is nothing to hand-maintain in this manifest.
 
+Display names follow the Salesforce Catalog Offering convention, so an offering
+reads the same in Salesforce, Sage, and the repo:
+  Global:  SSA | <title> | Global
+  Local:   SSA | <title> | <region> | <team>
+
 Why one folder per offering (workaround): Sage's GitHub App crawler, given a
 path, still indexes the whole *surrounding folder* rather than a single file.
 The repo already stores one offering per folder, so each asset's `resource_url`
@@ -69,13 +74,17 @@ DEFAULT_BRANCH = "main"
 # a dedicated offering type.
 ASSET_TYPE = "docs"
 
-# Map the listing's `status` to a Sage quality tier. An offering may override
-# with an explicit `quality_level:` in its listing. Tune this policy here.
-STATUS_TO_QUALITY = {
-    "complete": "silver",       # certified, shipped in real engagements
-    "in progress": "bronze",    # being built / not yet certified
-}
-DEFAULT_QUALITY = "bronze"
+# Offering health status. Matches Sage's freshness vocabulary.
+STATUSES = ("Active", "Under Review", "Inactive")
+
+# Region that marks a globally deliverable offering. Global offerings carry no
+# team; every other region is local and must name its team (FINS, DNB, ...).
+GLOBAL_REGION = "Global"
+
+# Sage quality tier. Every offering is gold for now (TJ, 2026-10-13); Global
+# offerings must stay gold. An offering may override with an explicit
+# `quality_level:` in its frontmatter. Tune this policy here.
+DEFAULT_QUALITY = "gold"
 
 # Block-scalar indicators: a top-level `key: |` (or `>`, with optional chomping
 # `+`/`-`) starts an indented body we skip wholesale.
@@ -152,11 +161,25 @@ def external_ref(offering_dir: Path) -> str:
     return f"ssa-offering-{offering_dir.name}"
 
 
+def is_global(fm: dict) -> bool:
+    return str(fm.get("region", "")).strip().lower() == GLOBAL_REGION.lower()
+
+
+def display_name(fm: dict, slug: str) -> str:
+    """`SSA | <title> | Global` or `SSA | <title> | <region> | <team>`."""
+    title = str(fm.get("title") or slug).strip()
+    region = str(fm.get("region", "")).strip()
+    if is_global(fm):
+        return f"SSA | {title} | {GLOBAL_REGION}"
+    parts = ["SSA", title, region, str(fm.get("team", "")).strip()]
+    return " | ".join(p for p in parts if p)
+
+
 def quality_for(fm: dict) -> str:
     explicit = fm.get("quality_level")
     if explicit:
         return str(explicit)
-    return STATUS_TO_QUALITY.get(str(fm.get("status", "")).lower(), DEFAULT_QUALITY)
+    return DEFAULT_QUALITY
 
 
 def _kebab(s: str) -> str:
@@ -174,17 +197,16 @@ def _dedup(items: list[str]) -> list[str]:
 
 
 def tags_for(fm: dict, slug: str, category: str) -> list[str]:
-    """Prefer an explicit `tags:` list authored in the listing (fde-style
+    """Prefer an explicit `tags:` list authored in the frontmatter (fde-style
     pass-through). Otherwise derive deterministically from the structured
-    fields, so tags never need hand-maintenance in the manifest."""
+    fields, so tags never need hand-maintenance in the manifest. Global
+    offerings carry a `global` tag in their frontmatter (validate_specs checks
+    it matches `region`)."""
     explicit = fm.get("tags")
     if isinstance(explicit, list) and explicit:
         return _dedup([_kebab(t) for t in explicit])
 
     tags = ["ssa-offering", category]
-    industry = str(fm.get("industry", "")).strip()
-    if industry and industry.lower() != "ssa":  # "SSA" is redundant with the prefix
-        tags.append(_kebab(industry))
     for field in ("product_lines", "products"):
         raw = str(fm.get(field, "")).strip()
         for part in raw.split(","):
@@ -214,9 +236,9 @@ def render_asset(listing: Path) -> list[str]:
     slug = offering_dir.name
     category = offering_dir.parent.name
 
-    name = fm.get("title") or slug
+    name = display_name(fm, slug)
     description = fm.get("business_outcome", "")
-    owner = str(fm.get("demo_owner", "")).strip()
+    owner = str(fm.get("owner", "")).strip()
     resource_url = f"{REPO_URL}/tree/{DEFAULT_BRANCH}/{rel_dir}"
 
     return [

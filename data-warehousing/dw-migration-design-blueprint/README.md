@@ -1,27 +1,23 @@
 ---
 title: "DW Migration Design Blueprint"
-industry: "SSA"
-status: "Complete"
+owner: "will.girten@databricks.com"
+region: "Global"
+team: ""
+status: "Active"
 strategic_priority: "High"
-demo_owner: "yong@databricks.com"
-industry_lead: "yong@databricks.com"
 imperative: "Data Warehousing"
 business_outcome: "Help customers make an informed DW migration decision with confidence and clarity"
-needs_fix: false
-business_user_friendly: false
-expected_delivery: "Q1 FY27"
 last_certified: "2027-04-01"
 products: "Databricks SQL, Serverless SQL Warehouses, Delta Lake, Unity Catalog, Lakebridge, Lakehouse Federation, Delta Sharing"
 product_lines: "Data Warehousing, Data Engineering"
-tags: [ssa-offering, data-warehousing, migration, databricks-sql, unity-catalog, lakebridge, lakehouse-federation, delta-sharing]
-partner_developed: false
-partner: ""
-installable: false
+tags: [ssa-offering, global, data-warehousing, migration, databricks-sql, unity-catalog, lakebridge, lakehouse-federation, delta-sharing]
 ---
 
 ## DW Migration Design Blueprint
 
-![DW Migration Design Blueprint — pitch deck cover](images/deck-cover.png)
+![DW Migration Design Blueprint](images/thumbnail.png)
+
+**Pitch deck:** [open in Google Slides](https://docs.google.com/presentation/d/1JAV6t2J8FrO0EM30kGC4BLaoh7i6OKqcI2vP-WryvZU/edit)
 
 > **SSA offering — how to engage:** If you are interested in this SSA Offering, follow the ASQ process (go/gethelp): Product Help > Pilot/Production Advisory; then put the tag #ssa-offering #dw-migration-design-blueprint in both the **Title** and **Description** fields.
 
@@ -97,6 +93,3 @@ The DW Migration Design Blueprint is a comprehensive engagement that guides cust
 - Access to Databricks workspace with create cluster entitlement
 - Infra/cloud team point-of-contact to provision access to necessary data sources and systems
 - Third-party integration access (optional, e.g., dbt)
-
-### Links
-- [pitch_deck](https://docs.google.com/presentation/d/1JAV6t2J8FrO0EM30kGC4BLaoh7i6OKqcI2vP-WryvZU/edit)

@@ -11,8 +11,11 @@ What it enforces:
                      with a YAML frontmatter block (the machine-readable source).
   2. Metadata     -- each README's frontmatter has the required keys with
                      non-empty values.
-  3. Status       -- `status` is one of the known values that the quality map
-                     understands, so a new value can't silently fall to bronze.
+  3. Status       -- `status` is one of Active / Under Review / Inactive.
+  3b. Scope       -- Global offerings leave `team` empty and carry the `global`
+                     tag; local offerings (any other `region`) name their team
+                     and don't carry `global`, so the generated display name
+                     and tags match the Salesforce listing.
   4. Engage hint  -- the body carries the `#ssa-offering #<slug>` ASQ hashtag, the
                      stable join key across repo / Sage / ASQ (was auto-injected
                      by the old README generator; now authored, so we check it).
@@ -40,20 +43,18 @@ sys.path.insert(0, str(Path(__file__).resolve().parent))
 from gen_sage_manifest import (  # noqa: E402
     OFFERING_FILENAME,
     REPO,
-    STATUS_TO_QUALITY,
+    STATUSES,
     discover_offerings,
     external_ref,
+    is_global,
     read_frontmatter,
 )
 
 # Frontmatter keys every offering must carry with a non-empty value. These are
-# the fields the manifest depends on (title/description/owner) plus status (drives
-# quality). `products`/`product_lines`/`industry` feed tags but aren't required
-# individually -- the tags check below asserts at least one produced a tag.
-REQUIRED_KEYS = ("title", "status", "demo_owner", "business_outcome")
-
-# Status values the quality map understands (see STATUS_TO_QUALITY).
-KNOWN_STATUS = set(STATUS_TO_QUALITY)
+# the fields the manifest depends on (title/description/owner), the health
+# status, and the region that drives the display name and geo tag. `team` is
+# checked separately because it must be empty for Global offerings.
+REQUIRED_KEYS = ("title", "owner", "region", "status", "business_outcome")
 
 
 def main() -> int:
@@ -95,13 +96,35 @@ def main() -> int:
             if val is None or (isinstance(val, str) and not val.strip()) or val == []:
                 errors.append(f"{rel}: missing or empty required key '{key}'")
 
-        # 4. Known status value (so the quality map never silently defaults).
-        status = str(fm.get("status", "")).lower()
-        if status and status not in KNOWN_STATUS:
+        # 4. Known status value.
+        status = str(fm.get("status", "")).strip()
+        if status and status not in STATUSES:
             errors.append(
-                f"{rel}: unknown status '{fm.get('status')}' (expected one of "
-                f"{sorted(KNOWN_STATUS)}; update STATUS_TO_QUALITY to add one)"
+                f"{rel}: unknown status '{status}' (expected one of "
+                f"{', '.join(STATUSES)})"
             )
+
+        # 4b. Global offerings have no team; local offerings must name one.
+        team = str(fm.get("team", "")).strip()
+        if fm.get("region"):
+            if is_global(fm) and team:
+                errors.append(
+                    f"{rel}: Global offerings must leave `team` empty (found '{team}')"
+                )
+            elif not is_global(fm) and not team:
+                errors.append(
+                    f"{rel}: local offering (region '{fm.get('region')}') must set `team` "
+                    f"(e.g. FINS, DNB)"
+                )
+            tags = fm.get("tags") if isinstance(fm.get("tags"), list) else []
+            has_global_tag = "global" in {str(t).strip().lower() for t in tags}
+            if is_global(fm) and not has_global_tag:
+                errors.append(f"{rel}: Global offerings must include `global` in `tags`")
+            elif not is_global(fm) and has_global_tag:
+                errors.append(
+                    f"{rel}: `global` tag is only for Global offerings "
+                    f"(region is '{fm.get('region')}')"
+                )
 
         # 5. Body carries the ASQ engage hashtag (`#ssa-offering #<slug>`).
         body = readme.read_text(encoding="utf-8")

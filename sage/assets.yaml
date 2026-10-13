@@ -4,38 +4,38 @@ version: 1
 domain: ssa-offerings
 assets:
   - external_ref: ssa-offering-uc-design-blueprint
-    name: "UC Design Blueprint"
+    name: "SSA | UC Design Blueprint | Global"
     asset_type: docs
     resource_url: https://github.com/databricks-solutions/specialist-offerings/tree/main/data-governance/uc-design-blueprint
     description: "Simplify and accelerate UC design and deployment for customers with complex data governance needs"
-    quality_level: silver
+    quality_level: gold
     is_customer_facing: false
-    maintained_by: allan.cao@databricks.com
-    tags: [ssa-offering, data-governance, unity-catalog, lakehouse-federation, delta-sharing, scim, governance]
+    maintained_by: nouran.younis@databricks.com
+    tags: [ssa-offering, global, data-governance, unity-catalog, lakehouse-federation, delta-sharing, scim, governance]
   - external_ref: ssa-offering-dw-accelerator-poc-perf
-    name: "DW Performance PoC Accelerator"
+    name: "SSA | DW Performance PoC Accelerator | Global"
     asset_type: docs
     resource_url: https://github.com/databricks-solutions/specialist-offerings/tree/main/data-warehousing/dw-accelerator-poc-perf
     description: "Validate DBSQL performance, scalability, and TCO savings versus legacy EDW with an automated PoC"
-    quality_level: silver
+    quality_level: gold
     is_customer_facing: false
-    maintained_by: yong@databricks.com
-    tags: [ssa-offering, data-warehousing, databricks-sql, serverless-sql, delta-lake, poc, performance, tco]
+    maintained_by: will.girten@databricks.com
+    tags: [ssa-offering, global, data-warehousing, databricks-sql, serverless-sql, delta-lake, poc, performance, tco]
   - external_ref: ssa-offering-dw-migration-design-blueprint
-    name: "DW Migration Design Blueprint"
+    name: "SSA | DW Migration Design Blueprint | Global"
     asset_type: docs
     resource_url: https://github.com/databricks-solutions/specialist-offerings/tree/main/data-warehousing/dw-migration-design-blueprint
     description: "Help customers make an informed DW migration decision with confidence and clarity"
-    quality_level: silver
+    quality_level: gold
     is_customer_facing: false
-    maintained_by: yong@databricks.com
-    tags: [ssa-offering, data-warehousing, migration, databricks-sql, unity-catalog, lakebridge, lakehouse-federation, delta-sharing]
+    maintained_by: will.girten@databricks.com
+    tags: [ssa-offering, global, data-warehousing, migration, databricks-sql, unity-catalog, lakebridge, lakehouse-federation, delta-sharing]
   - external_ref: ssa-offering-unstructured-data-processing
-    name: "Unstructured Data Processing"
+    name: "SSA | Unstructured Data Processing | AMER | FINS"
     asset_type: docs
     resource_url: https://github.com/databricks-solutions/specialist-offerings/tree/main/gen-ai/unstructured-data-processing
     description: "Accelerate batch and streaming intelligent processing of unstructured and multi-modal data using AI Functions"
-    quality_level: bronze
+    quality_level: gold
     is_customer_facing: false
     maintained_by: q.yu@databricks.com
     tags: [ssa-offering, gen-ai, ai-functions, fmapi, model-serving, vector-search, unstructured-data, fins]

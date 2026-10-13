@@ -1,27 +1,23 @@
 ---
 title: "DW Performance PoC Accelerator"
-industry: "SSA"
-status: "Complete"
+owner: "will.girten@databricks.com"
+region: "Global"
+team: ""
+status: "Active"
 strategic_priority: "High"
-demo_owner: "yong@databricks.com"
-industry_lead: "yong@databricks.com"
 imperative: "Data Warehousing"
 business_outcome: "Validate DBSQL performance, scalability, and TCO savings versus legacy EDW with an automated PoC"
-needs_fix: false
-business_user_friendly: false
-expected_delivery: "Q1 FY27"
 last_certified: "2027-04-01"
 products: "Databricks SQL, Serverless SQL Warehouses, Delta Lake, Databricks Secrets"
 product_lines: "Data Warehousing"
-tags: [ssa-offering, data-warehousing, databricks-sql, serverless-sql, delta-lake, poc, performance, tco]
-partner_developed: false
-partner: ""
-installable: false
+tags: [ssa-offering, global, data-warehousing, databricks-sql, serverless-sql, delta-lake, poc, performance, tco]
 ---
 
 ## DW Performance PoC Accelerator
 
-![DW Performance PoC Accelerator — pitch deck cover](images/deck-cover.png)
+![DW Performance PoC Accelerator](images/thumbnail.png)
+
+**Pitch deck:** [open in Google Slides](https://docs.google.com/presentation/d/156_vtdtN_354UjSdXpAznYh2dGa6zz_45wy9UvfY28g/edit)
 
 > **SSA offering — how to engage:** If you are interested in this SSA Offering, follow the ASQ process (go/gethelp): Product Help > Pilot/Production Advisory; then put the tag #ssa-offering #dw-accelerator-poc-perf in both the **Title** and **Description** fields.
 
@@ -75,6 +71,3 @@ The DW Performance PoC Accelerator is a structured engagement that helps custome
 - Ability to jointly review and prioritize queries for benchmark
 - Databricks workspace admin with DB Secrets and cluster-create permissions
 - Network admin who can provision Databricks workspace access to DW source systems
-
-### Links
-- [pitch_deck](https://docs.google.com/presentation/d/156_vtdtN_354UjSdXpAznYh2dGa6zz_45wy9UvfY28g/edit)

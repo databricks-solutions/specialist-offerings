@@ -1,27 +1,23 @@
 ---
 title: "UC Design Blueprint"
-industry: "SSA"
-status: "Complete"
+owner: "nouran.younis@databricks.com"
+region: "Global"
+team: ""
+status: "Active"
 strategic_priority: "High"
-demo_owner: "allan.cao@databricks.com"
-industry_lead: "allan.cao@databricks.com"
 imperative: "Data Governance"
 business_outcome: "Simplify and accelerate UC design and deployment for customers with complex data governance needs"
-needs_fix: false
-business_user_friendly: false
-expected_delivery: "Q1 FY27"
 last_certified: "2027-04-01"
 products: "Unity Catalog, Lakehouse Federation, Delta Sharing, SCIM"
 product_lines: "Data Engineering, Data Governance"
-tags: [ssa-offering, data-governance, unity-catalog, lakehouse-federation, delta-sharing, scim, governance]
-partner_developed: false
-partner: ""
-installable: false
+tags: [ssa-offering, global, data-governance, unity-catalog, lakehouse-federation, delta-sharing, scim, governance]
 ---
 
 ## UC Design Blueprint
 
-![UC Design Blueprint — pitch deck cover](images/deck-cover.png)
+![UC Design Blueprint](images/thumbnail.png)
+
+**Pitch deck:** [open in Google Slides](https://docs.google.com/presentation/d/13bqlKXL2fvwFIRa8XgXhlBpErsLuwhDNUzrTl_FEeAk/edit)
 
 > **SSA offering — how to engage:** If you are interested in this SSA Offering, follow the ASQ process (go/gethelp): Product Help > Pilot/Production Advisory; then put the tag #ssa-offering #uc-design-blueprint in both the **Title** and **Description** fields.
 
@@ -78,6 +74,3 @@ The UC Design Blueprint is a structured workshop engagement that helps customers
 - **Databricks-specific privileges**: Metastore creation/usage, workspace creation/usage, user management/SCIM enablement, CREATE Catalog/Connections/Storage Credentials/External Locations
 - **Cloud data store access**: Global AAD Admin, Privileged IAM Role (as applicable)
 - **Existing governance tool access** (if any): Collibra, Immuta, Purview, Snowflake, etc.
-
-### Links
-- [pitch_deck](https://docs.google.com/presentation/d/13bqlKXL2fvwFIRa8XgXhlBpErsLuwhDNUzrTl_FEeAk/edit)

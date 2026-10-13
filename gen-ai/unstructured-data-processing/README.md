@@ -1,27 +1,23 @@
 ---
 title: "Unstructured Data Processing"
-industry: "FINS"
-status: "In Progress"
+owner: "q.yu@databricks.com"
+region: "AMER"
+team: "FINS"
+status: "Under Review"
 strategic_priority: "High"
-demo_owner: "q.yu@databricks.com"
-industry_lead: "q.yu@databricks.com"
 imperative: "GenAI Adoption"
 business_outcome: "Accelerate batch and streaming intelligent processing of unstructured and multi-modal data using AI Functions"
-needs_fix: false
-business_user_friendly: false
-expected_delivery: "Q2 FY27"
 last_certified: "2026-05-08"
 products: "AI Functions, FMAPI, Model Serving, Lakeflow Jobs, Vector Search, Unity Catalog, Delta Lake"
 product_lines: "AI, Data Engineering"
 tags: [ssa-offering, gen-ai, ai-functions, fmapi, model-serving, vector-search, unstructured-data, fins]
-partner_developed: false
-partner: ""
-installable: true
 ---
 
 ## Unstructured Data Processing
 
-![Unstructured Data Processing — pitch deck cover](images/deck-cover.png)
+![Unstructured Data Processing](images/thumbnail.png)
+
+**Pitch deck:** [open in Google Slides](https://docs.google.com/presentation/d/1n-h0rGQNIEqKjGqck5Nb9Jd5vinqXj1PgrU7wx6Bq8c/edit?slide=id.g33f4bcee764_0_0#slide=id.g33f4bcee764_0_0)
 
 > **SSA offering — how to engage:** If you are interested in this SSA Offering, follow the ASQ process (go/gethelp): Product Help > Pilot/Production Advisory; then put the tag #ssa-offering #unstructured-data-processing in both the **Title** and **Description** fields.
 
@@ -88,4 +84,3 @@ This offering provides a curated set of reference workflows, evaluation harnesse
 
 ### Links
 - [github](https://github.com/databricks-solutions/advance-document-processing)
-- [pitch_deck](https://docs.google.com/presentation/d/1n-h0rGQNIEqKjGqck5Nb9Jd5vinqXj1PgrU7wx6Bq8c/edit?slide=id.g33f4bcee764_0_0#slide=id.g33f4bcee764_0_0)

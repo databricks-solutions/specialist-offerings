@@ -6,37 +6,34 @@
 # The prose that humans read lives in the markdown body below the closing `---`.
 
 # Required (validate_specs enforces these)
-title: "Example Offering Title"                 # Max 500 chars
-status: "Complete"                              # Complete | In Progress (drives Sage quality tier)
-demo_owner: "john.doe@databricks.com"           # Primary owner
+title: "Example Offering Title"                 # Offering name only -- no "Global", region, or team
+owner: "john.doe@databricks.com"                # Primary owner
+region: "Global"                                # Global | AMER | EMEA | ...
+team: ""                                        # Empty for Global; otherwise FINS | DNB | ...
+status: "Active"                                # Active | Under Review | Inactive
 business_outcome: "Reduce customer churn by 20%"  # One-line outcome -> Sage asset description
 
-# Discovery tags -- curated keywords for human search + agent match. Consumed
-# verbatim by gen_sage_manifest.py; if omitted, tags are derived from the fields
-# below. Always keep `ssa-offering` first.
-tags: [ssa-offering, data-warehousing, databricks-sql]
+# The Sage / Salesforce display name is generated from title + region + team:
+#   Global -> "SSA | <title> | Global"     Local -> "SSA | <title> | <region> | <team>"
 
-# Industry / vertical scope:
-#   - Global offering (default): OMIT `industry` entirely (stores NULL, surfaces everywhere).
-#   - Vertical-specific: set ONE Field Catalog vertical code (FINS, CME, HLS, MFG, RCT, E&U, X-industry, PUBSEC).
-# industry: "FINS"
+# Discovery tags -- curated keywords for human search + agent match, passed to
+# Sage verbatim. Keep `ssa-offering` first. Global offerings MUST include
+# `global`; local offerings must not (validate_specs checks this).
+tags: [ssa-offering, global, data-warehousing, databricks-sql]
 
-# Recommended (carried through for humans / Field Catalog; optional for the manifest)
+# Recommended
 strategic_priority: "High"                      # High | Medium | Low
-industry_lead: "jane.smith@databricks.com"
 imperative: "Data Warehousing"
-expected_delivery: "Q2 FY27"
 last_certified: "2027-01-15"                    # YYYY-MM-DD
 products: "Databricks SQL, Delta Lake"          # Comma-separated
 product_lines: "Data Warehousing"               # Comma-separated
-needs_fix: false
-business_user_friendly: false
-partner_developed: false
-partner: ""
-installable: false                              # true if there is a runnable install path
 ---
 
 ## Example Offering Title
+
+![Example Offering Title](images/thumbnail.png)
+
+**Pitch deck:** [open in Google Slides](https://example.com/your-deck)
 
 > **SSA offering — how to engage:** If you are interested in this SSA Offering, follow the ASQ process (go/gethelp): Product Help > Pilot/Production Advisory; then put the tag #ssa-offering #<offering-slug> in both the **Title** and **Description** fields.
 
@@ -63,9 +60,6 @@ What this offering is and what a customer walks away with.
 
 ### Customer Requirements
 - Requirement 1
-
-### Links
-- [pitch_deck](https://example.com/your-deck)
 
 <!-- Images: put files under images/ next to this README and reference them inline, e.g. -->
 <!-- ![architecture](images/architecture-diagram.png) -->
