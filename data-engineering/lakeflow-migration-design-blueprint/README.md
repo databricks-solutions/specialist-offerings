@@ -4,13 +4,13 @@ owner: "nouran.younis@databricks.com"
 region: "AMER"
 team: "FINS"
 status: "Active"
+business_outcome: "Help customers design a unified Lakeflow architecture and make an informed DE migration decision with confidence and clarity"
+tags: [ssa-offering, data-engineering, lakeflow, migration, lakeflow-jobs, lakeflow-pipelines, lakeflow-connect, serverless, unity-catalog, fins]
 strategic_priority: "High"
 imperative: "Data Engineering"
-business_outcome: "Help customers design a unified Lakeflow architecture and make an informed DE migration decision with confidence and clarity"
 last_certified: "2026-10-05"
 products: "Lakeflow Jobs, Lakeflow Pipelines, Lakeflow Connect, Serverless, Delta Lake, Unity Catalog, Lakehouse Federation, Delta Sharing"
 product_lines: "Data Engineering"
-tags: [ssa-offering, data-engineering, lakeflow, migration, lakeflow-jobs, lakeflow-pipelines, lakeflow-connect, serverless, unity-catalog, fins]
 ---
 
 ## Lakeflow Migration Design Blueprint

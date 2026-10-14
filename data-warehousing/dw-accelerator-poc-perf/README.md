@@ -4,13 +4,13 @@ owner: "will.girten@databricks.com"
 region: "Global"
 team: ""
 status: "Active"
+business_outcome: "Validate DBSQL performance, scalability, and TCO savings versus legacy EDW with an automated PoC"
+tags: [ssa-offering, global, data-warehousing, databricks-sql, serverless-sql, delta-lake, poc, performance, tco]
 strategic_priority: "High"
 imperative: "Data Warehousing"
-business_outcome: "Validate DBSQL performance, scalability, and TCO savings versus legacy EDW with an automated PoC"
 last_certified: "2027-04-01"
 products: "Databricks SQL, Serverless SQL Warehouses, Delta Lake, Databricks Secrets"
 product_lines: "Data Warehousing"
-tags: [ssa-offering, global, data-warehousing, databricks-sql, serverless-sql, delta-lake, poc, performance, tco]
 ---
 
 ## DW Performance PoC Accelerator

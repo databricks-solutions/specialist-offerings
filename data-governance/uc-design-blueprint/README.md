@@ -4,13 +4,13 @@ owner: "nouran.younis@databricks.com"
 region: "Global"
 team: ""
 status: "Active"
+business_outcome: "Simplify and accelerate UC design and deployment for customers with complex data governance needs"
+tags: [ssa-offering, global, data-governance, unity-catalog, lakehouse-federation, delta-sharing, scim, governance]
 strategic_priority: "High"
 imperative: "Data Governance"
-business_outcome: "Simplify and accelerate UC design and deployment for customers with complex data governance needs"
 last_certified: "2027-04-01"
 products: "Unity Catalog, Lakehouse Federation, Delta Sharing, SCIM"
 product_lines: "Data Engineering, Data Governance"
-tags: [ssa-offering, global, data-governance, unity-catalog, lakehouse-federation, delta-sharing, scim, governance]
 ---
 
 ## UC Design Blueprint

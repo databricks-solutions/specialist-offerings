@@ -4,13 +4,13 @@ owner: "q.yu@databricks.com"
 region: "AMER"
 team: "FINS"
 status: "Under Review"
+business_outcome: "Accelerate batch and streaming intelligent processing of unstructured and multi-modal data using AI Functions"
+tags: [ssa-offering, gen-ai, ai-functions, fmapi, model-serving, vector-search, unstructured-data, fins]
 strategic_priority: "High"
 imperative: "GenAI Adoption"
-business_outcome: "Accelerate batch and streaming intelligent processing of unstructured and multi-modal data using AI Functions"
 last_certified: "2026-05-08"
 products: "AI Functions, FMAPI, Model Serving, Lakeflow Jobs, Vector Search, Unity Catalog, Delta Lake"
 product_lines: "AI, Data Engineering"
-tags: [ssa-offering, gen-ai, ai-functions, fmapi, model-serving, vector-search, unstructured-data, fins]
 ---
 
 ## Unstructured Data Processing

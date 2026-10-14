@@ -4,13 +4,13 @@ owner: "will.girten@databricks.com"
 region: "Global"
 team: ""
 status: "Active"
+business_outcome: "Help customers make an informed DW migration decision with confidence and clarity"
+tags: [ssa-offering, global, data-warehousing, migration, databricks-sql, unity-catalog, lakebridge, lakehouse-federation, delta-sharing]
 strategic_priority: "High"
 imperative: "Data Warehousing"
-business_outcome: "Help customers make an informed DW migration decision with confidence and clarity"
 last_certified: "2027-04-01"
 products: "Databricks SQL, Serverless SQL Warehouses, Delta Lake, Unity Catalog, Lakebridge, Lakehouse Federation, Delta Sharing"
 product_lines: "Data Warehousing, Data Engineering"
-tags: [ssa-offering, global, data-warehousing, migration, databricks-sql, unity-catalog, lakebridge, lakehouse-federation, delta-sharing]
 ---
 
 ## DW Migration Design Blueprint
