@@ -3,6 +3,15 @@
 version: 1
 domain: ssa-offerings
 assets:
+  - external_ref: ssa-offering-lakeflow-migration-design-blueprint
+    name: "SSA | Lakeflow Migration Design Blueprint | AMER | FINS"
+    asset_type: docs
+    resource_url: https://github.com/databricks-solutions/specialist-offerings/tree/main/data-engineering/lakeflow-migration-design-blueprint
+    description: "Help customers design a unified Lakeflow architecture and make an informed DE migration decision with confidence and clarity"
+    quality_level: gold
+    is_customer_facing: false
+    maintained_by: nouran.younis@databricks.com
+    tags: [ssa-offering, data-engineering, lakeflow, migration, lakeflow-jobs, lakeflow-pipelines, lakeflow-connect, serverless, unity-catalog, fins]
   - external_ref: ssa-offering-uc-design-blueprint
     name: "SSA | UC Design Blueprint | Global"
     asset_type: docs

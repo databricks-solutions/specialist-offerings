@@ -2,9 +2,10 @@
 # Later rules win, so the catch-all comes first.
 
 # Shared files: scripts, generated manifest, templates, repo docs
-*                                                 @tj-cycyota @andersonqiu
+*                                                       @tj-cycyota @andersonqiu
 
-/data-governance/uc-design-blueprint/             @nouranyounis-db
-/data-warehousing/dw-accelerator-poc-perf/        @goodwillpunning
-/data-warehousing/dw-migration-design-blueprint/  @goodwillpunning
-/gen-ai/unstructured-data-processing/             @qian-yu-db
+/data-governance/uc-design-blueprint/                   @nouranyounis-db
+/data-warehousing/dw-accelerator-poc-perf/              @goodwillpunning
+/data-warehousing/dw-migration-design-blueprint/        @goodwillpunning
+/gen-ai/unstructured-data-processing/                   @qian-yu-db
+/data-engineering/lakeflow-migration-design-blueprint/  @nouranyounis-db
