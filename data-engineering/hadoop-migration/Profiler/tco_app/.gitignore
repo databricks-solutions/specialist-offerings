@@ -1,0 +1,6 @@
+# Local artifacts that must never be deployed to the workspace.
+# NOTE: `databricks workspace import-dir` does NOT respect .gitignore, so these
+# are also removed explicitly by the deploy steps in README.md. Keep both.
+__pycache__/
+*.pyc
+.databricks/

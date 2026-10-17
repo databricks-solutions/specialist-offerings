@@ -1,0 +1,6 @@
+# Generated analyzer output (workload_inventory_*.json/.csv, conversion_queue.csv)
+analyzer-output/
+
+# Python
+__pycache__/
+*.pyc

@@ -1,0 +1,178 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<workflow-app xmlns="uri:oozie:workflow:0.5" name="retail-etl-pipeline">
+
+    <global>
+        <configuration>
+            <property>
+                <name>mapreduce.job.queuename</name>
+                <value>${queueName}</value>
+            </property>
+        </configuration>
+    </global>
+
+    <credentials>
+        <credential name="hive2-cred" type="hive2">
+            <property>
+                <name>hive2.jdbc.url</name>
+                <value>jdbc:hive2://hiveserver2.example.com:10000/default</value>
+            </property>
+            <property>
+                <name>hive2.server.principal</name>
+                <value>hive/hiveserver2.example.com@EXAMPLE.COM</value>
+            </property>
+        </credential>
+    </credentials>
+
+    <start to="check-input-data"/>
+
+    <!-- Decision node: check if input data exists -->
+    <decision name="check-input-data">
+        <switch>
+            <case to="ingest-raw-data">
+                ${fs:exists(concat('/data/raw/clickstream/', datePartition))}
+            </case>
+            <default to="send-no-data-alert"/>
+        </switch>
+    </decision>
+
+    <!-- Fork: run independent ingestion tasks in parallel -->
+    <action name="ingest-raw-data">
+        <shell xmlns="uri:oozie:shell-action:0.3">
+            <exec>ingest.sh</exec>
+            <argument>${datePartition}</argument>
+            <argument>${inputPath}</argument>
+            <file>/scripts/ingest.sh#ingest.sh</file>
+            <capture-output/>
+        </shell>
+        <ok to="parallel-processing"/>
+        <error to="send-failure-alert"/>
+    </action>
+
+    <fork name="parallel-processing">
+        <path start="transform-clickstream"/>
+        <path start="transform-orders"/>
+        <path start="transform-customers"/>
+    </fork>
+
+    <!-- Spark action for clickstream transformation -->
+    <action name="transform-clickstream">
+        <spark xmlns="uri:oozie:spark-action:1.0">
+            <master>yarn</master>
+            <mode>cluster</mode>
+            <name>Clickstream Transformation</name>
+            <class>com.example.etl.ClickstreamTransformer</class>
+            <jar>hdfs://namenode:8020/lib/etl-jobs.jar</jar>
+            <spark-opts>
+                --num-executors 10
+                --executor-memory 4g
+                --executor-cores 2
+                --conf spark.sql.shuffle.partitions=200
+                --conf spark.dynamicAllocation.enabled=true
+            </spark-opts>
+            <arg>${datePartition}</arg>
+            <arg>${outputPath}/clickstream</arg>
+        </spark>
+        <ok to="join-processing"/>
+        <error to="send-failure-alert"/>
+    </action>
+
+    <!-- Hive action for orders transformation -->
+    <action name="transform-orders" cred="hive2-cred">
+        <hive2 xmlns="uri:oozie:hive2-action:1.0">
+            <jdbc-url>jdbc:hive2://hiveserver2.example.com:10000/retail_analytics</jdbc-url>
+            <script>scripts/transform_orders.hql</script>
+            <param>date_partition=${datePartition}</param>
+            <param>output_path=${outputPath}/orders</param>
+        </hive2>
+        <ok to="join-processing"/>
+        <error to="send-failure-alert"/>
+    </action>
+
+    <!-- Sqoop action for customer data sync -->
+    <action name="transform-customers">
+        <sqoop xmlns="uri:oozie:sqoop-action:1.0">
+            <command>
+                import
+                --connect jdbc:mysql://mysql.example.com:3306/retail_db
+                --username ${dbUser}
+                --password-file hdfs://namenode:8020/user/etl/passwords/mysql.password
+                --table customers
+                --target-dir /data/staging/customers/${datePartition}
+                --incremental lastmodified
+                --check-column updated_date
+                --last-value ${lastImportDate}
+                --num-mappers 4
+                --as-parquetfile
+            </command>
+        </sqoop>
+        <ok to="join-processing"/>
+        <error to="send-failure-alert"/>
+    </action>
+
+    <join name="join-processing" to="build-aggregates"/>
+
+    <!-- Hive action for building aggregate tables -->
+    <action name="build-aggregates" cred="hive2-cred">
+        <hive2 xmlns="uri:oozie:hive2-action:1.0">
+            <jdbc-url>jdbc:hive2://hiveserver2.example.com:10000/retail_analytics</jdbc-url>
+            <script>scripts/build_aggregates.hql</script>
+            <param>date_partition=${datePartition}</param>
+        </hive2>
+        <ok to="export-reports"/>
+        <error to="send-failure-alert"/>
+    </action>
+
+    <!-- Shell action for exporting reports -->
+    <action name="export-reports">
+        <shell xmlns="uri:oozie:shell-action:0.3">
+            <exec>export_reports.sh</exec>
+            <argument>${datePartition}</argument>
+            <argument>${reportOutputPath}</argument>
+            <env-var>HADOOP_HOME=/opt/hadoop</env-var>
+            <env-var>SPARK_HOME=/opt/spark</env-var>
+            <file>/scripts/export_reports.sh#export_reports.sh</file>
+        </shell>
+        <ok to="send-success-alert"/>
+        <error to="send-failure-alert"/>
+    </action>
+
+    <!-- Email action for success notification -->
+    <action name="send-success-alert">
+        <email xmlns="uri:oozie:email-action:0.2">
+            <to>${alertEmail}</to>
+            <subject>ETL Pipeline Success - ${datePartition}</subject>
+            <body>The retail ETL pipeline completed successfully for ${datePartition}.</body>
+        </email>
+        <ok to="end"/>
+        <error to="end"/>
+    </action>
+
+    <!-- Email action for failure notification -->
+    <action name="send-failure-alert">
+        <email xmlns="uri:oozie:email-action:0.2">
+            <to>${alertEmail}</to>
+            <subject>ETL Pipeline FAILURE - ${datePartition}</subject>
+            <body>The retail ETL pipeline FAILED for ${datePartition}. Check Oozie logs for details.</body>
+        </email>
+        <ok to="kill"/>
+        <error to="kill"/>
+    </action>
+
+    <!-- No data alert -->
+    <action name="send-no-data-alert">
+        <email xmlns="uri:oozie:email-action:0.2">
+            <to>${alertEmail}</to>
+            <subject>ETL Pipeline - No Input Data for ${datePartition}</subject>
+            <body>No input data found for ${datePartition}. Pipeline skipped.</body>
+        </email>
+        <ok to="end"/>
+        <error to="end"/>
+    </action>
+
+    <kill name="kill">
+        <message>Retail ETL pipeline failed: [${wf:errorMessage(wf:lastErrorNode())}]</message>
+    </kill>
+
+    <end name="end"/>
+
+</workflow-app>

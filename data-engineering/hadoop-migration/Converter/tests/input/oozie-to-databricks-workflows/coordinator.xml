@@ -1,0 +1,80 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<coordinator-app xmlns="uri:oozie:coordinator:0.4"
+                 name="retail-etl-coordinator"
+                 frequency="${coord:days(1)}"
+                 start="2024-01-01T06:00Z"
+                 end="2025-12-31T06:00Z"
+                 timezone="America/New_York">
+
+    <controls>
+        <timeout>120</timeout>
+        <concurrency>1</concurrency>
+        <execution>LAST_ONLY</execution>
+        <throttle>2</throttle>
+    </controls>
+
+    <datasets>
+        <dataset name="clickstream-input" frequency="${coord:days(1)}"
+                 initial-instance="2024-01-01T00:00Z" timezone="America/New_York">
+            <uri-template>hdfs://namenode:8020/data/raw/clickstream/${YEAR}-${MONTH}-${DAY}</uri-template>
+            <done-flag>_SUCCESS</done-flag>
+        </dataset>
+        <dataset name="etl-output" frequency="${coord:days(1)}"
+                 initial-instance="2024-01-01T00:00Z" timezone="America/New_York">
+            <uri-template>hdfs://namenode:8020/data/processed/${YEAR}-${MONTH}-${DAY}</uri-template>
+        </dataset>
+    </datasets>
+
+    <input-events>
+        <data-in name="input-data" dataset="clickstream-input">
+            <instance>${coord:current(0)}</instance>
+        </data-in>
+    </input-events>
+
+    <output-events>
+        <data-out name="output-data" dataset="etl-output">
+            <instance>${coord:current(0)}</instance>
+        </data-out>
+    </output-events>
+
+    <action>
+        <workflow>
+            <app-path>hdfs://namenode:8020/user/etl/workflows/retail-etl</app-path>
+            <configuration>
+                <property>
+                    <name>datePartition</name>
+                    <value>${coord:formatTime(coord:nominalTime(), 'yyyy-MM-dd')}</value>
+                </property>
+                <property>
+                    <name>inputPath</name>
+                    <value>${coord:dataIn('input-data')}</value>
+                </property>
+                <property>
+                    <name>outputPath</name>
+                    <value>${coord:dataOut('output-data')}</value>
+                </property>
+                <property>
+                    <name>reportOutputPath</name>
+                    <value>/data/reports/${coord:formatTime(coord:nominalTime(), 'yyyy-MM-dd')}</value>
+                </property>
+                <property>
+                    <name>queueName</name>
+                    <value>etl-production</value>
+                </property>
+                <property>
+                    <name>alertEmail</name>
+                    <value>data-team@example.com</value>
+                </property>
+                <property>
+                    <name>dbUser</name>
+                    <value>etl_user</value>
+                </property>
+                <property>
+                    <name>lastImportDate</name>
+                    <value>${coord:formatTime(coord:dateOffset(coord:nominalTime(), -1, 'DAY'), 'yyyy-MM-dd')}</value>
+                </property>
+            </configuration>
+        </workflow>
+    </action>
+
+</coordinator-app>

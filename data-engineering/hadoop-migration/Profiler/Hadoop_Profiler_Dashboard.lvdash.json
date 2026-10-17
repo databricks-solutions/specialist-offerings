@@ -1,0 +1,4153 @@
+{
+  "datasets": [
+    {
+      "name": "a2286266",
+      "displayName": "OSS YARN User Queue by Total Jobs",
+      "queryLines": [
+        "select\n",
+        "  user as stage1,\n",
+        "  left(queue,8) as stage2,\n",
+        "  applicationType as stage3,\n",
+        "  totalJobs as value\n",
+        "from\n",
+        "  (\n",
+        "    select\n",
+        "      user,\n",
+        "      queue,\n",
+        "      applicationType,\n",
+        "      startDate,\n",
+        "      totalJobs  \n",
+        "    from\n",
+        "      (\n",
+        "        select\n",
+        "          distinct user,\n",
+        "          queue,\n",
+        "          applicationType,\n",
+        "          finalstatus,\n",
+        "          date(jobStartTime) as startDate,\n",
+        "          date(jobEndTime) as endDate,\n",
+        "          datediff(date(jobEndTime), date(jobStartTime)) as Number_Of_days,\n",
+        "          count(*) as totalJobs,\n",
+        "          round(sum(memorySeconds / 1024 / 60 / 60), 0) as MemoryGBHour_DailyAggregate,\n",
+        "          round(sum(vCoreSeconds / 60 / 60), 0) as vCoreHours_DailyAggregate\n",
+        "        from\n",
+        "          IDENTIFIER(:`catalog` || '.' || :`database` || '.yarn_analysis')\n",
+        "        where\n",
+        "          state = 'FINISHED' \n",
+        "        group by\n",
+        "          applicationType,\n",
+        "          startDate,\n",
+        "          endDate,\n",
+        "          Number_Of_days,\n",
+        "          finalstatus,\n",
+        "          user,\n",
+        "          queue\n",
+        "        having\n",
+        "          Number_Of_days = 0\n",
+        "        order by\n",
+        "          Number_Of_days desc,\n",
+        "          startDate,\n",
+        "          applicationType,\n",
+        "          finalstatus,\n",
+        "          user,\n",
+        "          queue\n",
+        "      )\n",
+        " \n",
+        "  )\n",
+        " \n",
+        "order by\n",
+        "  value desc\n",
+        "limit\n",
+        "  50"
+      ],
+      "parameters": [
+        {
+          "displayName": "catalog",
+          "keyword": "catalog",
+          "dataType": "STRING",
+          "defaultSelection": {
+            "values": {
+              "dataType": "STRING",
+              "values": [
+                {
+                  "value": "aa_catalog"
+                }
+              ]
+            }
+          }
+        },
+        {
+          "displayName": "database",
+          "keyword": "database",
+          "dataType": "STRING",
+          "defaultSelection": {
+            "values": {
+              "dataType": "STRING",
+              "values": [
+                {
+                  "value": "hadoop_profiler"
+                }
+              ]
+            }
+          }
+        }
+      ]
+    },
+    {
+      "name": "b32702e4",
+      "displayName": "YARN MapReduce Job Classification",
+      "queryLines": [
+        "SELECT\n",
+        "  distinct substr(name, 1, 30) as ApplicationName,\n",
+        "  case\n",
+        "    when applicationType = 'SPARK'\n",
+        "    and name like '%Hive on%' then 'Spark-Hive'\n",
+        "    when applicationType = 'SPARK'\n",
+        "    and name like '%livy%' then 'Spark-Livy'\n",
+        "    when applicationType = 'SPARK'\n",
+        "    and name like '%PySparkShell%' then 'Spark-Shell'\n",
+        "    when applicationType = 'SPARK' then 'Spark'\n",
+        "    when (\n",
+        "      (\n",
+        "        lower(name) like '%select%'\n",
+        "        or lower(name) like '%insert%'\n",
+        "        or lower(name) like '%create%'\n",
+        "        or lower(name) like '%update%'\n",
+        "        or lower(name) like '%analyze%'\n",
+        "      )\n",
+        "      or (user == 'hive')\n",
+        "    ) then \"Hive\"\n",
+        "    when (lower(name) like '%airflow%') then \"Airflow\"\n",
+        "    when (lower(name) like '%oozie%') then \"Oozie\"\n",
+        "    when (lower(name) like '%pig%') then \"Pig\"\n",
+        "    when (\n",
+        "      lower(name) like '%sqoop%'\n",
+        "      or lower(name) like '%queryresult.jar%'\n",
+        "    ) then \"Sqoop\"\n",
+        "    when (lower(name) like '%distcp%') then \"DistCP\"\n",
+        "    when (lower(name) like '%.jar%') then \"Java MapReduce or Custom JAR\"\n",
+        "    else \"Others\"\n",
+        "  end as JobType,\n",
+        "  round(sum(memorySeconds / 1024 / 60 / 60), 0) as MemoryGBHour,\n",
+        "  count(*) as count\n",
+        "FROM\n",
+        "  IDENTIFIER(:`catalog` || '.' || :`database` || '.yarn_analysis')\n",
+        "where\n",
+        "  applicationType = 'MAPREDUCE'\n",
+        "  and state = 'FINISHED'\n",
+        "group by\n",
+        "  ApplicationName,\n",
+        "  JobType"
+      ],
+      "parameters": [
+        {
+          "displayName": "catalog",
+          "keyword": "catalog",
+          "dataType": "STRING",
+          "defaultSelection": {
+            "values": {
+              "dataType": "STRING",
+              "values": [
+                {
+                  "value": "aa_catalog"
+                }
+              ]
+            }
+          }
+        },
+        {
+          "displayName": "database",
+          "keyword": "database",
+          "dataType": "STRING",
+          "defaultSelection": {
+            "values": {
+              "dataType": "STRING",
+              "values": [
+                {
+                  "value": "hadoop_profiler"
+                }
+              ]
+            }
+          }
+        }
+      ]
+    },
+    {
+      "name": "4bc9498d",
+      "displayName": "CDH Impala vs YARN vs HBase Memory",
+      "queryLines": [
+        "select \n",
+        "'IMPALA' as measure,\n",
+        "count(distinct hostname)  as nodeCount, \n",
+        "round((count(*) * (select  distinct max(value)\n",
+        "  from\n",
+        "    IDENTIFIER(:`catalog` || '.' || :`database` || '.cm_roleConfig') where lower(roleType) = lower('IMPALAD') and name = 'impalad_memory_limit')\n",
+        "    ) / 1024/ 1024 / 1024 , 0) as memory_TB,\n",
+        "    0 as cores\n",
+        " from IDENTIFIER(:`catalog` || '.' || :`database` || '.cm_hostroles')\n",
+        "where\n",
+        "  serviceType in ( 'IMPALA')\n",
+        "\n",
+        "  \n",
+        "union\n",
+        "\n",
+        "select \n",
+        "'HBASE' as measure,\n",
+        "count(distinct hostname) as nodeCount, \n",
+        "round((count(*) * (select distinct  value\n",
+        "  from\n",
+        "    IDENTIFIER(:`catalog` || '.' || :`database` || '.cm_roleConfig') where roleType = 'REGIONSERVER' and   name = 'hbase_regionserver_java_heapsize')\n",
+        "    ) / 1024/ 1024/ 1024 , 0) as memory_TB,\n",
+        "    0 as cores\n",
+        " from IDENTIFIER(:`catalog` || '.' || :`database` || '.cm_hostroles')\n",
+        "where\n",
+        "  serviceType in ( 'HBASE')\n",
+        "\n",
+        "union\n",
+        "    select\n",
+        "    \"YARN\" as measure,\n",
+        "       count(*) as nodecount, \n",
+        "      \n",
+        "      sum(round((availMemoryMB + usedMemoryMB) / 1024 , 0)) as total_memory,\n",
+        "      sum((availableVirtualCores + usedVirtualCores)) as total_cpu\n",
+        "    from\n",
+        "      IDENTIFIER(:`catalog` || '.' || :`database` || '.yarn_nodes')\n",
+        "      where  state = 'RUNNING'\n",
+        "order by measure"
+      ],
+      "parameters": [
+        {
+          "displayName": "catalog",
+          "keyword": "catalog",
+          "dataType": "STRING",
+          "defaultSelection": {
+            "values": {
+              "dataType": "STRING",
+              "values": [
+                {
+                  "value": "aa_catalog"
+                }
+              ]
+            }
+          }
+        },
+        {
+          "displayName": "database",
+          "keyword": "database",
+          "dataType": "STRING",
+          "defaultSelection": {
+            "values": {
+              "dataType": "STRING",
+              "values": [
+                {
+                  "value": "hadoop_profiler"
+                }
+              ]
+            }
+          }
+        }
+      ]
+    },
+    {
+      "name": "7d118238",
+      "displayName": "CDH CM Impala Utilization",
+      "queryLines": [
+        "select\n",
+        "  timestamp,\n",
+        "  total_mem_rss_across_impalads_mean,\n",
+        "  (select\n",
+        "  round((count(*) * (select distinct max(value)\n",
+        "  from\n",
+        "    IDENTIFIER(:`catalog` || '.' || :`database` || '.cm_roleConfig') where roleType = 'IMPALAD' and refName like '%impala%IMPALAD%' and name = 'impalad_memory_limit')\n",
+        "    ) / 1024/ 1024 / 1024 , 0) as memory_TB\n",
+        " from IDENTIFIER(:`catalog` || '.' || :`database` || '.cm_hostroles')\n",
+        "where\n",
+        "  serviceType in ( 'IMPALA')\n",
+        "and ( entityName like 'impala%IMPALAD%' )\n",
+        "  ) as total_impala_memory\n",
+        "  \n",
+        " \n",
+        "from\n",
+        "  IDENTIFIER(:`catalog` || '.' || :`database` || '.cm_ts_impala_utlization')\n",
+        "  order by timestamp"
+      ],
+      "parameters": [
+        {
+          "displayName": "catalog",
+          "keyword": "catalog",
+          "dataType": "STRING",
+          "defaultSelection": {
+            "values": {
+              "dataType": "STRING",
+              "values": [
+                {
+                  "value": "aa_catalog"
+                }
+              ]
+            }
+          }
+        },
+        {
+          "displayName": "database",
+          "keyword": "database",
+          "dataType": "STRING",
+          "defaultSelection": {
+            "values": {
+              "dataType": "STRING",
+              "values": [
+                {
+                  "value": "hadoop_profiler"
+                }
+              ]
+            }
+          }
+        }
+      ]
+    },
+    {
+      "name": "a0ba5865",
+      "displayName": "Hadoop - YARN Workload Breakdown",
+      "queryLines": [
+        "\n",
+        "WITH yarn_workload_vw AS (\n",
+        "SELECT \n",
+        "  case \n",
+        "    when JobType = 'Oozie' then split(name, 'ID=')[0]\n",
+        "    else name\n",
+        "    end as short_name,\n",
+        "  *\n",
+        "FROM \n",
+        "(\n",
+        "  SELECT \n",
+        "  case \n",
+        "      when applicationType = 'SPARK' and name like '%Hive on%' then 'Spark-Hive'\n",
+        "      when applicationType = 'SPARK' and name like '%livy%' then 'Spark-Livy'\n",
+        "      when applicationType = 'SPARK' and name like '%PySparkShell%' then 'Spark-Shell'\n",
+        "      when applicationType = 'SPARK' then 'Spark'\n",
+        "      when applicationType = 'TEZ' and upper(name) like '%HIVE%' then 'TEZ-Hive'\n",
+        "      when applicationType = 'Informatica Blaze' then 'Informatica'\n",
+        "      when applicationType = 'yarn-service' then 'LLAP'\n",
+        " \n",
+        "      when (lower(substr(name, 1, 100)) like '%select %' or lower(substr(name, 1, 30)) like '%analyze table%' or lower(substr(name, 1, 30)) like '%insert%' or lower(substr(name, 1, 30)) like '%create%' or lower(substr(name, 1, 30)) like '%update%')  then \"Hive\"\n",
+        "      when (lower(substr(name, 1, 100)) like '%(stage-%')  then \"Hive\"\n",
+        "      when (lower(substr(name, 1, 100)) like '%.sql%')  then \"Hive-Script\"\n",
+        "      when (lower(substr(name, 1, 100)) like '%airflow%')  then \"Airflow\"\n",
+        "      when (lower(substr(name, 1, 100)) like '%oozie%')  then \"Oozie\"    \n",
+        "      when (lower(substr(name, 1, 100)) like '%sqoop%')  then \"Sqoop\"   \n",
+        "      when (lower(substr(name, 1, 100)) like '%distcp%')  then \"DistCP\"   \n",
+        "      when (lower(substr(name, 1, 100)) like '%pig%')  then \"Pig\"   \n",
+        "      when (lower(substr(name, 1, 100)) like '%.jar%' or lower(substr(name, 1, 100)) like '%.java%')  then \"MapReduce - JAR\"       \n",
+        "      else applicationType || '_' || name\n",
+        "  end as JobType,\n",
+        "  *,\n",
+        "  memorySeconds/1024/60/60 as MemoryGBHour,\n",
+        "  vCoreSeconds/60/60 as vCoreHours\n",
+        "  FROM IDENTIFIER(:`catalog` || '.' || :`database` || '.yarn_analysis')\n",
+        ")\n",
+        ")\n",
+        "\n",
+        "select Job_Type as `Job Type`, Unique_Job_name_Count as `Unique Job Count based on Name`,  Users_Count as `Number of User Submitting Job Type` from\n",
+        "(\n",
+        "select \n",
+        "   \"spark\" as Job_Type,\n",
+        "   (select count (distinct name) as Unique_Spark_Job_Names from yarn_workload_vw  where UPPER(jobType) = \"SPARK\") as Unique_Job_Name_Count,\n",
+        "   (select count (distinct user) as Unique_Spark_Job_Names from yarn_workload_vw  where UPPER(jobType) = \"SPARK\") as Users_Count\n",
+        "union\n",
+        "select \n",
+        "   \"spark-livy\" as Job_Type,\n",
+        "   (select count (distinct name) as Unique_Spark_Job_Names from yarn_workload_vw  where UPPER(jobType) = \"SPARK-LIVY\") as Unique_Job_Name_Count,\n",
+        "   (select count (distinct user) as Unique_Spark_Job_Names from yarn_workload_vw  where UPPER(jobType) = \"SPARK-LIVY\") as Users_Count\n",
+        "union\n",
+        "select \n",
+        "   \"spark-shell\" as Job_Type,\n",
+        "   (select count (distinct name) as Unique_Spark_Job_Names from yarn_workload_vw  where UPPER(jobType) = \"SPARK-SHELL\") as Unique_Job_Name_Count,\n",
+        "   (select count (distinct user) as Unique_Spark_Job_Names from yarn_workload_vw  where UPPER(jobType) = \"SPARK-SHELL\") as Users_Count\n",
+        "union\n",
+        "select \n",
+        "   \"spark-hive\" as Job_Type,\n",
+        "   (select count (distinct name) as Unique_Spark_Job_Names from yarn_workload_vw  where UPPER(jobType) = \"SPARK-HIVE\") as Unique_Job_Name_Count,\n",
+        "   (select count (distinct user) as Unique_Spark_Job_Names from yarn_workload_vw  where UPPER(jobType) = \"SPARK-HIVE\") as Users_Count\n",
+        "union\n",
+        "select \n",
+        "   \"hive\" as Job_Type,\n",
+        "   (select count (distinct name) as Unique_Spark_Job_Names from yarn_workload_vw  where UPPER(jobType) = \"HIVE\") as Unique_Job_Name_Count,\n",
+        "   (select count (distinct user) as Unique_Spark_Job_Names from yarn_workload_vw  where UPPER(jobType) = \"HIVE\") as Users_Count\n",
+        "union\n",
+        "select \n",
+        "   \"hive-script\" as Job_Type,\n",
+        "   (select count (distinct name) as Unique_Job_Names from yarn_workload_vw  where UPPER(jobType) = \"HIVE-SCRIPT\") as Unique_Job_Name_Count,\n",
+        "   (select count (distinct user) as Unique_Job_Names from yarn_workload_vw  where UPPER(jobType) = \"HIVE-SCRIPT\") as Users_Count\n",
+        "\n",
+        "union\n",
+        "select \n",
+        "   \"tez-hive\" as Job_Type,\n",
+        "   (select count (distinct name) as Unique_Job_Names from yarn_workload_vw  where UPPER(jobType) = \"TEZ-HIVE\") as Unique_Job_Name_Count,\n",
+        "   (select count (distinct user) as Unique_Job_Names from yarn_workload_vw  where UPPER(jobType) = \"TEZ-HIVE\") as Users_Count\n",
+        "\n",
+        "union\n",
+        "select \n",
+        "   \"sqoop\" as Job_Type,\n",
+        "   (select count (distinct name) as Unique_Job_Names from yarn_workload_vw  where UPPER(jobType) = \"SQOOP\" or UPPER(name) like 'QUERYRESULT.JAR') as Unique_Job_Name_Count,\n",
+        "   (select count (distinct user) as Unique_Job_Names from yarn_workload_vw  where UPPER(jobType) = \"SQOOP\" or UPPER(name) like 'QUERYRESULT.JAR') as Users_Count\n",
+        "union\n",
+        "select \n",
+        "   \"distcp\" as Job_Type,\n",
+        "   (select count (distinct name) as Unique_Job_Names from yarn_workload_vw  where UPPER(jobType) = \"DISTCP\") as Unique_Job_Name_Count,\n",
+        "   (select count (distinct user) as Unique_Job_Names from yarn_workload_vw  where UPPER(jobType) = \"DISTCP\") as Users_Count\n",
+        "union\n",
+        "select \n",
+        "   \"airflow\" as Job_Type,\n",
+        "   (select count (distinct name) as Unique_Job_Names from yarn_workload_vw  where UPPER(jobType) = \"AIRFLOW\") as Unique_Job_Name_Count,\n",
+        "   (select count (distinct user) as Unique_Job_Names from yarn_workload_vw  where UPPER(jobType) = \"AIRFLOW\") as Users_Count\n",
+        "union \n",
+        "select\n",
+        "    \"oozie sqoop action\",\n",
+        "    ( select count (distinct (regexp_replace(regexp_replace(name, 'oozie:.*A=', ''),  ':ID=.*', '') ))  from yarn_workload_vw where UPPER(jobType) = \"OOZIE\" and UPPER(name) like '%T=SQOOP%') as Unique_Job_Name_Count,\n",
+        "    ( select count  (distinct (user )) from yarn_workload_vw where UPPER(jobType) = \"OOZIE\" and UPPER(name) like '%T=SQOOP%' ) as Users_Count\n",
+        "union \n",
+        "select\n",
+        "    \"oozie shell action\",\n",
+        "    ( select count (distinct (regexp_replace(regexp_replace(name, 'oozie:.*A=', ''),  ':ID=.*', '') ))  from yarn_workload_vw where UPPER(jobType) = \"OOZIE\" and UPPER(name) like '%T=SHELL%') as Unique_Job_Name_Count,\n",
+        "    ( select count  (distinct (user )) from yarn_workload_vw where UPPER(jobType) = \"OOZIE\" and UPPER(name) like '%T=SHELL%' ) as Users_Count\n",
+        "union \n",
+        "select\n",
+        "    \"oozie distcp action\",\n",
+        "    ( select count (distinct (regexp_replace(regexp_replace(name, 'oozie:.*A=', ''),  ':ID=.*', '') ))  from yarn_workload_vw where UPPER(jobType) = \"OOZIE\" and UPPER(name) like '%T=DISTCP%') as Unique_Job_Name_Count,\n",
+        "    ( select count  (distinct (user )) from yarn_workload_vw where UPPER(jobType) = \"OOZIE\" and UPPER(name) like '%T=DISTCP%' ) as Users_Count    \n",
+        "union \n",
+        "select\n",
+        "    \"oozie java action\",\n",
+        "    ( select count (distinct (regexp_replace(regexp_replace(name, 'oozie:.*A=', ''),  ':ID=.*', '') ))  from yarn_workload_vw where UPPER(jobType) = \"OOZIE\" and UPPER(name) like '%T=JAVA%') as Unique_Job_Name_Count,\n",
+        "    ( select count  (distinct (user )) from yarn_workload_vw where UPPER(jobType) = \"OOZIE\" and UPPER(name) like '%T=JAVA%' ) as Users_Count    \n",
+        "union \n",
+        "select\n",
+        "    \"oozie hive action\",\n",
+        "    ( select count (distinct (regexp_replace(regexp_replace(name, 'oozie:.*A=', ''),  ':ID=.*', '') ))  from yarn_workload_vw where UPPER(jobType) = \"OOZIE\" and UPPER(name) like '%T=HIVE%') as Unique_Job_Name_Count,\n",
+        "    ( select count  (distinct (user )) from yarn_workload_vw where UPPER(jobType) = \"OOZIE\" and UPPER(name) like '%T=HIVE%' ) as Users_Count    \n",
+        "union \n",
+        "select\n",
+        "     \"mapreduce jar\",\n",
+        "     (select count (distinct name) from yarn_workload_vw  where UPPER(jobType) like \"MAPREDUCE - JAR\") as Unique_Job_Name_Count,\n",
+        "     (select count (distinct user) from yarn_workload_vw  where UPPER(jobType) like \"MAPREDUCE - JAR\") as Users_Count\n",
+        "union \n",
+        "select\n",
+        "     \"mapreduce other\",\n",
+        "     (select count (distinct name) from yarn_workload_vw  where jobType like \"MAPREDUCE_%\"  ) as Unique_Job_Name_Count,\n",
+        "     (select count (distinct user) from yarn_workload_vw  where jobType like \"MAPREDUCE_%\" ) as Users_Count\n",
+        "union \n",
+        "select\n",
+        "     \"pig\",\n",
+        "     (select count (distinct name) from yarn_workload_vw  where UPPER(jobType) like \"PIG\") as Unique_Job_Name_Count,\n",
+        "     (select count (distinct user) from yarn_workload_vw  where UPPER(jobType) like \"PIG\") as Users_Count\n",
+        " order by Unique_Job_Name_Count desc\n",
+        ")"
+      ],
+      "parameters": [
+        {
+          "displayName": "catalog",
+          "keyword": "catalog",
+          "dataType": "STRING",
+          "defaultSelection": {
+            "values": {
+              "dataType": "STRING",
+              "values": [
+                {
+                  "value": "aa_catalog"
+                }
+              ]
+            }
+          }
+        },
+        {
+          "displayName": "database",
+          "keyword": "database",
+          "dataType": "STRING",
+          "defaultSelection": {
+            "values": {
+              "dataType": "STRING",
+              "values": [
+                {
+                  "value": "hadoop_profiler"
+                }
+              ]
+            }
+          }
+        }
+      ]
+    },
+    {
+      "name": "6cc20524",
+      "displayName": "Yarn Application Analysis",
+      "queryLines": [
+        "select\n",
+        "  *,\n",
+        "  round(MemoryGBHour_DailyAggregate / 24, 0) as AverageMemoryGBPerDay,\n",
+        "  round(((MemoryGBHour_DailyAggregate / 24) / 1000), 3) as AverageMemoryTBPerDay,\n",
+        "  \n",
+        "  round(vCoreHours_DailyAggregate / 24, 0) as AveragevCoreHoursPerDay  \n",
+        "  \n",
+        "from\n",
+        "  (\n",
+        "    select\n",
+        "      distinct user,\n",
+        "      queue,\n",
+        "      left(queue,8) as queue_prefix, \n",
+        "      applicationType as Type,\n",
+        "      finalstatus,\n",
+        "      date(jobStartTime) as startDate,\n",
+        "      date(jobEndTime) as endDate,\n",
+        "      datediff(date(jobEndTime), date(jobStartTime)) as Number_Of_days,\n",
+        "      count(*) as totalJobs,\n",
+        "      round(sum(memorySeconds / 1024 / 60 / 60), 0) as MemoryGBHour_DailyAggregate,\n",
+        "      round(sum(vCoreSeconds / 60 / 60), 0) as vCoreHours_DailyAggregate\n",
+        "\n",
+        "    from\n",
+        "      IDENTIFIER(:`catalog` || '.' || :`database` || '.yarn_analysis')\n",
+        "    \n",
+        "    group by\n",
+        "      Type,\n",
+        "      startDate,\n",
+        "      endDate,\n",
+        "      Number_Of_days,\n",
+        "      finalstatus,\n",
+        "      user,\n",
+        "      queue,\n",
+        "      queue_prefix\n",
+        "    \n",
+        "     \n",
+        "    order by\n",
+        "      Number_Of_days desc,\n",
+        "      startDate,\n",
+        "      Type,\n",
+        "      finalstatus,\n",
+        "      user,\n",
+        "      queue,\n",
+        "      queue_prefix\n",
+        "  );"
+      ],
+      "parameters": [
+        {
+          "displayName": "catalog",
+          "keyword": "catalog",
+          "dataType": "STRING",
+          "defaultSelection": {
+            "values": {
+              "dataType": "STRING",
+              "values": [
+                {
+                  "value": "aa_catalog"
+                }
+              ]
+            }
+          }
+        },
+        {
+          "displayName": "database",
+          "keyword": "database",
+          "dataType": "STRING",
+          "defaultSelection": {
+            "values": {
+              "dataType": "STRING",
+              "values": [
+                {
+                  "value": "hadoop_profiler"
+                }
+              ]
+            }
+          }
+        }
+      ]
+    },
+    {
+      "name": "ccc5ca3a",
+      "displayName": "OSS YARN User Queue by Utilization",
+      "queryLines": [
+        "select\n",
+        "  user as stage1,\n",
+        "  left(queue, 8) as stage2,\n",
+        "  applicationType as stage3,\n",
+        "  avg(AverageMemoryGBPerDay) as value\n",
+        "from\n",
+        "  (\n",
+        "    select\n",
+        "      user,\n",
+        "      queue,\n",
+        "      applicationType,\n",
+        "      startDate,\n",
+        "      sum(round(MemoryGBHour_DailyAggregate / 24, 0)) as AverageMemoryGBPerDay\n",
+        "    from\n",
+        "      (\n",
+        "        select\n",
+        "          distinct user,\n",
+        "          queue,\n",
+        "          applicationType,\n",
+        "          finalstatus,\n",
+        "          date(jobStartTime) as startDate,\n",
+        "          date(jobEndTime) as endDate,\n",
+        "          datediff(date(jobEndTime), date(jobStartTime)) as Number_Of_days,\n",
+        "          count(*) as totalJobs,\n",
+        "          round(sum(memorySeconds / 1024 / 60 / 60), 0) as MemoryGBHour_DailyAggregate,\n",
+        "          round(sum(vCoreSeconds / 60 / 60), 0) as vCoreHours_DailyAggregate\n",
+        "        from\n",
+        "          IDENTIFIER(:`catalog` || '.' || :`database` || '.yarn_analysis')\n",
+        "        where\n",
+        "          state = 'FINISHED' \n",
+        "        group by\n",
+        "          applicationType,\n",
+        "          startDate,\n",
+        "          endDate,\n",
+        "          Number_Of_days,\n",
+        "          finalstatus,\n",
+        "          user,\n",
+        "          queue\n",
+        "        having\n",
+        "          Number_Of_days = 0\n",
+        "        order by\n",
+        "          Number_Of_days desc,\n",
+        "          startDate,\n",
+        "          applicationType,\n",
+        "          finalstatus,\n",
+        "          user,\n",
+        "          queue\n",
+        "      )\n",
+        "    group by\n",
+        "      1,\n",
+        "      2,\n",
+        "      3,\n",
+        "      4\n",
+        "  )\n",
+        "group by\n",
+        "  1,\n",
+        "  2,\n",
+        "  3\n",
+        "order by\n",
+        "  value desc\n",
+        "limit\n",
+        "  50"
+      ],
+      "parameters": [
+        {
+          "displayName": "catalog",
+          "keyword": "catalog",
+          "dataType": "STRING",
+          "defaultSelection": {
+            "values": {
+              "dataType": "STRING",
+              "values": [
+                {
+                  "value": "aa_catalog"
+                }
+              ]
+            }
+          }
+        },
+        {
+          "displayName": "database",
+          "keyword": "database",
+          "dataType": "STRING",
+          "defaultSelection": {
+            "values": {
+              "dataType": "STRING",
+              "values": [
+                {
+                  "value": "hadoop_profiler"
+                }
+              ]
+            }
+          }
+        }
+      ]
+    },
+    {
+      "name": "7f8248f0",
+      "displayName": "CDH YARN Vs Cluster memory / Cores",
+      "queryLines": [
+        "select\n",
+        "*\n",
+        "      from\n",
+        "        (\n",
+        "          select\n",
+        "            \"YARN\" as type,\n",
+        "            count(nodeHostName) as Worker_nodes,\n",
+        "            round(\n",
+        "              sum(availMemoryMB + usedMemoryMB) / 1024  ,\n",
+        "              0\n",
+        "            ) as total_memory_TB,\n",
+        "            sum((availableVirtualCores + usedVirtualCores)) as total_cores\n",
+        "          from\n",
+        "            IDENTIFIER(:`catalog` || '.' || :`database` || '.yarn_nodes')\n",
+        "             where state = 'RUNNING'\n",
+        "          union\n",
+        "          select\n",
+        "            \"CLUSTER\" as type,\n",
+        "            count(hostname) as Worker_nodes,\n",
+        "            round(sum(totalPhysMemBytes / 1024 / 1024 / 1024), 0) as total_memory_TB,\n",
+        "            sum(numCores) as total_cores\n",
+        "          from\n",
+        "            (\n",
+        "              select\n",
+        "                distinct hostname,\n",
+        "                totalPhysMemBytes,\n",
+        "                numCores\n",
+        "              from\n",
+        "                IDENTIFIER(:`catalog` || '.' || :`database` || '.cm_hosts') \n",
+        "               \n",
+        "            )\n",
+        "        ) temp\n",
+        "        \n",
+        "        order by type desc"
+      ],
+      "parameters": [
+        {
+          "displayName": "catalog",
+          "keyword": "catalog",
+          "dataType": "STRING",
+          "defaultSelection": {
+            "values": {
+              "dataType": "STRING",
+              "values": [
+                {
+                  "value": "aa_catalog"
+                }
+              ]
+            }
+          }
+        },
+        {
+          "displayName": "database",
+          "keyword": "database",
+          "dataType": "STRING",
+          "defaultSelection": {
+            "values": {
+              "dataType": "STRING",
+              "values": [
+                {
+                  "value": "hadoop_profiler"
+                }
+              ]
+            }
+          }
+        }
+      ]
+    },
+    {
+      "name": "5c94a2fc",
+      "displayName": "Derive Daily YARN  Utilization Metrics",
+      "queryLines": [
+        "select\n",
+        "  startDate,\n",
+        "  state,\n",
+        "  round(MemoryGBHour_DailyAggregate / 24, 0) as AverageMemoryGBPerDay,\n",
+        "  round((MemoryGBHour_DailyAggregate /1024) / 24, 0) as AverageMemoryTBPerDay,\n",
+        "  round(vCoreHours_DailyAggregate / 24, 0) as AveragevCoreHoursPerDay,\n",
+        "  totalYARNMemoryGB,\n",
+        "  totalYARNCores,\n",
+        "  round(((MemoryGBHour_DailyAggregate / 24) / totalYARNMemoryGB) * 100 , 2) as MemoryUtilizationPercent,\n",
+        "  round(((vCoreHours_DailyAggregate / 24) / totalYARNCores) * 100,2) as CPUUtilizationPercent\n",
+        "from\n",
+        "  (\n",
+        "    select\n",
+        "      distinct \n",
+        "      date(jobStartTime) as startDate,\n",
+        "      state,\n",
+        "      datediff(date(jobEndTime), date(jobStartTime)) as Number_Of_days,\n",
+        "      count(*) as totalJobs,\n",
+        "      round(sum(memorySeconds / 1024 / 60 / 60), 0) as MemoryGBHour_DailyAggregate,\n",
+        "      round(sum(vCoreSeconds / 60 / 60), 0) as vCoreHours_DailyAggregate\n",
+        "\n",
+        "    from\n",
+        "      IDENTIFIER(:`catalog` || '.' || :`database` || '.yarn_analysis')\n",
+        "      \n",
+        "    \n",
+        "    \n",
+        "     \n",
+        "    group by\n",
+        "       startDate,\n",
+        "       state,\n",
+        "       Number_Of_days\n",
+        "    \n",
+        "    order by\n",
+        "     \n",
+        "      startDate\n",
+        "     \n",
+        "  )temp , \n",
+        "\n",
+        "        (select\n",
+        "          round(sum(availMemoryMB + usedMemoryMB) / 1024, 0) as totalYARNMemoryGB,\n",
+        "          round(sum(availMemoryMB + usedMemoryMB) / 1024 / 1024, 0) as totalYARNMemoryTB,\n",
+        "          sum((availableVirtualCores + usedVirtualCores))  as totalYARNCores\n",
+        "          \n",
+        "        from\n",
+        "          IDENTIFIER(:`catalog` || '.' || :`database` || '.yarn_nodes')\n",
+        "          where  state = 'RUNNING'\n",
+        "      )  \n",
+        "      \n",
+        "      order by startDate "
+      ],
+      "parameters": [
+        {
+          "displayName": "catalog",
+          "keyword": "catalog",
+          "dataType": "STRING",
+          "defaultSelection": {
+            "values": {
+              "dataType": "STRING",
+              "values": [
+                {
+                  "value": "aa_catalog"
+                }
+              ]
+            }
+          }
+        },
+        {
+          "displayName": "database",
+          "keyword": "database",
+          "dataType": "STRING",
+          "defaultSelection": {
+            "values": {
+              "dataType": "STRING",
+              "values": [
+                {
+                  "value": "hadoop_profiler"
+                }
+              ]
+            }
+          }
+        }
+      ]
+    },
+    {
+      "name": "1b99262c",
+      "displayName": "CDH CM Cluster CPU Utilization",
+      "queryLines": [
+        "select date, avg(cpuPercent) as averageCpuPercent from \n",
+        "(\n",
+        "select\n",
+        "  timestamp,\n",
+        "  date(timestamp) as date,\n",
+        "  cpuPercent\n",
+        "from\n",
+        "  IDENTIFIER(:`catalog` || '.' || :`database` || '.cm_ClusterCPU')\n",
+        "where\n",
+        "  cpuPercent <= 100\n",
+        "order by\n",
+        "  timestamp\n",
+        "  )\n",
+        "  group by date \n",
+        "  order by date desc"
+      ],
+      "parameters": [
+        {
+          "displayName": "catalog",
+          "keyword": "catalog",
+          "dataType": "STRING",
+          "defaultSelection": {
+            "values": {
+              "dataType": "STRING",
+              "values": [
+                {
+                  "value": "aa_catalog"
+                }
+              ]
+            }
+          }
+        },
+        {
+          "displayName": "database",
+          "keyword": "database",
+          "dataType": "STRING",
+          "defaultSelection": {
+            "values": {
+              "dataType": "STRING",
+              "values": [
+                {
+                  "value": "hadoop_profiler"
+                }
+              ]
+            }
+          }
+        }
+      ]
+    },
+    {
+      "name": "e2294f04",
+      "displayName": "Hadoop Profiler Get Databases_OLD",
+      "queryLines": [
+        "SELECT schema_name AS database_name\n",
+        "FROM system.information_schema.schemata\n",
+        "WHERE catalog_name = :`catalog`\n",
+        "AND schema_name NOT IN ('default', 'information_schema')\n",
+        "ORDER BY schema_name"
+      ],
+      "parameters": [
+        {
+          "displayName": "catalog",
+          "keyword": "catalog",
+          "dataType": "STRING",
+          "defaultSelection": {
+            "values": {
+              "dataType": "STRING",
+              "values": [
+                {
+                  "value": "aa_catalog"
+                }
+              ]
+            }
+          }
+        }
+      ]
+    },
+    {
+      "name": "333641ad",
+      "displayName": "HDP YARN Custom Jars",
+      "queryLines": [
+        "select  name, applicationType, count(1) as totalCount\n",
+        "FROM\n",
+        "  IDENTIFIER(:`catalog` || '.' || :`database` || '.yarn_analysis')\n",
+        "where name like '%jar%'\n",
+        "group by name , applicationType\n",
+        "order by count(1) desc"
+      ],
+      "parameters": [
+        {
+          "displayName": "catalog",
+          "keyword": "catalog",
+          "dataType": "STRING",
+          "defaultSelection": {
+            "values": {
+              "dataType": "STRING",
+              "values": [
+                {
+                  "value": "aa_catalog"
+                }
+              ]
+            }
+          }
+        },
+        {
+          "displayName": "database",
+          "keyword": "database",
+          "dataType": "STRING",
+          "defaultSelection": {
+            "values": {
+              "dataType": "STRING",
+              "values": [
+                {
+                  "value": "hadoop_profiler"
+                }
+              ]
+            }
+          }
+        }
+      ]
+    },
+    {
+      "name": "63e49f7b",
+      "displayName": "Cloudera - DBU Calculator Inputs",
+      "queryLines": [
+        "\n",
+        "SELECT \n",
+        "   metric,\n",
+        "   value \n",
+        "FROM (\n",
+        "   \n",
+        "   SELECT\n",
+        "     '1. Worker Node Count' as metric, (\n",
+        "     SELECT\n",
+        "        max(worker_count)\n",
+        "     FROM (\n",
+        "        SELECT\n",
+        "           'Impala Worker Nodes',\n",
+        "           count(*) as worker_count\n",
+        "        FROM\n",
+        "           IDENTIFIER(:`catalog` || '.' || :`database` || '.cm_hostroles')\n",
+        "        WHERE\n",
+        "           serviceType in ('IMPALA')\n",
+        "           and (entityName like 'impala%IMPALAD%') \n",
+        "        UNION\n",
+        "        SELECT\n",
+        "           \"YARN\" as type,\n",
+        "           count(nodeHostName) as worker_count\n",
+        "        FROM\n",
+        "           IDENTIFIER(:`catalog` || '.' || :`database` || '.yarn_nodes')\n",
+        "        WHERE\n",
+        "           state = 'RUNNING'\n",
+        "        ) \n",
+        "     ) as value\n",
+        "union\n",
+        "   \n",
+        "   SELECT\n",
+        "      '3. Average Cluster CPU Utilization (%)' as metric,\n",
+        "      AVG(averageCpuPercent) as value\n",
+        "   FROM (\n",
+        "      SELECT\n",
+        "         avg(cpuPercent) as averageCpuPercent\n",
+        "      FROM (\n",
+        "     SELECT\n",
+        "         timestamp,\n",
+        "         date(timestamp) as date,\n",
+        "         cpuPercent\n",
+        "     FROM\n",
+        "        IDENTIFIER(:`catalog` || '.' || :`database` || '.cm_ClusterCPU')\n",
+        "     WHERE\n",
+        "         \n",
+        "        cpuPercent <= 100\n",
+        "     ORDER BY\n",
+        "        timestamp\n",
+        "     )\n",
+        "     GROUP BY\n",
+        "        date\n",
+        "   )\n",
+        "   UNION\n",
+        "         select\n",
+        "            '2. CPU Cores per Worker Node' as metric,\n",
+        "            sum(numCores)/(    SELECT\n",
+        "        max(worker_count)\n",
+        "     FROM (\n",
+        "        SELECT\n",
+        "           'Impala Worker Nodes',\n",
+        "           count(*) as worker_count\n",
+        "        FROM\n",
+        "           IDENTIFIER(:`catalog` || '.' || :`database` || '.cm_hostroles')\n",
+        "        WHERE\n",
+        "           serviceType in ('IMPALA')\n",
+        "           and (entityName like 'impala%IMPALAD%') \n",
+        "        UNION\n",
+        "        SELECT\n",
+        "           \"YARN\" as type,\n",
+        "           count(nodeHostName) as worker_count\n",
+        "        FROM\n",
+        "           IDENTIFIER(:`catalog` || '.' || :`database` || '.yarn_nodes')\n",
+        "        WHERE\n",
+        "           state = 'RUNNING'\n",
+        "        ) \n",
+        "     ) as value\n",
+        "          from\n",
+        "            (\n",
+        "          select\n",
+        "                distinct a.hostname,\n",
+        "                numCores\n",
+        "              from\n",
+        "                IDENTIFIER(:`catalog` || '.' || :`database` || '.cm_hosts') a join \n",
+        "                IDENTIFIER(:`catalog` || '.' || :`database` || '.cm_hostroles') b\n",
+        "              on\n",
+        "              a.hostname = b.hostname and b.roleType in ('IMPALAD', 'NODEMANAGER') order by hostname\n",
+        "        \n",
+        "           )\n",
+        "UNION\n",
+        "select \n",
+        "  '4. HDFS Used (TB) without replication' as metric,\n",
+        "   round(dfs_capacity_used, 0)/3 as value\n",
+        "from \n",
+        "IDENTIFIER(:`catalog` || '.' || :`database` || '.cm_hdfsstats')\n",
+        "\n",
+        ")          \n",
+        "ORDER BY metric"
+      ],
+      "parameters": [
+        {
+          "displayName": "catalog",
+          "keyword": "catalog",
+          "dataType": "STRING",
+          "defaultSelection": {
+            "values": {
+              "dataType": "STRING",
+              "values": [
+                {
+                  "value": "aa_catalog"
+                }
+              ]
+            }
+          }
+        },
+        {
+          "displayName": "database",
+          "keyword": "database",
+          "dataType": "STRING",
+          "defaultSelection": {
+            "values": {
+              "dataType": "STRING",
+              "values": [
+                {
+                  "value": "hadoop_profiler"
+                }
+              ]
+            }
+          }
+        }
+      ]
+    },
+    {
+      "name": "5e554929",
+      "displayName": "CDH CM Impala Utilization (Aggregated)",
+      "queryLines": [
+        "select\n",
+        "  date(timestamp) as date,\n",
+        "  avg(total_mem_rss_across_impalads_mean) as avg_total_mem_across_impala_daemon,\n",
+        "  avg(total_impala_memory) as total_impala_memory,\n",
+        "  round(avg(total_mem_rss_across_impalads_mean) / avg(total_impala_memory) * 100) as impala_usage_percent\n",
+        "from\n",
+        "  (\n",
+        "    select\n",
+        "      timestamp,\n",
+        "      total_mem_rss_across_impalads_mean,\n",
+        "      (\n",
+        "        select\n",
+        "          round(\n",
+        "            (\n",
+        "              count(*) * (\n",
+        "                select\n",
+        "                  distinct max(value)\n",
+        "                from\n",
+        "                  IDENTIFIER(:`catalog` || '.' || :`database` || '.cm_roleConfig')\n",
+        "                where\n",
+        "                  roleType = 'IMPALAD'\n",
+        "                  and refName like '%impala%IMPALAD%'\n",
+        "                  and name = 'impalad_memory_limit'\n",
+        "              )\n",
+        "            ) / 1024 / 1024 / 1024,\n",
+        "            0\n",
+        "          ) as memory_TB\n",
+        "        from\n",
+        "          IDENTIFIER(:`catalog` || '.' || :`database` || '.cm_hostroles')\n",
+        "        where\n",
+        "          serviceType in ('IMPALA')\n",
+        "          and (entityName like 'impala%IMPALAD%')\n",
+        "      ) as total_impala_memory\n",
+        "    from\n",
+        "      IDENTIFIER(:`catalog` || '.' || :`database` || '.cm_ts_impala_utlization')\n",
+        "    order by\n",
+        "      timestamp\n",
+        "  )\n",
+        "group by\n",
+        "  date\n",
+        "  order by date"
+      ],
+      "parameters": [
+        {
+          "displayName": "catalog",
+          "keyword": "catalog",
+          "dataType": "STRING",
+          "defaultSelection": {
+            "values": {
+              "dataType": "STRING",
+              "values": [
+                {
+                  "value": "aa_catalog"
+                }
+              ]
+            }
+          }
+        },
+        {
+          "displayName": "database",
+          "keyword": "database",
+          "dataType": "STRING",
+          "defaultSelection": {
+            "values": {
+              "dataType": "STRING",
+              "values": [
+                {
+                  "value": "hadoop_profiler"
+                }
+              ]
+            }
+          }
+        }
+      ]
+    },
+    {
+      "name": "0c5e8b76",
+      "displayName": "Derive Average YARN  Utilization Metrics",
+      "queryLines": [
+        "WITH yarn_nodes_vw as \n",
+        "(\n",
+        "            select\n",
+        "              round(sum(availMemoryMB + usedMemoryMB) / 1024, 0) as totalYARNMemoryGB,\n",
+        "              round(\n",
+        "                sum(availMemoryMB + usedMemoryMB) / 1024 / 1024,\n",
+        "                0\n",
+        "              ) as totalYARNMemoryTB,\n",
+        "              sum((availableVirtualCores + usedVirtualCores)) as totalYARNCores\n",
+        "            from\n",
+        "              IDENTIFIER(:`catalog` || '.' || :`database` || '.yarn_nodes')\n",
+        "            where\n",
+        "              state = 'RUNNING'\n",
+        "          )\n",
+        "\n",
+        " \n",
+        "\n",
+        "\n",
+        "select\n",
+        " \n",
+        "  Count_of_Days,\n",
+        "  Number_Of_days,\n",
+        "  minStartDate,\n",
+        "  maxStartDate,\n",
+        " \n",
+        "  sumMemoryUtilization / Count_of_Days as avgMemoryUtilization,\n",
+        "  sumCPUUtilization / Count_of_Days as avgCPUUtilization\n",
+        "from\n",
+        "  (\n",
+        "    select\n",
+        "     \n",
+        "      count(startDate) as Count_of_Days,     \n",
+        "      min(startDate) as minStartDate,\n",
+        "      max(startDate) as maxStartDate,\n",
+        "      case\n",
+        "        when datediff(max(startDate), min(startDate)) = 0 then 1\n",
+        "        else datediff(max(startDate), min(startDate))\n",
+        "      end as Number_Of_days,\n",
+        "      sum(MemoryUtilizationPercent) as sumMemoryUtilization,\n",
+        "      sum(CPUUtilizationPercent) as sumCPUUtilization\n",
+        "    from\n",
+        "      (\n",
+        "        select\n",
+        "          startDate,\n",
+        "          state,\n",
+        "          round(MemoryGBHour_DailyAggregate / 24, 0) as AverageMemoryGBPerDay,\n",
+        "          round((MemoryGBHour_DailyAggregate / 1024) / 24, 0) as AverageMemoryTBPerDay,\n",
+        "          round(vCoreHours_DailyAggregate / 24, 0) as AveragevCoreHoursPerDay,\n",
+        "          \n",
+        "          \n",
+        "          round(\n",
+        "            (\n",
+        "              (MemoryGBHour_DailyAggregate / 24) / (select totalYARNMemoryGB from yarn_nodes_vw)\n",
+        "            ) * 100,\n",
+        "            2\n",
+        "          ) as MemoryUtilizationPercent,\n",
+        "          round(\n",
+        "            (\n",
+        "              (vCoreHours_DailyAggregate / 24) / (select totalYARNCores from yarn_nodes_vw)\n",
+        "            ) * 100,\n",
+        "            2\n",
+        "          ) as CPUUtilizationPercent\n",
+        "        from\n",
+        "          (\n",
+        "            select\n",
+        "              distinct date(jobStartTime) as startDate,\n",
+        "              state,\n",
+        "              datediff(date(jobEndTime), date(jobStartTime)) as Number_Of_days,\n",
+        "              count(*) as totalJobs,\n",
+        "              round(sum(memorySeconds / 1024 / 60 / 60), 0) as MemoryGBHour_DailyAggregate,\n",
+        "              round(sum(vCoreSeconds / 60 / 60), 0) as vCoreHours_DailyAggregate\n",
+        "            from\n",
+        "              IDENTIFIER(:`catalog` || '.' || :`database` || '.yarn_analysis')\n",
+        "            \n",
+        "            \n",
+        "            group by\n",
+        "              startDate,\n",
+        "              state,\n",
+        "              Number_Of_days\n",
+        "             \n",
+        "            order by\n",
+        "              startDate\n",
+        "          ) temp \n",
+        "  \n",
+        "        order by\n",
+        "          startDate\n",
+        "      )\n",
+        "      where \n",
+        "      MemoryUtilizationPercent > 3 and \n",
+        "      CPUUtilizationPercent > 3\n",
+        "    \n",
+        "  )"
+      ],
+      "parameters": [
+        {
+          "displayName": "catalog",
+          "keyword": "catalog",
+          "dataType": "STRING",
+          "defaultSelection": {
+            "values": {
+              "dataType": "STRING",
+              "values": [
+                {
+                  "value": "aa_catalog"
+                }
+              ]
+            }
+          }
+        },
+        {
+          "displayName": "database",
+          "keyword": "database",
+          "dataType": "STRING",
+          "defaultSelection": {
+            "values": {
+              "dataType": "STRING",
+              "values": [
+                {
+                  "value": "hadoop_profiler"
+                }
+              ]
+            }
+          }
+        }
+      ]
+    },
+    {
+      "name": "bd38c343",
+      "displayName": "CM Impala Query Type",
+      "queryLines": [
+        "select count(*), queryType, startDate\n",
+        "from \n",
+        "(\n",
+        "SELECT distinct statement,  queryType, date(startTime)  as startDate\n",
+        "\n",
+        "FROM IDENTIFIER(:`catalog` || '.' || :`database` || '.impala_extract')\n",
+        ")\n",
+        "group by queryType, startDate\n",
+        "order by startDate"
+      ],
+      "parameters": [
+        {
+          "displayName": "catalog",
+          "keyword": "catalog",
+          "dataType": "STRING",
+          "defaultSelection": {
+            "values": {
+              "dataType": "STRING",
+              "values": [
+                {
+                  "value": "aa_catalog"
+                }
+              ]
+            }
+          }
+        },
+        {
+          "displayName": "database",
+          "keyword": "database",
+          "dataType": "STRING",
+          "defaultSelection": {
+            "values": {
+              "dataType": "STRING",
+              "values": [
+                {
+                  "value": "hadoop_profiler"
+                }
+              ]
+            }
+          }
+        }
+      ]
+    },
+    {
+      "name": "ff249fa2",
+      "displayName": "CDH CM Cluster  Memory Utilization",
+      "queryLines": [
+        "select\n",
+        "  date,\n",
+        "  avg(MemoryGB) as avgMemoryGB, \n",
+        "  (select max(round((clusterMemory / 1024 / 1024 / 1024), 0)) from  IDENTIFIER(:`catalog` || '.' || :`database` || '.cm_clustermemory')) as total_cluster_memory,\n",
+        "  round((avg(MemoryGB) / (select max(round((clusterMemory / 1024 / 1024 / 1024), 0)) from  IDENTIFIER(:`catalog` || '.' || :`database` || '.cm_Clustermemory'))) * 100, 2)  as memoryPercentage\n",
+        "  \n",
+        "from\n",
+        "  (\n",
+        "    select\n",
+        "      *\n",
+        "    from\n",
+        "      (\n",
+        "        select\n",
+        "          timestamp,\n",
+        "          date(timestamp) as date,\n",
+        "          round((clusterMemory / 1024 / 1024 / 1024), 2) as MemoryGB\n",
+        "        from\n",
+        "          IDENTIFIER(:`catalog` || '.' || :`database` || '.cm_Clustermemory')\n",
+        "        order by\n",
+        "          timestamp\n",
+        "      )\n",
+        "    where\n",
+        "      MemoryGB < (\n",
+        "        select\n",
+        "          max(round((clusterMemory / 1024 / 1024 / 1024), 0))\n",
+        "        from\n",
+        "          IDENTIFIER(:`catalog` || '.' || :`database` || '.cm_Clustermemory')\n",
+        "      )\n",
+        "      and MemoryGB > 0\n",
+        "  )\n",
+        "group by\n",
+        "  date\n",
+        "order by\n",
+        "  date"
+      ],
+      "parameters": [
+        {
+          "displayName": "catalog",
+          "keyword": "catalog",
+          "dataType": "STRING",
+          "defaultSelection": {
+            "values": {
+              "dataType": "STRING",
+              "values": [
+                {
+                  "value": "aa_catalog"
+                }
+              ]
+            }
+          }
+        },
+        {
+          "displayName": "database",
+          "keyword": "database",
+          "dataType": "STRING",
+          "defaultSelection": {
+            "values": {
+              "dataType": "STRING",
+              "values": [
+                {
+                  "value": "hadoop_profiler"
+                }
+              ]
+            }
+          }
+        }
+      ]
+    },
+    {
+      "name": "c9edd8c7",
+      "displayName": "CDH Hadoop Get Stack Details",
+      "queryLines": [
+        "select \n",
+        "distinct \n",
+        "'CDH' as Distribution,\n",
+        "cdhVersion,\n",
+        "cmVersion,\n",
+        "clusterName,\n",
+        "(select distinct version from   IDENTIFIER(:`catalog` || '.' || :`database` || '.yarn_nodes')  where state = 'RUNNING') as hadoop_version \n",
+        "from IDENTIFIER(:`catalog` || '.' || :`database` || '.cm_roleconfig')"
+      ],
+      "parameters": [
+        {
+          "displayName": "catalog",
+          "keyword": "catalog",
+          "dataType": "STRING",
+          "defaultSelection": {
+            "values": {
+              "dataType": "STRING",
+              "values": [
+                {
+                  "value": "aa_catalog"
+                }
+              ]
+            }
+          }
+        },
+        {
+          "displayName": "database",
+          "keyword": "database",
+          "dataType": "STRING",
+          "defaultSelection": {
+            "values": {
+              "dataType": "STRING",
+              "values": [
+                {
+                  "value": "hadoop_profiler"
+                }
+              ]
+            }
+          }
+        }
+      ]
+    },
+    {
+      "name": "5850f941",
+      "displayName": "CDH Component Analysis",
+      "queryLines": [
+        "select count(*) as count , roleType as component_name \n",
+        "from \n",
+        "(\n",
+        "select \n",
+        " distinct hostname, roleType\n",
+        "from \n",
+        " IDENTIFIER(:`catalog` || '.' || :`database` || '.cm_hostroles')\n",
+        " ) \n",
+        " group by component_name\n",
+        " order by count desc"
+      ],
+      "parameters": [
+        {
+          "displayName": "catalog",
+          "keyword": "catalog",
+          "dataType": "STRING",
+          "defaultSelection": {
+            "values": {
+              "dataType": "STRING",
+              "values": [
+                {
+                  "value": "aa_catalog"
+                }
+              ]
+            }
+          }
+        },
+        {
+          "displayName": "database",
+          "keyword": "database",
+          "dataType": "STRING",
+          "defaultSelection": {
+            "values": {
+              "dataType": "STRING",
+              "values": [
+                {
+                  "value": "hadoop_profiler"
+                }
+              ]
+            }
+          }
+        }
+      ]
+    },
+    {
+      "name": "a78ed73f",
+      "displayName": "Hadoop Profiler Get Databases",
+      "queryLines": [
+        "SELECT schema_name AS database_name\n",
+        "FROM system.information_schema.schemata\n",
+        "WHERE catalog_name = :`catalog`\n",
+        "AND schema_name NOT IN ('default', 'information_schema')\n",
+        "ORDER BY schema_name"
+      ],
+      "parameters": [
+        {
+          "displayName": "catalog",
+          "keyword": "catalog",
+          "dataType": "STRING",
+          "defaultSelection": {
+            "values": {
+              "dataType": "STRING",
+              "values": [
+                {
+                  "value": "aa_catalog"
+                }
+              ]
+            }
+          }
+        }
+      ]
+    },
+    {
+      "name": "f8c0976c",
+      "displayName": "CDH Impala Analysis",
+      "queryLines": [
+        "SELECT\n",
+        "  date(startDate),\n",
+        "  user,\n",
+        "  database,\n",
+        "  user  as user_prefix,\n",
+        "  left(user, 3) as user_qry_prefix, \n",
+        "  queryState,\n",
+        "  queryType,\n",
+        "  sum(durationMillis) as total_durationMillis,\n",
+        "  sum(durationMinutes) as total_durationMinutes,\n",
+        "  sum(rowsProduced) as total_rowsProduced,\n",
+        "  sum(memory_accrual) as total_memory_accrual,\n",
+        "  sum(memory_aggregate_peak) as total_memory_aggregate_peak,\n",
+        "  sum(memory_per_node_peak) as total_memory_per_node_peak,\n",
+        "  round(sum(memory_accrual) / 1024 / 1024 / 1024 , 0) as memory_accrual_GB,\n",
+        "  round(sum(memory_aggregate_peak) / 1024 / 1024 / 1024 , 0) as memory_aggregate_peak_GB,  \n",
+        "  round(sum(memory_per_node_peak)  / 1024 / 1024 / 1024 , 0) as memory_per_node_peak_GB,\n",
+        "  round(sum(memory_accrual) / 1024 / 1024 / 1024 / 1024 , 0) as memory_accrual_TB,\n",
+        "  round(sum(memory_aggregate_peak) / 1024 / 1024 / 1024 / 1024, 0) as memory_aggregate_peak_TB,  \n",
+        "  round(sum(memory_per_node_peak)  / 1024 / 1024 / 1024 / 1024, 0) as memory_per_node_peak_TB,\n",
+        "  sum(thread_cpu_time) as total_thread_cpu_time ,\n",
+        "  count(*) as totalQueries,\n",
+        "  round((sum(memory_accrual) / 1024 / 1024 / 1024 / 1024 ) / count(*), 0) as average_memory_accural_TB\n",
+        "FROM\n",
+        "  IDENTIFIER(:`catalog` || '.' || :`database` || '.impala_extract')\n",
+        "group by\n",
+        "  date(startDate),\n",
+        "  user,\n",
+        "  user_prefix,\n",
+        "  user_qry_prefix,\n",
+        "  database,\n",
+        "  queryState,\n",
+        "  queryType\n",
+        "order by\n",
+        "  date(startDate)"
+      ],
+      "parameters": [
+        {
+          "displayName": "catalog",
+          "keyword": "catalog",
+          "dataType": "STRING",
+          "defaultSelection": {
+            "values": {
+              "dataType": "STRING",
+              "values": [
+                {
+                  "value": "aa_catalog"
+                }
+              ]
+            }
+          }
+        },
+        {
+          "displayName": "database",
+          "keyword": "database",
+          "dataType": "STRING",
+          "defaultSelection": {
+            "values": {
+              "dataType": "STRING",
+              "values": [
+                {
+                  "value": "hadoop_profiler"
+                }
+              ]
+            }
+          }
+        }
+      ]
+    },
+    {
+      "name": "38ad6676",
+      "displayName": "CDH Hadoop HDFS Stats",
+      "queryLines": [
+        "select \n",
+        "round(dfs_capacity,0) as total_capacity_TB,\n",
+        "round(dfs_capacity_used, 0) as used_capacity_TB, \n",
+        "round(dfs_capacity - dfs_capacity_used, 0) as remaining_capacity_TB\n",
+        "from \n",
+        "IDENTIFIER(:`catalog` || '.' || :`database` || '.cm_hdfsstats')"
+      ],
+      "parameters": [
+        {
+          "displayName": "catalog",
+          "keyword": "catalog",
+          "dataType": "STRING",
+          "defaultSelection": {
+            "values": {
+              "dataType": "STRING",
+              "values": [
+                {
+                  "value": "aa_catalog"
+                }
+              ]
+            }
+          }
+        },
+        {
+          "displayName": "database",
+          "keyword": "database",
+          "dataType": "STRING",
+          "defaultSelection": {
+            "values": {
+              "dataType": "STRING",
+              "values": [
+                {
+                  "value": "hadoop_profiler"
+                }
+              ]
+            }
+          }
+        }
+      ]
+    },
+    {
+      "name": "83fec4c1",
+      "displayName": "OSS YARN Hadoop Profiler Hourly YARN View",
+      "queryLines": [
+        "select  \n",
+        "hour,\n",
+        "round ((avg_memory_mb / 1024), 2) as avg_memory_gb,\n",
+        "round ((max_memory_mb / 1024), 2) as max_memory_gb,\n",
+        "round ((min_memory_mb / 1024), 2) as min_memory_gb,\n",
+        "max_cores,\n",
+        "min_cores,\n",
+        "avg_cores,\n",
+        "avg_count,\n",
+        "avg_cores / (select sum((availableVirtualCores + usedVirtualCores)) as total_cores from IDENTIFIER(:`catalog` || '.' || :`database` || '.yarn_nodes') where state = 'RUNNING') * 100 as avg_cores_util_percent,\n",
+        "(avg_memory_mb / 1024) / (select sum(availMemoryMB + usedMemoryMB) / 1024  as total_memory_GB from IDENTIFIER(:`catalog` || '.' || :`database` || '.yarn_nodes') where state = 'RUNNING') * 100 as avg_mem_gb_util_percent  \n",
+        "\n",
+        "FROM\n",
+        "  IDENTIFIER(:`catalog` || '.' || :`database` || '.hourly_yarn_view')\n",
+        "  order by hour"
+      ],
+      "parameters": [
+        {
+          "displayName": "catalog",
+          "keyword": "catalog",
+          "dataType": "STRING",
+          "defaultSelection": {
+            "values": {
+              "dataType": "STRING",
+              "values": [
+                {
+                  "value": "aa_catalog"
+                }
+              ]
+            }
+          }
+        },
+        {
+          "displayName": "database",
+          "keyword": "database",
+          "dataType": "STRING",
+          "defaultSelection": {
+            "values": {
+              "dataType": "STRING",
+              "values": [
+                {
+                  "value": "hadoop_profiler"
+                }
+              ]
+            }
+          }
+        }
+      ]
+    },
+    {
+      "name": "fef00d46",
+      "displayName": "CDH Component Distribution",
+      "queryLines": [
+        "select distinct roleType,   hostname\n",
+        "from \n",
+        " IDENTIFIER(:`catalog` || '.' || :`database` || '.cm_hostroles')"
+      ],
+      "parameters": [
+        {
+          "displayName": "catalog",
+          "keyword": "catalog",
+          "dataType": "STRING",
+          "defaultSelection": {
+            "values": {
+              "dataType": "STRING",
+              "values": [
+                {
+                  "value": "aa_catalog"
+                }
+              ]
+            }
+          }
+        },
+        {
+          "displayName": "database",
+          "keyword": "database",
+          "dataType": "STRING",
+          "defaultSelection": {
+            "values": {
+              "dataType": "STRING",
+              "values": [
+                {
+                  "value": "hadoop_profiler"
+                }
+              ]
+            }
+          }
+        }
+      ]
+    },
+    {
+      "name": "3439548a",
+      "displayName": "Hadoop Profiler Workload Classification",
+      "queryLines": [
+        "\n",
+        "with workloads as \n",
+        "\n",
+        "(\n",
+        "\n",
+        "(select \n",
+        "'CDP' as distribution,\n",
+        "JobType as Workload_Type, \n",
+        "case \n",
+        "  when JobType = 'Oozie' or lower(JobType) = 'oozie' then (select count(distinct oozie_job) from IDENTIFIER(:`catalog` || '.' || :`database` || '.oozie_analysis_vw'))\n",
+        "  when  lower(JobType) = 'sqoop' then ( case when (select count(distinct oozie_job) from IDENTIFIER(:`catalog` || '.' || :`database` || '.oozie_analysis_vw') where oozie_type = 'sqoop') = 0 \n",
+        "                                             then (select count(distinct short_name) from IDENTIFIER(:`catalog` || '.' || :`database` || '.yarn_analysis_vw') where lower(JobType) = 'sqoop' ) end)\n",
+        "  else count(distinct short_name) \n",
+        "end as unique_Jobs,  \n",
+        "count(distinct user ) as associated_users,\n",
+        "case \n",
+        "  when lower(JobType) =  'hive' then \"Spark SQL\"\n",
+        "  when lower(JobType) =  'spark' or lower(JobType) like '%mapreduce%'  then \"Databricks Spark\"\n",
+        "  when lower(JobType) =  'oozie' then \"Databricks Workflows\"\n",
+        "  when lower(JobType) =  'sqoop' then \"Spark JDBC Source\"\n",
+        "  else \"Databricks Spark (Needs further analysis)\"\n",
+        "end as databricks_equivalent,\n",
+        "case \n",
+        "  when lower(JobType) =  'hive' then \"Minor Changes\"\n",
+        "  when lower(JobType) =  'spark' then \"Minor Changes\"\n",
+        "  when lower(JobType) like '%mapreduce%'  then \"Refactor\"\n",
+        "  when lower(JobType) =  'oozie' then \"Refactor\"\n",
+        "  when lower(JobType) =  'sqoop' then \"Refactor\"\n",
+        "  else \"Refactor (Needs further analysis)\"\n",
+        "end as Notes\n",
+        "from IDENTIFIER(:`catalog` || '.' || :`database` || '.yarn_analysis_vw')\n",
+        "group by Workload_Type\n",
+        "order by unique_Jobs desc\n",
+        ")\n",
+        "\n",
+        "\n",
+        "\n",
+        "\n",
+        "\n",
+        "\n",
+        "\n",
+        "\n",
+        "\n",
+        "\n",
+        "\n",
+        "\n",
+        ")\n",
+        " \n",
+        "\n",
+        "select * from workloads\n",
+        "where \n",
+        "unique_Jobs > 0\n",
+        "\n",
+        ";"
+      ],
+      "parameters": [
+        {
+          "displayName": "catalog",
+          "keyword": "catalog",
+          "dataType": "STRING",
+          "defaultSelection": {
+            "values": {
+              "dataType": "STRING",
+              "values": [
+                {
+                  "value": "aa_catalog"
+                }
+              ]
+            }
+          }
+        },
+        {
+          "displayName": "database",
+          "keyword": "database",
+          "dataType": "STRING",
+          "defaultSelection": {
+            "values": {
+              "dataType": "STRING",
+              "values": [
+                {
+                  "value": "hadoop_profiler"
+                }
+              ]
+            }
+          }
+        }
+      ]
+    },
+    {
+      "name": "241c9878",
+      "displayName": "CDH CM YARN Utilization",
+      "queryLines": [
+        "select\n",
+        "timestamp, \n",
+        "total_allocated_memory_mb_across_yarn_pools_mean  as total_allocated_mem_gb,\n",
+        "total_available_memory_mb_across_yarn_pools_min   as total_available_mem_gb,\n",
+        "total_available_vcores_across_yarn_pools_mean,\n",
+        "total_allocated_vcores_across_yarn_pools_mean\n",
+        "from\n",
+        "  IDENTIFIER(:`catalog` || '.' || :`database` || '.CM_ts_yarn_memory_allocation')\n",
+        "order by\n",
+        "  timestamp"
+      ],
+      "parameters": [
+        {
+          "displayName": "catalog",
+          "keyword": "catalog",
+          "dataType": "STRING",
+          "defaultSelection": {
+            "values": {
+              "dataType": "STRING",
+              "values": [
+                {
+                  "value": "aa_catalog"
+                }
+              ]
+            }
+          }
+        },
+        {
+          "displayName": "database",
+          "keyword": "database",
+          "dataType": "STRING",
+          "defaultSelection": {
+            "values": {
+              "dataType": "STRING",
+              "values": [
+                {
+                  "value": "hadoop_profiler"
+                }
+              ]
+            }
+          }
+        }
+      ]
+    }
+  ],
+  "pages": [
+    {
+      "name": "1fb668de",
+      "displayName": "CDH Utilization",
+      "layout": [
+        {
+          "widget": {
+            "name": "591a1ad5",
+            "multilineTextboxSpec": {
+              "lines": [
+                "# Cluster Summary\n",
+                "\n",
+                " "
+              ]
+            }
+          },
+          "position": {
+            "x": 0,
+            "y": 9,
+            "width": 12,
+            "height": 2
+          }
+        },
+        {
+          "widget": {
+            "name": "62ab1a24",
+            "multilineTextboxSpec": {
+              "lines": [
+                "# Cluster Metrics"
+              ]
+            }
+          },
+          "position": {
+            "x": 0,
+            "y": 61,
+            "width": 12,
+            "height": 2
+          }
+        },
+        {
+          "widget": {
+            "name": "93600243",
+            "multilineTextboxSpec": {
+              "lines": [
+                "# YARN Application Metrics"
+              ]
+            }
+          },
+          "position": {
+            "x": 0,
+            "y": 100,
+            "width": 12,
+            "height": 2
+          }
+        },
+        {
+          "widget": {
+            "name": "7900fd51",
+            "multilineTextboxSpec": {
+              "lines": [
+                "# YARN Queue Analysis\n"
+              ]
+            }
+          },
+          "position": {
+            "x": 0,
+            "y": 217,
+            "width": 12,
+            "height": 2
+          }
+        },
+        {
+          "widget": {
+            "name": "9f42be16",
+            "multilineTextboxSpec": {
+              "lines": [
+                "# MapReduce Analysis"
+              ]
+            }
+          },
+          "position": {
+            "x": 0,
+            "y": 236,
+            "width": 12,
+            "height": 2
+          }
+        },
+        {
+          "widget": {
+            "name": "08b84c99",
+            "multilineTextboxSpec": {
+              "lines": [
+                "# YARN Utilization Metrics"
+              ]
+            }
+          },
+          "position": {
+            "x": 0,
+            "y": 143,
+            "width": 12,
+            "height": 3
+          }
+        },
+        {
+          "widget": {
+            "name": "2d49122f",
+            "multilineTextboxSpec": {
+              "lines": [
+                "# Impala Analysis\n"
+              ]
+            }
+          },
+          "position": {
+            "x": 0,
+            "y": 256,
+            "width": 12,
+            "height": 2
+          }
+        },
+        {
+          "widget": {
+            "name": "d9e75d03",
+            "multilineTextboxSpec": {
+              "lines": [
+                "# CM - Cluster CPU and Memory Utilization"
+              ]
+            }
+          },
+          "position": {
+            "x": 0,
+            "y": 17,
+            "width": 12,
+            "height": 2
+          }
+        },
+        {
+          "widget": {
+            "name": "db617cde",
+            "multilineTextboxSpec": {
+              "lines": [
+                "# CM - Impala Utilization"
+              ]
+            }
+          },
+          "position": {
+            "x": 0,
+            "y": 27,
+            "width": 12,
+            "height": 2
+          }
+        },
+        {
+          "widget": {
+            "name": "898d4a10",
+            "multilineTextboxSpec": {
+              "lines": [
+                "# CM- YARN Utilization Metrics"
+              ]
+            }
+          },
+          "position": {
+            "x": 0,
+            "y": 47,
+            "width": 12,
+            "height": 2
+          }
+        },
+        {
+          "widget": {
+            "name": "decd18d4",
+            "multilineTextboxSpec": {
+              "lines": [
+                "# Workload Analysis\n"
+              ]
+            }
+          },
+          "position": {
+            "x": 0,
+            "y": 295,
+            "width": 12,
+            "height": 3
+          }
+        },
+        {
+          "widget": {
+            "name": "09428272",
+            "queries": [
+              {
+                "name": "7b16dc46b0e5426a8dd62a1217b62717",
+                "query": {
+                  "datasetName": "83fec4c1",
+                  "disaggregated": true
+                }
+              }
+            ],
+            "spec": {
+              "version": 0,
+              "viz_spec": {
+                "display_name": "YARN Hourly Utilization",
+                "description": "",
+                "viz_type": "CHART",
+                "serialized_options": "{\"version\": 2, \"globalSeriesType\": \"line\", \"sortX\": true, \"legend\": {\"enabled\": true, \"placement\": \"auto\", \"traceorder\": \"normal\"}, \"xAxis\": {\"type\": \"-\", \"labels\": {\"enabled\": true}, \"title\": {\"text\": \"Hourly Metrics\"}}, \"yAxis\": [{\"type\": \"-\"}, {\"type\": \"-\", \"opposite\": true}], \"alignYAxesAtZero\": false, \"error_y\": {\"type\": \"data\", \"visible\": true}, \"series\": {\"stacking\": null, \"error_y\": {\"type\": \"data\", \"visible\": true}}, \"seriesOptions\": {\"avg_cores\": {\"yAxis\": 1, \"type\": \"line\"}, \"avg_memory_gb\": {\"yAxis\": 0}}, \"valuesOptions\": {}, \"direction\": {\"type\": \"counterclockwise\"}, \"sizemode\": \"diameter\", \"coefficient\": 1, \"numberFormat\": \"0,0[.]00000\", \"percentFormat\": \"0[.]00%\", \"textFormat\": \"\", \"missingValuesAsZero\": true, \"useAggregationsUi\": false, \"swappedAxes\": false, \"dateTimeFormat\": \"YYYY-MM-DD HH:mm:ss\", \"showDataLabels\": false, \"columnConfigurationMap\": {\"x\": {\"column\": \"hour\"}, \"y\": [{\"column\": \"avg_cores\"}, {\"column\": \"avg_memory_gb\"}]}, \"showPlotlyControls\": true, \"reverseX\": false, \"hideXAxis\": false, \"hideYAxes\": false}",
+                "query_name": "7b16dc46b0e5426a8dd62a1217b62717"
+              }
+            }
+          },
+          "position": {
+            "x": 0,
+            "y": 178,
+            "width": 12,
+            "height": 11
+          }
+        },
+        {
+          "widget": {
+            "name": "463172d9",
+            "queries": [
+              {
+                "name": "7b16dc46b0e5426a8dd62a1217b62717",
+                "query": {
+                  "datasetName": "83fec4c1",
+                  "fields": [
+                    {
+                      "name": "column_d46f3c977",
+                      "expression": "MAX(`avg_cores_util_percent`)"
+                    },
+                    {
+                      "name": "column_d46f3c979",
+                      "expression": "MAX(`avg_mem_gb_util_percent`)"
+                    },
+                    {
+                      "name": "column_d46f3c9716",
+                      "expression": "DATE_TRUNC(\"HOUR\", `hour`)"
+                    }
+                  ],
+                  "disaggregated": false
+                }
+              }
+            ],
+            "spec": {
+              "version": 0,
+              "viz_spec": {
+                "display_name": "Utilization Usage Percent - OSS YARN Hadoop Profiler Hourly YARN View",
+                "viz_type": "CHART",
+                "serialized_options": "{\"version\": 2, \"globalSeriesType\": \"combo\", \"sortX\": true, \"sortY\": true, \"legend\": {\"traceorder\": \"normal\"}, \"xAxis\": {\"type\": \"-\", \"labels\": {\"enabled\": true}}, \"yAxis\": [{\"type\": \"-\", \"title\": {\"text\": \"Average Core and Memory Utilization %\"}}, {\"type\": \"-\", \"opposite\": true}], \"alignYAxesAtZero\": false, \"error_y\": {\"type\": \"data\", \"visible\": true}, \"series\": {\"stacking\": null, \"error_y\": {\"type\": \"data\", \"visible\": true}}, \"seriesOptions\": {\"column_d46f3c977\": {\"yAxis\": 0, \"type\": \"column\", \"name\": \"Average Core Utilization %\", \"color\": \"#17BF51\"}, \"column_d46f3c979\": {\"yAxis\": 0, \"type\": \"line\", \"name\": \"Average Memory Utilization %\", \"color\": \"#E92828\"}}, \"valuesOptions\": {}, \"direction\": {\"type\": \"counterclockwise\"}, \"sizemode\": \"diameter\", \"coefficient\": 1, \"numberFormat\": \"0,0[.]00000\", \"percentFormat\": \"0[.]00%\", \"textFormat\": \"\", \"missingValuesAsZero\": true, \"useAggregationsUi\": true, \"swappedAxes\": false, \"dateTimeFormat\": \"YYYY-MM-DD HH:mm:ss\", \"showDataLabels\": false, \"columnConfigurationMap\": {\"y\": [{\"id\": \"column_d46f3c977\", \"column\": \"avg_cores_util_percent\", \"transform\": \"MAX\"}, {\"id\": \"column_d46f3c979\", \"column\": \"avg_mem_gb_util_percent\", \"transform\": \"MAX\"}], \"x\": {\"column\": \"hour\", \"transform\": \"HOUR_LEVEL\", \"id\": \"column_d46f3c9716\"}}, \"condensed\": true, \"withRowNumber\": true, \"isAggregationOn\": true, \"reverseX\": false}",
+                "query_name": "7b16dc46b0e5426a8dd62a1217b62717"
+              }
+            }
+          },
+          "position": {
+            "x": 0,
+            "y": 189,
+            "width": 12,
+            "height": 11
+          }
+        },
+        {
+          "widget": {
+            "name": "c93eb60e",
+            "queries": [
+              {
+                "name": "ac816f04af6d458b81ce82de8495066a",
+                "query": {
+                  "datasetName": "38ad6676",
+                  "disaggregated": true
+                }
+              }
+            ],
+            "spec": {
+              "version": 0,
+              "viz_spec": {
+                "display_name": "HDFS Capacity",
+                "description": "",
+                "viz_type": "CHART",
+                "serialized_options": "{\"version\": 2, \"globalSeriesType\": \"column\", \"sortX\": true, \"legend\": {\"enabled\": true, \"placement\": \"auto\", \"traceorder\": \"normal\"}, \"xAxis\": {\"type\": \"-\", \"labels\": {\"enabled\": true}, \"title\": {\"text\": null}}, \"yAxis\": [{\"type\": \"-\", \"title\": {\"text\": \"HDFS Capacity\"}}, {\"type\": \"-\", \"opposite\": true, \"title\": {\"text\": \"used_capacity_TB, remaining_capacity_TB\"}}], \"alignYAxesAtZero\": false, \"error_y\": {\"type\": \"data\", \"visible\": true}, \"series\": {\"stacking\": null, \"error_y\": {\"type\": \"data\", \"visible\": true}}, \"seriesOptions\": {\"total_capacity_TB\": {\"yAxis\": 0, \"color\": \"#FB8D3D\"}, \"used_capacity_TB\": {\"yAxis\": 0, \"color\": \"#8CFFB4\"}, \"remaining_capacity_TB\": {\"yAxis\": 0, \"color\": \"#17BF51\"}}, \"valuesOptions\": {}, \"direction\": {\"type\": \"counterclockwise\"}, \"sizemode\": \"diameter\", \"coefficient\": 1, \"numberFormat\": \"00[.]00000\", \"percentFormat\": \"0[.]00%\", \"textFormat\": \"\", \"missingValuesAsZero\": true, \"useAggregationsUi\": false, \"swappedAxes\": true, \"dateTimeFormat\": \"YYYY-MM-DD HH:mm:ss\", \"showDataLabels\": true, \"columnConfigurationMap\": {\"x\": {\"column\": null}, \"y\": [{\"column\": \"total_capacity_TB\"}, {\"column\": \"used_capacity_TB\"}, {\"column\": \"remaining_capacity_TB\"}], \"series\": {\"column\": null}}, \"showPlotlyControls\": true, \"reverseX\": false, \"hideXAxis\": true}",
+                "query_name": "ac816f04af6d458b81ce82de8495066a"
+              }
+            }
+          },
+          "position": {
+            "x": 4,
+            "y": 71,
+            "width": 4,
+            "height": 10
+          }
+        },
+        {
+          "widget": {
+            "name": "6617203b",
+            "queries": [
+              {
+                "name": "a8497073986b4b85863ade223cd99357",
+                "query": {
+                  "datasetName": "0c5e8b76",
+                  "disaggregated": true
+                }
+              }
+            ],
+            "spec": {
+              "version": 0,
+              "viz_spec": {
+                "display_name": "Avg Mem Utilization % (for the extracted period)",
+                "description": "",
+                "viz_type": "COUNTER",
+                "serialized_options": "{\"counterLabel\": \"Avg Memory Utilization %\", \"counterColName\": \"avgMemoryUtilization\", \"rowNumber\": 1, \"targetRowNumber\": 1, \"stringDecimal\": 0, \"stringDecChar\": \".\", \"stringThouSep\": \",\", \"tooltipFormat\": \"0,0.000\", \"showPlotlyControls\": true}",
+                "query_name": "a8497073986b4b85863ade223cd99357"
+              }
+            }
+          },
+          "position": {
+            "x": 0,
+            "y": 209,
+            "width": 6,
+            "height": 8
+          }
+        },
+        {
+          "widget": {
+            "name": "a9856b4b",
+            "queries": [
+              {
+                "name": "a8497073986b4b85863ade223cd99357",
+                "query": {
+                  "datasetName": "0c5e8b76",
+                  "disaggregated": true
+                }
+              }
+            ],
+            "spec": {
+              "version": 0,
+              "viz_spec": {
+                "display_name": "Avg CPU Utilization % (for the extracted period)",
+                "description": "",
+                "viz_type": "COUNTER",
+                "serialized_options": "{\"counterLabel\": \"Avg CPU Utilization %\", \"counterColName\": \"avgCPUUtilization\", \"rowNumber\": 1, \"targetRowNumber\": 1, \"stringDecimal\": 0, \"stringDecChar\": \".\", \"stringThouSep\": \",\", \"tooltipFormat\": \"0,0.000\", \"showPlotlyControls\": true}",
+                "query_name": "a8497073986b4b85863ade223cd99357"
+              }
+            }
+          },
+          "position": {
+            "x": 6,
+            "y": 209,
+            "width": 6,
+            "height": 8
+          }
+        },
+        {
+          "widget": {
+            "name": "891bb979",
+            "queries": [
+              {
+                "name": "f15107a6cc8045d4a70161a9296802de",
+                "query": {
+                  "datasetName": "1b99262c",
+                  "disaggregated": true
+                }
+              }
+            ],
+            "spec": {
+              "version": 0,
+              "viz_spec": {
+                "display_name": "Average Cluster CPU Utilization Percent By Date",
+                "description": "",
+                "viz_type": "CHART",
+                "serialized_options": "{\"version\": 2, \"globalSeriesType\": \"column\", \"sortX\": true, \"sortY\": true, \"legend\": {\"traceorder\": \"normal\"}, \"xAxis\": {\"type\": \"-\", \"labels\": {\"enabled\": true}}, \"yAxis\": [{\"type\": \"-\"}, {\"type\": \"-\", \"opposite\": true}], \"alignYAxesAtZero\": false, \"error_y\": {\"type\": \"data\", \"visible\": true}, \"series\": {\"stacking\": null, \"error_y\": {\"type\": \"data\", \"visible\": true}}, \"seriesOptions\": {\"averageCpuPercent\": {\"yAxis\": 0}}, \"valuesOptions\": {}, \"direction\": {\"type\": \"counterclockwise\"}, \"sizemode\": \"diameter\", \"coefficient\": 1, \"numberFormat\": \"0,0[.]00000\", \"percentFormat\": \"0[.]00%\", \"textFormat\": \"\", \"missingValuesAsZero\": true, \"useAggregationsUi\": false, \"swappedAxes\": false, \"dateTimeFormat\": \"YYYY-MM-DD HH:mm:ss\", \"showDataLabels\": false, \"columnConfigurationMap\": {\"x\": {\"column\": \"date\"}, \"y\": [{\"column\": \"averageCpuPercent\"}]}, \"showPlotlyControls\": true}",
+                "query_name": "f15107a6cc8045d4a70161a9296802de"
+              }
+            }
+          },
+          "position": {
+            "x": 0,
+            "y": 19,
+            "width": 4,
+            "height": 8
+          }
+        },
+        {
+          "widget": {
+            "name": "1db18ae4",
+            "queries": [
+              {
+                "name": "74e75014b2a043f498ffc7074e1813ac",
+                "query": {
+                  "datasetName": "b32702e4",
+                  "disaggregated": true
+                }
+              }
+            ],
+            "spec": {
+              "version": 0,
+              "viz_spec": {
+                "display_name": "MR by Memory",
+                "description": "",
+                "viz_type": "CHART",
+                "serialized_options": "{\"version\": 2, \"globalSeriesType\": \"pie\", \"sortX\": true, \"legend\": {\"enabled\": true, \"placement\": \"auto\", \"traceorder\": \"normal\"}, \"xAxis\": {\"type\": \"-\", \"labels\": {\"enabled\": true}, \"title\": {\"text\": \"JobType\"}}, \"yAxis\": [{\"type\": \"-\", \"title\": {\"text\": \"MemoryGBHour\"}}, {\"type\": \"-\", \"opposite\": true, \"title\": {\"text\": null}}], \"alignYAxesAtZero\": false, \"error_y\": {\"type\": \"data\", \"visible\": true}, \"series\": {\"stacking\": null, \"error_y\": {\"type\": \"data\", \"visible\": true}}, \"seriesOptions\": {\"MemoryGBHour\": {\"yAxis\": 0, \"name\": \"By Memory GB\"}}, \"valuesOptions\": {}, \"direction\": {\"type\": \"counterclockwise\"}, \"sizemode\": \"diameter\", \"coefficient\": 1, \"numberFormat\": \"0,0[.]00000\", \"percentFormat\": \"0[.]00%\", \"textFormat\": \"\", \"missingValuesAsZero\": true, \"useAggregationsUi\": false, \"swappedAxes\": false, \"dateTimeFormat\": \"YYYY-MM-DD HH:mm:ss\", \"showDataLabels\": true, \"columnConfigurationMap\": {\"x\": {\"column\": \"JobType\"}, \"y\": [{\"column\": \"MemoryGBHour\"}], \"series\": {\"column\": \"applicationType\"}}, \"showPlotlyControls\": true}",
+                "query_name": "74e75014b2a043f498ffc7074e1813ac"
+              }
+            }
+          },
+          "position": {
+            "x": 0,
+            "y": 238,
+            "width": 6,
+            "height": 8
+          }
+        },
+        {
+          "widget": {
+            "name": "97032a62",
+            "queries": [
+              {
+                "name": "74e75014b2a043f498ffc7074e1813ac",
+                "query": {
+                  "datasetName": "b32702e4",
+                  "disaggregated": true
+                }
+              }
+            ],
+            "spec": {
+              "version": 0,
+              "viz_spec": {
+                "display_name": "MR Distribution by Count",
+                "description": "",
+                "viz_type": "CHART",
+                "serialized_options": "{\"version\": 2, \"globalSeriesType\": \"pie\", \"sortX\": true, \"legend\": {\"enabled\": true, \"placement\": \"auto\", \"traceorder\": \"normal\"}, \"xAxis\": {\"type\": \"-\", \"labels\": {\"enabled\": true}, \"title\": {\"text\": \"JobType\"}}, \"yAxis\": [{\"type\": \"-\", \"title\": {\"text\": \"count\"}}, {\"type\": \"-\", \"opposite\": true, \"title\": {\"text\": null}}], \"alignYAxesAtZero\": false, \"error_y\": {\"type\": \"data\", \"visible\": true}, \"series\": {\"stacking\": null, \"error_y\": {\"type\": \"data\", \"visible\": true}}, \"seriesOptions\": {\"count\": {\"yAxis\": 0, \"name\": \"JobCount\"}}, \"valuesOptions\": {}, \"direction\": {\"type\": \"counterclockwise\"}, \"sizemode\": \"diameter\", \"coefficient\": 1, \"numberFormat\": \"0,0[.]00000\", \"percentFormat\": \"0[.]00%\", \"textFormat\": \"\", \"missingValuesAsZero\": true, \"useAggregationsUi\": false, \"swappedAxes\": false, \"dateTimeFormat\": \"YYYY-MM-DD HH:mm:ss\", \"showDataLabels\": true, \"columnConfigurationMap\": {\"x\": {\"column\": \"JobType\"}, \"y\": [{\"column\": \"count\"}], \"series\": {\"column\": null}}, \"showPlotlyControls\": true}",
+                "query_name": "74e75014b2a043f498ffc7074e1813ac"
+              }
+            }
+          },
+          "position": {
+            "x": 6,
+            "y": 238,
+            "width": 6,
+            "height": 8
+          }
+        },
+        {
+          "widget": {
+            "name": "e7ad69d4",
+            "queries": [
+              {
+                "name": "74e75014b2a043f498ffc7074e1813ac",
+                "query": {
+                  "datasetName": "b32702e4",
+                  "disaggregated": true
+                }
+              }
+            ],
+            "spec": {
+              "version": 0,
+              "viz_spec": {
+                "display_name": "\"Other\" MR Jobs",
+                "description": "",
+                "viz_type": "PIVOT",
+                "serialized_options": "{\"controls\": {\"enabled\": false}, \"rendererOptions\": {\"table\": {\"colTotals\": false, \"rowTotals\": false}}, \"rows\": [\"JobType\", \"ApplicationName\", \"MemoryGBHour\", \"count\"], \"cols\": [], \"vals\": [], \"aggregatorName\": \"Count\", \"valueFilter\": {\"JobType\": {\"Oozie\": true}}, \"sorters\": {}, \"rowOrder\": \"key_a_to_z\", \"colOrder\": \"key_a_to_z\", \"derivedAttributes\": {}, \"rendererName\": \"Table\", \"hiddenAttributes\": [], \"hiddenFromAggregators\": [], \"hiddenFromDragDrop\": [], \"menuLimit\": 500, \"unusedOrientationCutoff\": 85, \"showPlotlyControls\": true}",
+                "query_name": "74e75014b2a043f498ffc7074e1813ac"
+              }
+            }
+          },
+          "position": {
+            "x": 0,
+            "y": 246,
+            "width": 6,
+            "height": 10
+          }
+        },
+        {
+          "widget": {
+            "name": "49ed836d",
+            "queries": [
+              {
+                "name": "622661ed552c4cababad25434a2d6cae",
+                "query": {
+                  "datasetName": "333641ad",
+                  "disaggregated": true
+                }
+              }
+            ],
+            "spec": {
+              "version": 0,
+              "viz_spec": {
+                "display_name": "YARN Custom Jars Application",
+                "description": "",
+                "viz_type": "PIVOT",
+                "serialized_options": "{\"controls\": {\"enabled\": false}, \"rendererOptions\": {\"table\": {\"colTotals\": false, \"rowTotals\": false}}, \"rows\": [\"name\", \"totalCount\"], \"cols\": [\"applicationType\"], \"vals\": [], \"aggregatorName\": \"Count\", \"valueFilter\": {}, \"sorters\": {}, \"rowOrder\": \"value_a_to_z\", \"colOrder\": \"key_a_to_z\", \"derivedAttributes\": {}, \"rendererName\": \"Table\", \"hiddenAttributes\": [], \"hiddenFromAggregators\": [], \"hiddenFromDragDrop\": [], \"menuLimit\": 500, \"unusedOrientationCutoff\": 85, \"showPlotlyControls\": true}",
+                "query_name": "622661ed552c4cababad25434a2d6cae"
+              }
+            }
+          },
+          "position": {
+            "x": 6,
+            "y": 246,
+            "width": 6,
+            "height": 10
+          }
+        },
+        {
+          "widget": {
+            "name": "330db2e4",
+            "queries": [
+              {
+                "name": "1bcbe860fa0d42bab689dfa284fb3aad",
+                "query": {
+                  "datasetName": "ccc5ca3a",
+                  "disaggregated": true
+                }
+              }
+            ],
+            "spec": {
+              "version": 0,
+              "viz_spec": {
+                "display_name": "YARN User Queue by Utilization",
+                "description": "",
+                "viz_type": "SANKEY",
+                "serialized_options": "{\"showPlotlyControls\": true}",
+                "query_name": "1bcbe860fa0d42bab689dfa284fb3aad"
+              }
+            }
+          },
+          "position": {
+            "x": 0,
+            "y": 229,
+            "width": 6,
+            "height": 7
+          }
+        },
+        {
+          "widget": {
+            "name": "7f7b90d2",
+            "queries": [
+              {
+                "name": "deda439fc7ad4d1a900296230b9e4c60",
+                "query": {
+                  "datasetName": "fef00d46",
+                  "fields": [
+                    {
+                      "name": "hostname",
+                      "expression": "`hostname`"
+                    },
+                    {
+                      "name": "roleType",
+                      "expression": "`roleType`"
+                    },
+                    {
+                      "name": "column_6a0cdf6023483",
+                      "expression": "COUNT(DISTINCT `hostname`)"
+                    }
+                  ],
+                  "disaggregated": false
+                }
+              }
+            ],
+            "spec": {
+              "version": 0,
+              "viz_spec": {
+                "display_name": "CM Component Distribution",
+                "description": "",
+                "viz_type": "CHART",
+                "serialized_options": "{\"version\": 2, \"globalSeriesType\": \"column\", \"sortX\": false, \"sortY\": true, \"legend\": {\"traceorder\": \"normal\"}, \"xAxis\": {\"type\": \"-\", \"labels\": {\"enabled\": true}}, \"yAxis\": [{\"type\": \"-\"}, {\"type\": \"-\", \"opposite\": true}], \"alignYAxesAtZero\": false, \"error_y\": {\"type\": \"data\", \"visible\": true}, \"series\": {\"stacking\": \"stack\", \"error_y\": {\"type\": \"data\", \"visible\": true}}, \"seriesOptions\": {\"column_6a0cdf6022791\": {\"name\": \"*\", \"yAxis\": 0, \"type\": \"column\"}, \"column_6a0cdf6023483\": {\"yAxis\": 0, \"type\": \"column\"}}, \"valuesOptions\": {}, \"direction\": {\"type\": \"counterclockwise\"}, \"sizemode\": \"diameter\", \"coefficient\": 1, \"numberFormat\": \"0,0[.]00000\", \"percentFormat\": \"0[.]00%\", \"textFormat\": \"\", \"missingValuesAsZero\": true, \"useAggregationsUi\": true, \"swappedAxes\": true, \"dateTimeFormat\": \"YYYY-MM-DD HH:mm:ss\", \"showDataLabels\": false, \"columnConfigurationMap\": {\"x\": {\"column\": \"hostname\", \"id\": \"column_6a0cdf6024179\"}, \"series\": {\"column\": \"roleType\", \"id\": \"column_6a0cdf6024180\"}, \"y\": [{\"id\": \"column_6a0cdf6023483\", \"column\": \"hostname\", \"transform\": \"COUNT_DISTINCT\"}]}, \"isAggregationOn\": true, \"condensed\": true, \"withRowNumber\": true}",
+                "query_name": "deda439fc7ad4d1a900296230b9e4c60"
+              }
+            }
+          },
+          "position": {
+            "x": 0,
+            "y": 89,
+            "width": 12,
+            "height": 11
+          }
+        },
+        {
+          "widget": {
+            "name": "7e6416cc",
+            "queries": [
+              {
+                "name": "688144d16fa3461c8bb1aff20743783a",
+                "query": {
+                  "datasetName": "5850f941",
+                  "disaggregated": true
+                }
+              }
+            ],
+            "spec": {
+              "version": 0,
+              "viz_spec": {
+                "display_name": "Key Components",
+                "description": "",
+                "viz_type": "PIVOT",
+                "serialized_options": "{\"controls\": {\"enabled\": true}, \"rendererOptions\": {\"table\": {\"colTotals\": false, \"rowTotals\": false}}, \"rows\": [\"component_name\", \"count\"], \"cols\": [], \"vals\": [\"count\"], \"aggregatorName\": \"List Unique Values\", \"valueFilter\": {\"component_name\": {\"RANGER_TAGSYNC\": true, \"TIMELINE_READER\": true, \"SPARK2_JOBHISTORYSERVER\": true, \"METRICS_COLLECTOR\": true, \"YARN_REGISTRY_DNS\": true, \"HST_SERVER\": true, \"ZEPPELIN_MASTER\": true, \"METRICS_GRAFANA\": true, \"HISTORYSERVER\": true, \"APP_TIMELINE_SERVER\": true, \"LIVY2_SERVER\": true, \"RANGER_USERSYNC\": true, \"ATLAS_SERVER\": true, \"ACTIVITY_EXPLORER\": true, \"ZKFC\": true, \"PHOENIX_QUERY_SERVER\": true, \"KNOX_GATEWAY\": true, \"OOZIE_SERVER\": true, \"RANGER_KMS_SERVER\": true, \"RANGER_ADMIN\": true, \"ACTIVITY_ANALYZER\": true, \"INFRA_SOLR\": true, \"JOURNALNODE\": true, \"KAFKA_BROKER\": true, \"SQOOP\": true, \"PIG\": true, \"METRICS_MONITOR\": true, \"HST_AGENT\": true}}, \"sorters\": {}, \"rowOrder\": \"key_a_to_z\", \"colOrder\": \"key_a_to_z\", \"derivedAttributes\": {}, \"rendererName\": \"Table\", \"hiddenAttributes\": [], \"hiddenFromAggregators\": [], \"hiddenFromDragDrop\": [], \"menuLimit\": 500, \"unusedOrientationCutoff\": 85, \"showPlotlyControls\": true}",
+                "query_name": "688144d16fa3461c8bb1aff20743783a"
+              }
+            }
+          },
+          "position": {
+            "x": 0,
+            "y": 71,
+            "width": 4,
+            "height": 10
+          }
+        },
+        {
+          "widget": {
+            "name": "52f12946",
+            "queries": [
+              {
+                "name": "688144d16fa3461c8bb1aff20743783a",
+                "query": {
+                  "datasetName": "5850f941",
+                  "disaggregated": true
+                }
+              }
+            ],
+            "spec": {
+              "version": 0,
+              "viz_spec": {
+                "display_name": "Cluster Services",
+                "description": "",
+                "viz_type": "CHART",
+                "serialized_options": "{\"version\": 2, \"globalSeriesType\": \"column\", \"sortX\": false, \"legend\": {\"enabled\": true, \"placement\": \"auto\", \"traceorder\": \"normal\"}, \"xAxis\": {\"type\": \"-\", \"labels\": {\"enabled\": true}, \"title\": {\"text\": \"Component Name\"}}, \"yAxis\": [{\"type\": \"-\", \"title\": {\"text\": \"# of Nodes Installed\"}}, {\"type\": \"-\", \"opposite\": true}], \"alignYAxesAtZero\": false, \"error_y\": {\"type\": \"data\", \"visible\": true}, \"series\": {\"stacking\": null, \"error_y\": {\"type\": \"data\", \"visible\": true}}, \"seriesOptions\": {\"count\": {\"yAxis\": 0}}, \"valuesOptions\": {}, \"direction\": {\"type\": \"counterclockwise\"}, \"sizemode\": \"diameter\", \"coefficient\": 1, \"numberFormat\": \"0,0[.]00000\", \"percentFormat\": \"0[.]00%\", \"textFormat\": \"\", \"missingValuesAsZero\": true, \"useAggregationsUi\": false, \"swappedAxes\": false, \"dateTimeFormat\": \"YYYY-MM-DD HH:mm:ss\", \"showDataLabels\": false, \"columnConfigurationMap\": {\"x\": {\"column\": \"component_name\"}, \"y\": [{\"column\": \"count\"}], \"series\": {\"column\": null}}, \"showPlotlyControls\": true, \"reverseX\": false}",
+                "query_name": "688144d16fa3461c8bb1aff20743783a"
+              }
+            }
+          },
+          "position": {
+            "x": 0,
+            "y": 81,
+            "width": 12,
+            "height": 8
+          }
+        },
+        {
+          "widget": {
+            "name": "50fef71c",
+            "queries": [
+              {
+                "name": "d7ac40a5e6604cd68641a1c2720457b0",
+                "query": {
+                  "datasetName": "7f8248f0",
+                  "disaggregated": true
+                }
+              }
+            ],
+            "spec": {
+              "version": 0,
+              "viz_spec": {
+                "display_name": "Total Node Managers",
+                "description": "",
+                "viz_type": "COUNTER",
+                "serialized_options": "{\"counterLabel\": \"Worker Nodes / Node managers \", \"counterColName\": \"Worker_nodes\", \"rowNumber\": 1, \"targetRowNumber\": 1, \"stringDecimal\": 0, \"stringDecChar\": \".\", \"stringThouSep\": \",\", \"tooltipFormat\": \"0,0.000\", \"showPlotlyControls\": true}",
+                "query_name": "d7ac40a5e6604cd68641a1c2720457b0"
+              }
+            }
+          },
+          "position": {
+            "x": 6,
+            "y": 11,
+            "width": 2,
+            "height": 3
+          }
+        },
+        {
+          "widget": {
+            "name": "41bcc39a",
+            "queries": [
+              {
+                "name": "d7ac40a5e6604cd68641a1c2720457b0",
+                "query": {
+                  "datasetName": "7f8248f0",
+                  "disaggregated": true
+                }
+              }
+            ],
+            "spec": {
+              "version": 0,
+              "viz_spec": {
+                "display_name": "Total YARN Memory",
+                "description": "",
+                "viz_type": "COUNTER",
+                "serialized_options": "{\"counterLabel\": \"Total Yarn Memory (in GB)\", \"counterColName\": \"total_memory_TB\", \"rowNumber\": 1, \"targetRowNumber\": 1, \"stringDecimal\": 0, \"stringDecChar\": \".\", \"stringThouSep\": \",\", \"tooltipFormat\": \"0,0.000\", \"showPlotlyControls\": true, \"targetColName\": \"\"}",
+                "query_name": "d7ac40a5e6604cd68641a1c2720457b0"
+              }
+            }
+          },
+          "position": {
+            "x": 8,
+            "y": 11,
+            "width": 2,
+            "height": 3
+          }
+        },
+        {
+          "widget": {
+            "name": "a5b6260a",
+            "queries": [
+              {
+                "name": "d7ac40a5e6604cd68641a1c2720457b0",
+                "query": {
+                  "datasetName": "7f8248f0",
+                  "disaggregated": true
+                }
+              }
+            ],
+            "spec": {
+              "version": 0,
+              "viz_spec": {
+                "display_name": "Total YARN vCores ",
+                "description": "",
+                "viz_type": "COUNTER",
+                "serialized_options": "{\"counterLabel\": \"Total Cores allocated to YARN\", \"counterColName\": \"total_cores\", \"rowNumber\": 1, \"targetRowNumber\": 1, \"stringDecimal\": 0, \"stringDecChar\": \".\", \"stringThouSep\": \",\", \"tooltipFormat\": \"0,0.000\", \"showPlotlyControls\": true}",
+                "query_name": "d7ac40a5e6604cd68641a1c2720457b0"
+              }
+            }
+          },
+          "position": {
+            "x": 10,
+            "y": 11,
+            "width": 2,
+            "height": 3
+          }
+        },
+        {
+          "widget": {
+            "name": "1c064b6a",
+            "queries": [
+              {
+                "name": "d7ac40a5e6604cd68641a1c2720457b0",
+                "query": {
+                  "datasetName": "7f8248f0",
+                  "disaggregated": true
+                }
+              }
+            ],
+            "spec": {
+              "version": 0,
+              "viz_spec": {
+                "display_name": "Total Number of Nodes in the Cluster",
+                "description": "",
+                "viz_type": "COUNTER",
+                "serialized_options": "{\"counterLabel\": \"Total nodes in Cluster\", \"counterColName\": \"Worker_nodes\", \"rowNumber\": 2, \"targetRowNumber\": 2, \"stringDecimal\": 0, \"stringDecChar\": \".\", \"stringThouSep\": \",\", \"tooltipFormat\": \"0,0.000\", \"showPlotlyControls\": true, \"targetColName\": \"\"}",
+                "query_name": "d7ac40a5e6604cd68641a1c2720457b0"
+              }
+            }
+          },
+          "position": {
+            "x": 4,
+            "y": 14,
+            "width": 2,
+            "height": 3
+          }
+        },
+        {
+          "widget": {
+            "name": "86942cd4",
+            "queries": [
+              {
+                "name": "d7ac40a5e6604cd68641a1c2720457b0",
+                "query": {
+                  "datasetName": "7f8248f0",
+                  "fields": [
+                    {
+                      "name": "type",
+                      "expression": "`type`"
+                    },
+                    {
+                      "name": "column_e7614006616",
+                      "expression": "SUM(`total_cores`)"
+                    },
+                    {
+                      "name": "type",
+                      "expression": "`type`"
+                    }
+                  ],
+                  "disaggregated": false
+                }
+              }
+            ],
+            "spec": {
+              "version": 0,
+              "viz_spec": {
+                "display_name": "YARN Vs Cluster Cores Allocation",
+                "description": "",
+                "viz_type": "CHART",
+                "serialized_options": "{\"version\":2,\"globalSeriesType\":\"column\",\"sortX\":true,\"sortY\":true,\"legend\":{\"traceorder\":\"normal\"},\"xAxis\":{\"type\":\"-\",\"labels\":{\"enabled\":true}},\"yAxis\":[{\"type\":\"-\"},{\"type\":\"-\",\"opposite\":true}],\"alignYAxesAtZero\":true,\"error_y\":{\"type\":\"data\",\"visible\":true},\"series\":{\"stacking\":null,\"error_y\":{\"type\":\"data\",\"visible\":true}},\"seriesOptions\":{\"column_e7614006616\":{\"yAxis\":0,\"type\":\"column\"}},\"valuesOptions\":{},\"direction\":{\"type\":\"counterclockwise\"},\"sizemode\":\"diameter\",\"coefficient\":1,\"numberFormat\":\"0,0.[00000]\",\"percentFormat\":\"0[.]00%\",\"textFormat\":\"\",\"missingValuesAsZero\":true,\"useAggregationsUi\":true,\"swappedAxes\":false,\"dateTimeFormat\":\"YYYY-MM-DD HH:mm:ss\",\"showDataLabels\":true,\"columnConfigurationMap\":{\"x\":{\"column\":\"type\",\"id\":\"column_e7614006614\"},\"y\":[{\"id\":\"column_e7614006616\",\"column\":\"total_cores\",\"transform\":\"SUM\"}],\"series\":{\"column\":\"type\",\"id\":\"column_e7614006618\"}},\"isAggregationOn\":true,\"hideYAxes\":false}",
+                "query_name": "d7ac40a5e6604cd68641a1c2720457b0"
+              }
+            }
+          },
+          "position": {
+            "x": 0,
+            "y": 63,
+            "width": 6,
+            "height": 8
+          }
+        },
+        {
+          "widget": {
+            "name": "c0e0a0e3",
+            "queries": [
+              {
+                "name": "d7ac40a5e6604cd68641a1c2720457b0",
+                "query": {
+                  "datasetName": "7f8248f0",
+                  "disaggregated": true
+                }
+              }
+            ],
+            "spec": {
+              "version": 0,
+              "viz_spec": {
+                "display_name": "YARN Vs Cluster Memory Allocation",
+                "description": "",
+                "viz_type": "CHART",
+                "serialized_options": "{\"version\": 2, \"globalSeriesType\": \"column\", \"sortX\": true, \"legend\": {\"enabled\": true, \"placement\": \"auto\", \"traceorder\": \"normal\"}, \"xAxis\": {\"type\": \"-\", \"labels\": {\"enabled\": true}, \"title\": {\"text\": \"Resource Type\"}}, \"yAxis\": [{\"type\": \"-\", \"title\": {\"text\": \"Memory\"}}, {\"type\": \"-\", \"opposite\": true, \"title\": {\"text\": \"total_memory_TB\"}}], \"alignYAxesAtZero\": false, \"error_y\": {\"type\": \"data\", \"visible\": true}, \"series\": {\"stacking\": null, \"error_y\": {\"type\": \"data\", \"visible\": true}}, \"seriesOptions\": {\"total_memory_TB\": {\"yAxis\": 0}}, \"valuesOptions\": {}, \"direction\": {\"type\": \"counterclockwise\"}, \"sizemode\": \"diameter\", \"coefficient\": 1, \"numberFormat\": \"00[.]00000 \", \"percentFormat\": \"0[.]00%\", \"textFormat\": \"\", \"missingValuesAsZero\": true, \"useAggregationsUi\": false, \"swappedAxes\": true, \"dateTimeFormat\": \"YYYY-MM-DD HH:mm:ss\", \"showDataLabels\": true, \"columnConfigurationMap\": {\"x\": {\"column\": \"type\"}, \"y\": [{\"column\": \"total_memory_TB\"}]}, \"showPlotlyControls\": true}",
+                "query_name": "d7ac40a5e6604cd68641a1c2720457b0"
+              }
+            }
+          },
+          "position": {
+            "x": 6,
+            "y": 63,
+            "width": 6,
+            "height": 8
+          }
+        },
+        {
+          "widget": {
+            "name": "47bbc5c6",
+            "queries": [
+              {
+                "name": "4871484bb2f048a991c9c73f97ebc3df",
+                "query": {
+                  "datasetName": "241c9878",
+                  "disaggregated": true
+                }
+              }
+            ],
+            "spec": {
+              "version": 0,
+              "viz_spec": {
+                "display_name": "CDH CM YARN Utilization",
+                "description": "",
+                "viz_type": "CHART",
+                "serialized_options": "{\"version\": 2, \"globalSeriesType\": \"line\", \"sortX\": true, \"sortY\": true, \"legend\": {\"traceorder\": \"normal\"}, \"xAxis\": {\"type\": \"-\", \"labels\": {\"enabled\": true}}, \"yAxis\": [{\"type\": \"-\"}, {\"type\": \"-\", \"opposite\": true}], \"alignYAxesAtZero\": false, \"error_y\": {\"type\": \"data\", \"visible\": true}, \"series\": {\"stacking\": null, \"error_y\": {\"type\": \"data\", \"visible\": true}}, \"seriesOptions\": {\"total_allocated_mem_gb\": {\"yAxis\": 0, \"color\": \"#604FE9\"}, \"total_available_mem_gb\": {\"yAxis\": 1, \"color\": \"#049235\"}}, \"valuesOptions\": {}, \"direction\": {\"type\": \"counterclockwise\"}, \"sizemode\": \"diameter\", \"coefficient\": 1, \"numberFormat\": \"0,0[.]00000\", \"percentFormat\": \"0[.]00%\", \"textFormat\": \"\", \"missingValuesAsZero\": true, \"useAggregationsUi\": false, \"swappedAxes\": false, \"dateTimeFormat\": \"YYYY-MM-DD HH:mm:ss\", \"showDataLabels\": false, \"columnConfigurationMap\": {\"x\": {\"column\": \"timestamp\"}, \"y\": [{\"column\": \"total_allocated_mem_gb\"}, {\"column\": \"total_available_mem_gb\"}]}, \"showPlotlyControls\": true, \"condensed\": true, \"withRowNumber\": true, \"isAggregationOn\": false}",
+                "query_name": "4871484bb2f048a991c9c73f97ebc3df"
+              }
+            }
+          },
+          "position": {
+            "x": 0,
+            "y": 49,
+            "width": 12,
+            "height": 12
+          }
+        },
+        {
+          "widget": {
+            "name": "493d7d39",
+            "queries": [
+              {
+                "name": "837ea7ffb7274846ad63d1a9afe76e1a",
+                "query": {
+                  "datasetName": "3439548a",
+                  "disaggregated": true
+                }
+              }
+            ],
+            "spec": {
+              "version": 0,
+              "viz_spec": {
+                "display_name": "Table - Hadoop Profiler Workload Classification",
+                "viz_type": "TABLE",
+                "serialized_options": "{\"version\": 2}",
+                "query_name": "837ea7ffb7274846ad63d1a9afe76e1a"
+              }
+            }
+          },
+          "position": {
+            "x": 0,
+            "y": 298,
+            "width": 12,
+            "height": 6
+          }
+        },
+        {
+          "widget": {
+            "name": "0835bae8",
+            "queries": [
+              {
+                "name": "18259dd928c14a6ea77d44c6656ded84",
+                "query": {
+                  "datasetName": "a2286266",
+                  "disaggregated": true
+                }
+              }
+            ],
+            "spec": {
+              "version": 0,
+              "viz_spec": {
+                "display_name": "YARN User Queue by Total Jobs",
+                "description": "",
+                "viz_type": "SANKEY",
+                "serialized_options": "{\"showPlotlyControls\": true}",
+                "query_name": "18259dd928c14a6ea77d44c6656ded84"
+              }
+            }
+          },
+          "position": {
+            "x": 6,
+            "y": 229,
+            "width": 6,
+            "height": 7
+          }
+        },
+        {
+          "widget": {
+            "name": "89c355b5",
+            "queries": [
+              {
+                "name": "main_query",
+                "query": {
+                  "datasetName": "a0ba5865",
+                  "fields": [
+                    {
+                      "name": "Job Type",
+                      "expression": "`Job Type`"
+                    },
+                    {
+                      "name": "Unique Job Count based on Name",
+                      "expression": "`Unique Job Count based on Name`"
+                    },
+                    {
+                      "name": "Number of User Submitting Job Type",
+                      "expression": "`Number of User Submitting Job Type`"
+                    }
+                  ],
+                  "parameterValues": [
+                    {
+                      "keyword": "database",
+                      "selection": {}
+                    }
+                  ],
+                  "disaggregated": true
+                }
+              }
+            ],
+            "spec": {
+              "version": 2,
+              "frame": {
+                "title": "YARN Workload Breakdown",
+                "showTitle": true
+              },
+              "rowsPerPage": 25,
+              "displayRowNumbers": false,
+              "widgetType": "table",
+              "encodings": {
+                "columns": [
+                  {
+                    "fieldName": "Job Type",
+                    "useForSearch": false,
+                    "actions": {
+                      "hover": {
+                        "type": "tooltip",
+                        "tooltipTemplate": "{{ @ }}"
+                      }
+                    }
+                  },
+                  {
+                    "fieldName": "Unique Job Count based on Name",
+                    "useForSearch": false,
+                    "format": {
+                      "type": "numeral.js",
+                      "format": "0"
+                    },
+                    "actions": {
+                      "hover": {
+                        "type": "tooltip",
+                        "tooltipTemplate": "{{ @ }}"
+                      }
+                    }
+                  },
+                  {
+                    "fieldName": "Number of User Submitting Job Type",
+                    "useForSearch": false,
+                    "format": {
+                      "type": "numeral.js",
+                      "format": "0"
+                    },
+                    "actions": {
+                      "hover": {
+                        "type": "tooltip",
+                        "tooltipTemplate": "{{ @ }}"
+                      }
+                    }
+                  }
+                ]
+              }
+            }
+          },
+          "position": {
+            "x": 6,
+            "y": 0,
+            "width": 6,
+            "height": 8
+          }
+        },
+        {
+          "widget": {
+            "name": "54cdf51b",
+            "queries": [
+              {
+                "name": "e13ded517e0f48d5b0943f6cd8d70a4e",
+                "query": {
+                  "datasetName": "6cc20524",
+                  "disaggregated": true
+                }
+              }
+            ],
+            "spec": {
+              "version": 0,
+              "viz_spec": {
+                "display_name": "Jobs Distribution by Type",
+                "description": "",
+                "viz_type": "CHART",
+                "serialized_options": "{\"version\": 2, \"globalSeriesType\": \"column\", \"sortX\": true, \"sortY\": true, \"legend\": {\"traceorder\": \"normal\", \"enabled\": true, \"placement\": \"auto\"}, \"xAxis\": {\"type\": \"-\", \"labels\": {\"enabled\": true}, \"title\": {\"text\": \"Run Date\"}}, \"yAxis\": [{\"type\": \"-\", \"title\": {\"text\": \"totalJobs\"}}, {\"type\": \"-\", \"opposite\": true, \"title\": {\"text\": null}}], \"alignYAxesAtZero\": false, \"error_y\": {\"type\": \"data\", \"visible\": true}, \"series\": {\"stacking\": \"stack\", \"error_y\": {\"type\": \"data\", \"visible\": true}}, \"seriesOptions\": {\"totalJobs\": {\"yAxis\": 0}, \"MAPREDUCE\": {\"color\": \"#356AFF\"}, \"SPARK\": {\"color\": \"#FF7DE3\"}, \"TEZ\": {\"color\": \"#002FB4\"}}, \"valuesOptions\": {}, \"direction\": {\"type\": \"counterclockwise\"}, \"sizemode\": \"diameter\", \"coefficient\": 1, \"numberFormat\": \"0,0[.]00000\", \"percentFormat\": \"0[.]00%\", \"textFormat\": \"\", \"missingValuesAsZero\": true, \"useAggregationsUi\": false, \"swappedAxes\": false, \"dateTimeFormat\": \"YYYY-MM-DD HH:mm:ss\", \"showDataLabels\": true, \"columnConfigurationMap\": {\"x\": {\"column\": \"startDate\"}, \"y\": [{\"column\": \"totalJobs\"}], \"series\": {\"column\": \"Type\"}}, \"showPlotlyControls\": true}",
+                "query_name": "e13ded517e0f48d5b0943f6cd8d70a4e"
+              }
+            }
+          },
+          "position": {
+            "x": 0,
+            "y": 102,
+            "width": 6,
+            "height": 8
+          }
+        },
+        {
+          "widget": {
+            "name": "67173c50",
+            "queries": [
+              {
+                "name": "e13ded517e0f48d5b0943f6cd8d70a4e",
+                "query": {
+                  "datasetName": "6cc20524",
+                  "disaggregated": true
+                }
+              }
+            ],
+            "spec": {
+              "version": 0,
+              "viz_spec": {
+                "display_name": "Total Applications by Date",
+                "description": "",
+                "viz_type": "CHART",
+                "serialized_options": "{\"version\": 2, \"globalSeriesType\": \"column\", \"sortX\": true, \"sortY\": true, \"legend\": {\"traceorder\": \"normal\", \"enabled\": true, \"placement\": \"auto\"}, \"xAxis\": {\"type\": \"-\", \"labels\": {\"enabled\": true}, \"title\": {\"text\": \"startDate\"}}, \"yAxis\": [{\"type\": \"-\", \"title\": {\"text\": \"totalJobs\"}}, {\"type\": \"-\", \"opposite\": true, \"title\": {\"text\": null}}], \"alignYAxesAtZero\": false, \"error_y\": {\"type\": \"data\", \"visible\": true}, \"series\": {\"stacking\": null, \"error_y\": {\"type\": \"data\", \"visible\": true}}, \"seriesOptions\": {\"totalJobs\": {\"yAxis\": 0}}, \"valuesOptions\": {}, \"direction\": {\"type\": \"counterclockwise\"}, \"sizemode\": \"diameter\", \"coefficient\": 1, \"numberFormat\": \"0,0[.]00000\", \"percentFormat\": \"0[.]00%\", \"textFormat\": \"\", \"missingValuesAsZero\": true, \"useAggregationsUi\": false, \"swappedAxes\": false, \"dateTimeFormat\": \"YYYY-MM-DD HH:mm:ss\", \"showDataLabels\": true, \"columnConfigurationMap\": {\"x\": {\"column\": \"startDate\"}, \"y\": [{\"column\": \"totalJobs\"}], \"series\": {\"column\": null}}, \"showPlotlyControls\": true}",
+                "query_name": "e13ded517e0f48d5b0943f6cd8d70a4e"
+              }
+            }
+          },
+          "position": {
+            "x": 6,
+            "y": 102,
+            "width": 6,
+            "height": 8
+          }
+        },
+        {
+          "widget": {
+            "name": "5f60c57d",
+            "queries": [
+              {
+                "name": "e13ded517e0f48d5b0943f6cd8d70a4e",
+                "query": {
+                  "datasetName": "6cc20524",
+                  "disaggregated": true
+                }
+              }
+            ],
+            "spec": {
+              "version": 0,
+              "viz_spec": {
+                "display_name": "Jobs Successful / Failed",
+                "description": "",
+                "viz_type": "CHART",
+                "serialized_options": "{\"version\": 2, \"globalSeriesType\": \"column\", \"sortX\": true, \"sortY\": true, \"legend\": {\"traceorder\": \"normal\", \"enabled\": true, \"placement\": \"auto\"}, \"xAxis\": {\"type\": \"-\", \"labels\": {\"enabled\": true}, \"title\": {\"text\": \"Run Date\"}}, \"yAxis\": [{\"type\": \"-\", \"title\": {\"text\": null}}, {\"type\": \"-\", \"opposite\": true, \"title\": {\"text\": \"totalJobs\"}}], \"alignYAxesAtZero\": false, \"error_y\": {\"type\": \"data\", \"visible\": true}, \"series\": {\"stacking\": \"stack\", \"error_y\": {\"type\": \"data\", \"visible\": true}}, \"seriesOptions\": {\"totalJobs\": {\"yAxis\": 1}, \"FAILED\": {\"color\": \"#50F5ED\"}, \"UNDEFINED\": {\"color\": \"#981717\"}}, \"valuesOptions\": {}, \"direction\": {\"type\": \"counterclockwise\"}, \"sizemode\": \"diameter\", \"coefficient\": 1, \"numberFormat\": \"0,0[.]00000\", \"percentFormat\": \"0[.]00%\", \"textFormat\": \"\", \"missingValuesAsZero\": true, \"useAggregationsUi\": false, \"swappedAxes\": false, \"dateTimeFormat\": \"YYYY-MM-DD HH:mm:ss\", \"showDataLabels\": true, \"columnConfigurationMap\": {\"x\": {\"column\": \"startDate\"}, \"y\": [{\"column\": \"totalJobs\"}], \"series\": {\"column\": \"finalstatus\"}}, \"showPlotlyControls\": true}",
+                "query_name": "e13ded517e0f48d5b0943f6cd8d70a4e"
+              }
+            }
+          },
+          "position": {
+            "x": 0,
+            "y": 110,
+            "width": 6,
+            "height": 8
+          }
+        },
+        {
+          "widget": {
+            "name": "47c841fa",
+            "queries": [
+              {
+                "name": "e13ded517e0f48d5b0943f6cd8d70a4e",
+                "query": {
+                  "datasetName": "6cc20524",
+                  "disaggregated": true
+                }
+              }
+            ],
+            "spec": {
+              "version": 0,
+              "viz_spec": {
+                "display_name": "Job Distribution by Queue",
+                "description": "",
+                "viz_type": "CHART",
+                "serialized_options": "{\"version\": 2, \"globalSeriesType\": \"pie\", \"sortX\": true, \"legend\": {\"enabled\": true, \"placement\": \"auto\", \"traceorder\": \"normal\"}, \"xAxis\": {\"type\": \"-\", \"labels\": {\"enabled\": true}}, \"yAxis\": [{\"type\": \"-\"}, {\"type\": \"-\", \"opposite\": true}], \"alignYAxesAtZero\": false, \"error_y\": {\"type\": \"data\", \"visible\": true}, \"series\": {\"stacking\": null, \"error_y\": {\"type\": \"data\", \"visible\": true}}, \"seriesOptions\": {\"totalJobs\": {\"yAxis\": 0, \"name\": \"Total Applications\"}}, \"valuesOptions\": {}, \"direction\": {\"type\": \"counterclockwise\"}, \"sizemode\": \"diameter\", \"coefficient\": 1, \"numberFormat\": \"0,0[.]00000\", \"percentFormat\": \"0[.]00%\", \"textFormat\": \"\", \"missingValuesAsZero\": true, \"useAggregationsUi\": false, \"swappedAxes\": false, \"dateTimeFormat\": \"YYYY-MM-DD HH:mm:ss\", \"showDataLabels\": true, \"columnConfigurationMap\": {\"x\": {\"column\": \"queue\"}, \"y\": [{\"column\": \"totalJobs\"}]}, \"showPlotlyControls\": true}",
+                "query_name": "e13ded517e0f48d5b0943f6cd8d70a4e"
+              }
+            }
+          },
+          "position": {
+            "x": 6,
+            "y": 110,
+            "width": 6,
+            "height": 8
+          }
+        },
+        {
+          "widget": {
+            "name": "23c2cee0",
+            "queries": [
+              {
+                "name": "e13ded517e0f48d5b0943f6cd8d70a4e",
+                "query": {
+                  "datasetName": "6cc20524",
+                  "disaggregated": true
+                }
+              }
+            ],
+            "spec": {
+              "version": 0,
+              "viz_spec": {
+                "display_name": "Job Distribution by Queues / Date",
+                "description": "",
+                "viz_type": "CHART",
+                "serialized_options": "{\"version\": 2, \"globalSeriesType\": \"column\", \"sortX\": true, \"sortY\": true, \"legend\": {\"traceorder\": \"normal\", \"enabled\": true, \"placement\": \"auto\"}, \"xAxis\": {\"type\": \"-\", \"labels\": {\"enabled\": true}, \"title\": {\"text\": \"Run Date\"}}, \"yAxis\": [{\"type\": \"-\", \"title\": {\"text\": \"total Jobs\"}}, {\"type\": \"-\", \"opposite\": true, \"title\": {\"text\": null}}], \"alignYAxesAtZero\": false, \"error_y\": {\"type\": \"data\", \"visible\": true}, \"series\": {\"stacking\": \"stack\", \"error_y\": {\"type\": \"data\", \"visible\": true}}, \"seriesOptions\": {\"totalJobs\": {\"yAxis\": 0}}, \"valuesOptions\": {}, \"direction\": {\"type\": \"counterclockwise\"}, \"sizemode\": \"diameter\", \"coefficient\": 1, \"numberFormat\": \"00[.]00000\", \"percentFormat\": \"0[.]00%\", \"textFormat\": \"\", \"missingValuesAsZero\": true, \"useAggregationsUi\": false, \"swappedAxes\": false, \"dateTimeFormat\": \"YYYY-MM-DD HH:mm:ss\", \"showDataLabels\": true, \"columnConfigurationMap\": {\"x\": {\"column\": \"startDate\"}, \"y\": [{\"column\": \"totalJobs\"}], \"series\": {\"column\": \"queue\"}}, \"showPlotlyControls\": true}",
+                "query_name": "e13ded517e0f48d5b0943f6cd8d70a4e"
+              }
+            }
+          },
+          "position": {
+            "x": 0,
+            "y": 118,
+            "width": 12,
+            "height": 9
+          }
+        },
+        {
+          "widget": {
+            "name": "198d533b",
+            "queries": [
+              {
+                "name": "e13ded517e0f48d5b0943f6cd8d70a4e",
+                "query": {
+                  "datasetName": "6cc20524",
+                  "disaggregated": true
+                }
+              }
+            ],
+            "spec": {
+              "version": 0,
+              "viz_spec": {
+                "display_name": "Top YARN Users",
+                "description": "",
+                "viz_type": "CHART",
+                "serialized_options": "{\"version\": 2, \"globalSeriesType\": \"column\", \"sortX\": false, \"legend\": {\"enabled\": true, \"placement\": \"auto\", \"traceorder\": \"normal\"}, \"xAxis\": {\"type\": \"-\", \"labels\": {\"enabled\": true}, \"title\": {\"text\": \"user\"}}, \"yAxis\": [{\"type\": \"-\", \"title\": {\"text\": null}}, {\"type\": \"-\", \"opposite\": true, \"title\": {\"text\": \"MemoryGBHour_DailyAggregate\"}}], \"alignYAxesAtZero\": false, \"error_y\": {\"type\": \"data\", \"visible\": true}, \"series\": {\"stacking\": null, \"error_y\": {\"type\": \"data\", \"visible\": true}}, \"seriesOptions\": {\"MemoryGBHour_DailyAggregate\": {\"yAxis\": 1}}, \"valuesOptions\": {}, \"direction\": {\"type\": \"counterclockwise\"}, \"sizemode\": \"diameter\", \"coefficient\": 1, \"numberFormat\": \"00[.]00000\", \"percentFormat\": \"0[.]00%\", \"textFormat\": \"\", \"missingValuesAsZero\": true, \"useAggregationsUi\": false, \"swappedAxes\": false, \"dateTimeFormat\": \"YYYY-MM-DD HH:mm:ss\", \"showDataLabels\": false, \"columnConfigurationMap\": {\"x\": {\"column\": \"user\"}, \"y\": [{\"column\": \"MemoryGBHour_DailyAggregate\"}], \"series\": {\"column\": null}}, \"showPlotlyControls\": true, \"reverseX\": true}",
+                "query_name": "e13ded517e0f48d5b0943f6cd8d70a4e"
+              }
+            }
+          },
+          "position": {
+            "x": 0,
+            "y": 127,
+            "width": 12,
+            "height": 8
+          }
+        },
+        {
+          "widget": {
+            "name": "cf75249d",
+            "queries": [
+              {
+                "name": "e13ded517e0f48d5b0943f6cd8d70a4e",
+                "query": {
+                  "datasetName": "6cc20524",
+                  "disaggregated": true
+                }
+              }
+            ],
+            "spec": {
+              "version": 0,
+              "viz_spec": {
+                "display_name": "Resource Distribution by Queue /Memory & vCores",
+                "description": "",
+                "viz_type": "CHART",
+                "serialized_options": "{\"version\": 2, \"globalSeriesType\": \"column\", \"sortX\": true, \"legend\": {\"enabled\": true, \"placement\": \"below\", \"traceorder\": \"normal\"}, \"xAxis\": {\"type\": \"-\", \"labels\": {\"enabled\": true}, \"title\": {\"text\": \"Queue\"}}, \"yAxis\": [{\"type\": \"-\", \"title\": {\"text\": \"MemoryGB\"}}, {\"type\": \"-\", \"opposite\": true, \"title\": {\"text\": \"vCore\"}}], \"alignYAxesAtZero\": false, \"error_y\": {\"type\": \"data\", \"visible\": true}, \"series\": {\"stacking\": \"stack\", \"error_y\": {\"type\": \"data\", \"visible\": true}}, \"seriesOptions\": {\"MemoryGBHour_DailyAggregate\": {\"yAxis\": 1}, \"vCoreHours_DailyAggregate\": {\"yAxis\": 1}, \"MAPREDUCE, MemoryGBHour_DailyAggregate\": {\"yAxis\": 1, \"type\": \"line\"}, \"SPARK, MemoryGBHour_DailyAggregate\": {\"yAxis\": 1, \"type\": \"line\", \"color\": \"#356AFF\"}, \"TEZ, MemoryGBHour_DailyAggregate\": {\"yAxis\": 1, \"type\": \"line\"}, \"MAPREDUCE, vCoreHours_DailyAggregate\": {\"type\": \"column\"}, \"SPARK, vCoreHours_DailyAggregate\": {\"type\": \"column\", \"color\": \"#00B6EB\"}, \"TEZ, vCoreHours_DailyAggregate\": {\"type\": \"column\", \"color\": \"#17BF51\"}}, \"valuesOptions\": {}, \"direction\": {\"type\": \"counterclockwise\"}, \"sizemode\": \"diameter\", \"coefficient\": 1, \"numberFormat\": \"00[.]00000\", \"percentFormat\": \"0[.]00%\", \"textFormat\": \"\", \"missingValuesAsZero\": true, \"useAggregationsUi\": false, \"swappedAxes\": false, \"dateTimeFormat\": \"YYYY-MM-DD HH:mm:ss\", \"showDataLabels\": false, \"columnConfigurationMap\": {\"x\": {\"column\": \"queue\"}, \"y\": [{\"column\": \"MemoryGBHour_DailyAggregate\"}, {\"column\": \"vCoreHours_DailyAggregate\"}], \"series\": {\"column\": \"Type\"}}, \"showPlotlyControls\": true, \"hideYAxes\": false, \"hideXAxis\": false}",
+                "query_name": "e13ded517e0f48d5b0943f6cd8d70a4e"
+              }
+            }
+          },
+          "position": {
+            "x": 0,
+            "y": 135,
+            "width": 6,
+            "height": 8
+          }
+        },
+        {
+          "widget": {
+            "name": "bf3e38d5",
+            "queries": [
+              {
+                "name": "e13ded517e0f48d5b0943f6cd8d70a4e",
+                "query": {
+                  "datasetName": "6cc20524",
+                  "fields": [
+                    {
+                      "name": "queue",
+                      "expression": "`queue`"
+                    },
+                    {
+                      "name": "column_eac24bda1628",
+                      "expression": "SUM(`totalJobs`)"
+                    },
+                    {
+                      "name": "Type",
+                      "expression": "`Type`"
+                    }
+                  ],
+                  "disaggregated": false
+                }
+              }
+            ],
+            "spec": {
+              "version": 0,
+              "viz_spec": {
+                "display_name": "Job Resource Distribution by Queue/Type",
+                "description": "",
+                "viz_type": "CHART",
+                "serialized_options": "{\"version\": 2, \"globalSeriesType\": \"column\", \"sortX\": true, \"sortY\": true, \"legend\": {\"traceorder\": \"normal\"}, \"xAxis\": {\"type\": \"-\", \"labels\": {\"enabled\": true}, \"title\": {\"text\": \"Queue\"}}, \"yAxis\": [{\"type\": \"-\", \"title\": {\"text\": \"Total Jobs\"}}, {\"type\": \"-\", \"opposite\": true}], \"alignYAxesAtZero\": false, \"error_y\": {\"type\": \"data\", \"visible\": true}, \"series\": {\"stacking\": \"stack\", \"error_y\": {\"type\": \"data\", \"visible\": true}}, \"seriesOptions\": {\"column_eac24bda1513\": {\"yAxis\": 0, \"type\": \"column\"}, \"column_eac24bda1628\": {\"yAxis\": 0, \"type\": \"column\"}}, \"valuesOptions\": {}, \"direction\": {\"type\": \"counterclockwise\"}, \"sizemode\": \"diameter\", \"coefficient\": 1, \"numberFormat\": \"0,0[.]00000\", \"percentFormat\": \"0[.]00%\", \"textFormat\": \"\", \"missingValuesAsZero\": true, \"useAggregationsUi\": true, \"swappedAxes\": false, \"dateTimeFormat\": \"YYYY-MM-DD HH:mm:ss\", \"showDataLabels\": false, \"columnConfigurationMap\": {\"x\": {\"column\": \"queue\", \"id\": \"column_eac24bda1511\"}, \"y\": [{\"id\": \"column_eac24bda1628\", \"column\": \"totalJobs\", \"transform\": \"SUM\"}], \"series\": {\"column\": \"Type\", \"id\": \"column_eac24bda1742\"}}, \"reverseX\": false}",
+                "query_name": "e13ded517e0f48d5b0943f6cd8d70a4e"
+              }
+            }
+          },
+          "position": {
+            "x": 6,
+            "y": 135,
+            "width": 6,
+            "height": 8
+          }
+        },
+        {
+          "widget": {
+            "name": "6b51ef91",
+            "queries": [
+              {
+                "name": "e13ded517e0f48d5b0943f6cd8d70a4e",
+                "query": {
+                  "datasetName": "6cc20524",
+                  "disaggregated": true
+                }
+              }
+            ],
+            "spec": {
+              "version": 0,
+              "viz_spec": {
+                "display_name": "Utilization by  Workload Type",
+                "description": "",
+                "viz_type": "CHART",
+                "serialized_options": "{\"version\": 2, \"globalSeriesType\": \"pie\", \"sortX\": true, \"legend\": {\"enabled\": true, \"placement\": \"auto\", \"traceorder\": \"normal\"}, \"xAxis\": {\"type\": \"-\", \"labels\": {\"enabled\": true}, \"title\": {\"text\": \"Type\"}}, \"yAxis\": [{\"type\": \"-\", \"title\": {\"text\": null}}, {\"type\": \"-\", \"opposite\": true, \"title\": {\"text\": \"MemoryGBHour_DailyAggregate, vCoreHours_DailyAggregate\"}}], \"alignYAxesAtZero\": false, \"error_y\": {\"type\": \"data\", \"visible\": true}, \"series\": {\"stacking\": null, \"error_y\": {\"type\": \"data\", \"visible\": true}}, \"seriesOptions\": {\"MemoryGBHour_DailyAggregate\": {\"yAxis\": 1}, \"vCoreHours_DailyAggregate\": {\"yAxis\": 1}}, \"valuesOptions\": {\"TEZ\": {\"color\": \"#50F5ED\"}, \"SPARK\": {\"color\": \"#00B6EB\"}, \"MAPREDUCE\": {\"color\": \"#604FE9\"}}, \"direction\": {\"type\": \"counterclockwise\"}, \"sizemode\": \"diameter\", \"coefficient\": 1, \"numberFormat\": \"0,0[.]00000\", \"percentFormat\": \"0[.]00%\", \"textFormat\": \"\", \"missingValuesAsZero\": true, \"useAggregationsUi\": false, \"swappedAxes\": false, \"dateTimeFormat\": \"YYYY-MM-DD HH:mm:ss\", \"showDataLabels\": true, \"columnConfigurationMap\": {\"x\": {\"column\": \"Type\"}, \"y\": [{\"column\": \"MemoryGBHour_DailyAggregate\"}, {\"column\": \"vCoreHours_DailyAggregate\"}], \"series\": {\"column\": null}}, \"showPlotlyControls\": true}",
+                "query_name": "e13ded517e0f48d5b0943f6cd8d70a4e"
+              }
+            }
+          },
+          "position": {
+            "x": 0,
+            "y": 146,
+            "width": 6,
+            "height": 8
+          }
+        },
+        {
+          "widget": {
+            "name": "fa37dace",
+            "queries": [
+              {
+                "name": "e13ded517e0f48d5b0943f6cd8d70a4e",
+                "query": {
+                  "datasetName": "6cc20524",
+                  "disaggregated": true
+                }
+              }
+            ],
+            "spec": {
+              "version": 0,
+              "viz_spec": {
+                "display_name": "Daily Average Memory Utilization (in GB)",
+                "description": "",
+                "viz_type": "CHART",
+                "serialized_options": "{\"version\": 2, \"globalSeriesType\": \"column\", \"sortX\": true, \"sortY\": true, \"legend\": {\"traceorder\": \"normal\", \"enabled\": true, \"placement\": \"auto\"}, \"xAxis\": {\"type\": \"-\", \"labels\": {\"enabled\": true}, \"title\": {\"text\": \"startDate\"}}, \"yAxis\": [{\"type\": \"-\", \"title\": {\"text\": \"AverageMemoryGBPerDay\"}}, {\"type\": \"-\", \"opposite\": true, \"title\": {\"text\": null}}], \"alignYAxesAtZero\": false, \"error_y\": {\"type\": \"data\", \"visible\": true}, \"series\": {\"stacking\": null, \"error_y\": {\"type\": \"data\", \"visible\": true}}, \"seriesOptions\": {\"AverageMemoryGBPerDay\": {\"yAxis\": 0}}, \"valuesOptions\": {}, \"direction\": {\"type\": \"counterclockwise\"}, \"sizemode\": \"diameter\", \"coefficient\": 1, \"numberFormat\": \"0,0[.]00000\", \"percentFormat\": \"0[.]00%\", \"textFormat\": \"\", \"missingValuesAsZero\": true, \"useAggregationsUi\": false, \"swappedAxes\": false, \"dateTimeFormat\": \"YYYY-MM-DD HH:mm:ss\", \"showDataLabels\": true, \"columnConfigurationMap\": {\"x\": {\"column\": \"startDate\"}, \"y\": [{\"column\": \"AverageMemoryGBPerDay\"}]}, \"showPlotlyControls\": true}",
+                "query_name": "e13ded517e0f48d5b0943f6cd8d70a4e"
+              }
+            }
+          },
+          "position": {
+            "x": 6,
+            "y": 146,
+            "width": 6,
+            "height": 8
+          }
+        },
+        {
+          "widget": {
+            "name": "c3ff1620",
+            "queries": [
+              {
+                "name": "e13ded517e0f48d5b0943f6cd8d70a4e",
+                "query": {
+                  "datasetName": "6cc20524",
+                  "disaggregated": true
+                }
+              }
+            ],
+            "spec": {
+              "version": 0,
+              "viz_spec": {
+                "display_name": "Daily Average Cores  Utilization",
+                "description": "",
+                "viz_type": "CHART",
+                "serialized_options": "{\"version\": 2, \"globalSeriesType\": \"column\", \"sortX\": true, \"legend\": {\"enabled\": true, \"placement\": \"auto\", \"traceorder\": \"normal\"}, \"xAxis\": {\"type\": \"-\", \"labels\": {\"enabled\": true}, \"title\": {\"text\": \"startDate\"}}, \"yAxis\": [{\"type\": \"-\", \"title\": {\"text\": \"AveragevCoreHoursPerDay\"}}, {\"type\": \"-\", \"opposite\": true, \"title\": {\"text\": null}}], \"alignYAxesAtZero\": false, \"error_y\": {\"type\": \"data\", \"visible\": true}, \"series\": {\"stacking\": null, \"error_y\": {\"type\": \"data\", \"visible\": true}}, \"seriesOptions\": {\"AveragevCoreHoursPerDay\": {\"yAxis\": 0}}, \"valuesOptions\": {}, \"direction\": {\"type\": \"counterclockwise\"}, \"sizemode\": \"diameter\", \"coefficient\": 1, \"numberFormat\": \"0,0[.]00000\", \"percentFormat\": \"0[.]00%\", \"textFormat\": \"\", \"missingValuesAsZero\": true, \"useAggregationsUi\": false, \"swappedAxes\": false, \"dateTimeFormat\": \"YYYY-MM-DD HH:mm:ss\", \"showDataLabels\": false, \"columnConfigurationMap\": {\"x\": {\"column\": \"startDate\"}, \"y\": [{\"column\": \"AveragevCoreHoursPerDay\"}]}, \"showPlotlyControls\": true}",
+                "query_name": "e13ded517e0f48d5b0943f6cd8d70a4e"
+              }
+            }
+          },
+          "position": {
+            "x": 0,
+            "y": 154,
+            "width": 6,
+            "height": 8
+          }
+        },
+        {
+          "widget": {
+            "name": "68cb6734",
+            "queries": [
+              {
+                "name": "e13ded517e0f48d5b0943f6cd8d70a4e",
+                "query": {
+                  "datasetName": "6cc20524",
+                  "disaggregated": true
+                }
+              }
+            ],
+            "spec": {
+              "version": 0,
+              "viz_spec": {
+                "display_name": "Daily Average Memory Utilization (in TB)",
+                "description": "",
+                "viz_type": "CHART",
+                "serialized_options": "{\"version\":2,\"globalSeriesType\":\"column\",\"sortX\":true,\"sortY\":true,\"legend\":{\"traceorder\":\"normal\",\"enabled\":true,\"placement\":\"auto\"},\"xAxis\":{\"type\":\"-\",\"labels\":{\"enabled\":true},\"title\":{\"text\":\"startDate\"}},\"yAxis\":[{\"type\":\"-\",\"title\":{\"text\":\"totalYARNMemoryTB\"}},{\"type\":\"-\",\"opposite\":true,\"title\":{\"text\":\"AverageMemoryTBPerDay\"}}],\"alignYAxesAtZero\":false,\"error_y\":{\"type\":\"data\",\"visible\":true},\"series\":{\"stacking\":null,\"error_y\":{\"type\":\"data\",\"visible\":true}},\"seriesOptions\":{\"AverageMemoryTBPerDay\":{\"yAxis\":1},\"totalYARNMemoryTB\":{\"yAxis\":0}},\"valuesOptions\":{},\"direction\":{\"type\":\"counterclockwise\"},\"sizemode\":\"diameter\",\"coefficient\":1,\"numberFormat\":\"0,0[.]00\",\"percentFormat\":\"0[.]00%\",\"textFormat\":\"\",\"missingValuesAsZero\":true,\"useAggregationsUi\":false,\"swappedAxes\":false,\"dateTimeFormat\":\"YYYY-MM-DD HH:mm:ss\",\"showDataLabels\":true,\"columnConfigurationMap\":{\"x\":{\"column\":\"startDate\"},\"y\":[{\"column\":\"AverageMemoryTBPerDay\"},{\"column\":\"totalYARNMemoryTB\"}]},\"showPlotlyControls\":true,\"condensed\":true,\"withRowNumber\":true,\"isAggregationOn\":false}",
+                "query_name": "e13ded517e0f48d5b0943f6cd8d70a4e"
+              }
+            }
+          },
+          "position": {
+            "x": 6,
+            "y": 154,
+            "width": 6,
+            "height": 8
+          }
+        },
+        {
+          "widget": {
+            "name": "432d6773",
+            "queries": [
+              {
+                "name": "e13ded517e0f48d5b0943f6cd8d70a4e",
+                "query": {
+                  "datasetName": "6cc20524",
+                  "disaggregated": true
+                }
+              }
+            ],
+            "spec": {
+              "version": 0,
+              "viz_spec": {
+                "display_name": "Daily Total Memory / Core Utilization",
+                "description": "",
+                "viz_type": "CHART",
+                "serialized_options": "{\"version\": 2, \"globalSeriesType\": \"column\", \"sortX\": true, \"sortY\": true, \"legend\": {\"traceorder\": \"normal\", \"enabled\": true, \"placement\": \"auto\"}, \"xAxis\": {\"type\": \"-\", \"labels\": {\"enabled\": true}, \"title\": {\"text\": \"startDate\"}}, \"yAxis\": [{\"type\": \"-\", \"title\": {\"text\": \"DailyvCoreUsage\"}}, {\"type\": \"-\", \"opposite\": true, \"title\": {\"text\": \"DailyMemoryGBUsage\"}}], \"alignYAxesAtZero\": false, \"error_y\": {\"type\": \"data\", \"visible\": true}, \"series\": {\"stacking\": null, \"error_y\": {\"type\": \"data\", \"visible\": true}}, \"seriesOptions\": {\"MemoryGBHour_DailyAggregate\": {\"yAxis\": 1}, \"vCoreHours_DailyAggregate\": {\"yAxis\": 0}}, \"valuesOptions\": {}, \"direction\": {\"type\": \"counterclockwise\"}, \"sizemode\": \"diameter\", \"coefficient\": 1, \"numberFormat\": \"00[.]00000\", \"percentFormat\": \"0[.]00%\", \"textFormat\": \"\", \"missingValuesAsZero\": true, \"useAggregationsUi\": false, \"swappedAxes\": false, \"dateTimeFormat\": \"YYYY-MM-DD HH:mm:ss\", \"showDataLabels\": true, \"columnConfigurationMap\": {\"x\": {\"column\": \"startDate\"}, \"y\": [{\"column\": \"MemoryGBHour_DailyAggregate\"}, {\"column\": \"vCoreHours_DailyAggregate\"}]}, \"showPlotlyControls\": true}",
+                "query_name": "e13ded517e0f48d5b0943f6cd8d70a4e"
+              }
+            }
+          },
+          "position": {
+            "x": 0,
+            "y": 170,
+            "width": 6,
+            "height": 8
+          }
+        },
+        {
+          "widget": {
+            "name": "2836f0fc",
+            "queries": [
+              {
+                "name": "e13ded517e0f48d5b0943f6cd8d70a4e",
+                "query": {
+                  "datasetName": "6cc20524",
+                  "disaggregated": true
+                }
+              }
+            ],
+            "spec": {
+              "version": 0,
+              "viz_spec": {
+                "display_name": "Yarn Queue utilization -  Queue Prefix - Yarn Application Analysis",
+                "description": "",
+                "viz_type": "CHART",
+                "serialized_options": "{\"version\": 2, \"globalSeriesType\": \"pie\", \"sortX\": true, \"sortY\": true, \"legend\": {\"traceorder\": \"normal\", \"enabled\": true, \"placement\": \"auto\"}, \"xAxis\": {\"type\": \"-\", \"labels\": {\"enabled\": true}}, \"yAxis\": [{\"type\": \"-\"}, {\"type\": \"-\", \"opposite\": true}], \"alignYAxesAtZero\": false, \"error_y\": {\"type\": \"data\", \"visible\": true}, \"series\": {\"stacking\": null, \"error_y\": {\"type\": \"data\", \"visible\": true}}, \"seriesOptions\": {\"AveragevCoreHoursPerDay\": {\"yAxis\": 1}, \"totalJobs\": {\"yAxis\": 1}, \"AverageMemoryGBPerDay\": {\"yAxis\": 1}}, \"valuesOptions\": {}, \"direction\": {\"type\": \"counterclockwise\"}, \"sizemode\": \"diameter\", \"coefficient\": 1, \"numberFormat\": \"0,0[.]00000\", \"percentFormat\": \"0[.]00%\", \"textFormat\": \"\", \"missingValuesAsZero\": true, \"useAggregationsUi\": false, \"swappedAxes\": false, \"dateTimeFormat\": \"YYYY-MM-DD HH:mm:ss\", \"showDataLabels\": true, \"columnConfigurationMap\": {\"x\": {\"column\": \"queue\"}, \"y\": [{\"column\": \"AveragevCoreHoursPerDay\"}, {\"column\": \"totalJobs\"}, {\"column\": \"AverageMemoryGBPerDay\"}]}, \"showPlotlyControls\": true, \"isAggregationOn\": false, \"condensed\": true, \"withRowNumber\": true}",
+                "query_name": "e13ded517e0f48d5b0943f6cd8d70a4e"
+              }
+            }
+          },
+          "position": {
+            "x": 0,
+            "y": 200,
+            "width": 12,
+            "height": 9
+          }
+        },
+        {
+          "widget": {
+            "name": "9f10598e",
+            "queries": [
+              {
+                "name": "e13ded517e0f48d5b0943f6cd8d70a4e",
+                "query": {
+                  "datasetName": "6cc20524",
+                  "disaggregated": true
+                }
+              }
+            ],
+            "spec": {
+              "version": 0,
+              "viz_spec": {
+                "display_name": "Yarn Queues",
+                "description": "",
+                "viz_type": "WORD_CLOUD",
+                "serialized_options": "{\"column\": \"queue\", \"frequenciesColumn\": \"\", \"wordLengthLimit\": {\"min\": null, \"max\": null}, \"wordCountLimit\": {\"min\": null, \"max\": null}, \"showPlotlyControls\": true}",
+                "query_name": "e13ded517e0f48d5b0943f6cd8d70a4e"
+              }
+            }
+          },
+          "position": {
+            "x": 0,
+            "y": 219,
+            "width": 4,
+            "height": 10
+          }
+        },
+        {
+          "widget": {
+            "name": "9861e3dc",
+            "queries": [
+              {
+                "name": "e13ded517e0f48d5b0943f6cd8d70a4e",
+                "query": {
+                  "datasetName": "6cc20524",
+                  "disaggregated": true
+                }
+              }
+            ],
+            "spec": {
+              "version": 0,
+              "viz_spec": {
+                "display_name": "Job Distribution by User / Queue",
+                "description": "",
+                "viz_type": "PIVOT",
+                "serialized_options": "{\"controls\": {\"enabled\": false}, \"rendererOptions\": {\"table\": {\"colTotals\": true, \"rowTotals\": true}}, \"rows\": [\"queue\"], \"cols\": [\"user\"], \"vals\": [\"totalJobs\"], \"aggregatorName\": \"Integer Sum\", \"valueFilter\": {}, \"sorters\": {}, \"rowOrder\": \"key_a_to_z\", \"colOrder\": \"key_a_to_z\", \"derivedAttributes\": {}, \"rendererName\": \"Table\", \"hiddenAttributes\": [], \"hiddenFromAggregators\": [], \"hiddenFromDragDrop\": [], \"menuLimit\": 500, \"unusedOrientationCutoff\": 85, \"showPlotlyControls\": true}",
+                "query_name": "e13ded517e0f48d5b0943f6cd8d70a4e"
+              }
+            }
+          },
+          "position": {
+            "x": 4,
+            "y": 219,
+            "width": 8,
+            "height": 10
+          }
+        },
+        {
+          "widget": {
+            "name": "9507342d",
+            "queries": [
+              {
+                "name": "bd9b713f3f3444818a511689a1bfaed2",
+                "query": {
+                  "datasetName": "7d118238",
+                  "disaggregated": true
+                }
+              }
+            ],
+            "spec": {
+              "version": 0,
+              "viz_spec": {
+                "display_name": "Impala Utilization (Hourly)",
+                "description": "",
+                "viz_type": "CHART",
+                "serialized_options": "{\"version\": 2, \"globalSeriesType\": \"column\", \"sortX\": true, \"sortY\": true, \"legend\": {\"traceorder\": \"normal\", \"enabled\": true, \"placement\": \"below\"}, \"xAxis\": {\"type\": \"-\", \"labels\": {\"enabled\": true}}, \"yAxis\": [{\"type\": \"-\", \"title\": {\"text\": \"Memory Utilization Across Impala daemon\"}}, {\"type\": \"-\", \"opposite\": true}], \"alignYAxesAtZero\": false, \"error_y\": {\"type\": \"data\", \"visible\": true}, \"series\": {\"stacking\": null, \"error_y\": {\"type\": \"data\", \"visible\": true}}, \"seriesOptions\": {\"total_mem_rss_across_impalads_mean\": {\"yAxis\": 0}, \"total_impala_memory\": {\"yAxis\": 1}}, \"valuesOptions\": {}, \"direction\": {\"type\": \"counterclockwise\"}, \"sizemode\": \"diameter\", \"coefficient\": 1, \"numberFormat\": \"0,0[.]00000\", \"percentFormat\": \"0[.]00%\", \"textFormat\": \"\", \"missingValuesAsZero\": true, \"useAggregationsUi\": false, \"swappedAxes\": false, \"dateTimeFormat\": \"YYYY-MM-DD HH:mm:ss\", \"showDataLabels\": false, \"columnConfigurationMap\": {\"x\": {\"column\": \"timestamp\"}, \"y\": [{\"column\": \"total_mem_rss_across_impalads_mean\"}, {\"column\": \"total_impala_memory\"}], \"yError\": {\"column\": null}, \"series\": {\"column\": null}}, \"showPlotlyControls\": true}",
+                "query_name": "bd9b713f3f3444818a511689a1bfaed2"
+              }
+            }
+          },
+          "position": {
+            "x": 0,
+            "y": 29,
+            "width": 12,
+            "height": 10
+          }
+        },
+        {
+          "widget": {
+            "name": "8fe7074b",
+            "queries": [
+              {
+                "name": "cde724e8016f4984ba2ee12bf13f8487",
+                "query": {
+                  "datasetName": "5e554929",
+                  "disaggregated": true
+                }
+              }
+            ],
+            "spec": {
+              "version": 0,
+              "viz_spec": {
+                "display_name": "Impala Utilization percent by Date",
+                "description": "",
+                "viz_type": "CHART",
+                "serialized_options": "{\"version\": 2, \"globalSeriesType\": \"column\", \"sortX\": true, \"sortY\": true, \"legend\": {\"traceorder\": \"normal\"}, \"xAxis\": {\"type\": \"-\", \"labels\": {\"enabled\": true}}, \"yAxis\": [{\"type\": \"-\"}, {\"type\": \"-\", \"opposite\": true}], \"alignYAxesAtZero\": false, \"error_y\": {\"type\": \"data\", \"visible\": true}, \"series\": {\"stacking\": null, \"error_y\": {\"type\": \"data\", \"visible\": true}}, \"seriesOptions\": {\"impala_usage_percent\": {\"yAxis\": 0}}, \"valuesOptions\": {}, \"direction\": {\"type\": \"counterclockwise\"}, \"sizemode\": \"diameter\", \"coefficient\": 1, \"numberFormat\": \"0,0[.]00000\", \"percentFormat\": \"0[.]00%\", \"textFormat\": \"\", \"missingValuesAsZero\": true, \"useAggregationsUi\": false, \"swappedAxes\": false, \"dateTimeFormat\": \"YYYY-MM-DD HH:mm:ss\", \"showDataLabels\": false, \"columnConfigurationMap\": {\"x\": {\"column\": \"date\"}, \"y\": [{\"column\": \"impala_usage_percent\"}]}, \"showPlotlyControls\": true}",
+                "query_name": "cde724e8016f4984ba2ee12bf13f8487"
+              }
+            }
+          },
+          "position": {
+            "x": 0,
+            "y": 39,
+            "width": 6,
+            "height": 8
+          }
+        },
+        {
+          "widget": {
+            "name": "9c49b8b5",
+            "queries": [
+              {
+                "name": "cde724e8016f4984ba2ee12bf13f8487",
+                "query": {
+                  "datasetName": "5e554929",
+                  "disaggregated": true
+                }
+              }
+            ],
+            "spec": {
+              "version": 0,
+              "viz_spec": {
+                "display_name": "Impala Utilization (Aggregated)",
+                "description": "",
+                "viz_type": "CHART",
+                "serialized_options": "{\"version\": 2, \"globalSeriesType\": \"column\", \"sortX\": true, \"sortY\": true, \"legend\": {\"traceorder\": \"normal\", \"enabled\": true, \"placement\": \"below\"}, \"xAxis\": {\"type\": \"-\", \"labels\": {\"enabled\": true}}, \"yAxis\": [{\"type\": \"-\"}, {\"type\": \"-\", \"opposite\": true}], \"alignYAxesAtZero\": false, \"error_y\": {\"type\": \"data\", \"visible\": true}, \"series\": {\"stacking\": null, \"error_y\": {\"type\": \"data\", \"visible\": true}}, \"seriesOptions\": {\"avg_total_mem_across_impala_daemon\": {\"yAxis\": 0, \"type\": \"line\"}, \"total_impala_memory\": {\"yAxis\": 0, \"type\": \"line\"}}, \"valuesOptions\": {}, \"direction\": {\"type\": \"counterclockwise\"}, \"sizemode\": \"diameter\", \"coefficient\": 1, \"numberFormat\": \"0,0[.]00000\", \"percentFormat\": \"0[.]00%\", \"textFormat\": \"\", \"missingValuesAsZero\": true, \"useAggregationsUi\": false, \"swappedAxes\": false, \"dateTimeFormat\": \"YYYY-MM-DD HH:mm:ss\", \"showDataLabels\": false, \"columnConfigurationMap\": {\"x\": {\"column\": \"date\"}, \"y\": [{\"column\": \"avg_total_mem_across_impala_daemon\"}, {\"column\": \"total_impala_memory\"}]}, \"showPlotlyControls\": true}",
+                "query_name": "cde724e8016f4984ba2ee12bf13f8487"
+              }
+            }
+          },
+          "position": {
+            "x": 6,
+            "y": 39,
+            "width": 6,
+            "height": 8
+          }
+        },
+        {
+          "widget": {
+            "name": "913ffe78",
+            "queries": [
+              {
+                "name": "c3ecd142bc084faaa360f676bf5e166f",
+                "query": {
+                  "datasetName": "5c94a2fc",
+                  "fields": [
+                    {
+                      "name": "startDate",
+                      "expression": "`startDate`"
+                    },
+                    {
+                      "name": "column_530eb64258496",
+                      "expression": "MAX(`MemoryUtilizationPercent`)"
+                    },
+                    {
+                      "name": "state",
+                      "expression": "`state`"
+                    }
+                  ],
+                  "disaggregated": false
+                }
+              }
+            ],
+            "spec": {
+              "version": 0,
+              "viz_spec": {
+                "display_name": "Memory Utilization by Job State - Derive Daily YARN  Utilization Metrics",
+                "viz_type": "CHART",
+                "serialized_options": "{\"version\": 2, \"globalSeriesType\": \"column\", \"sortX\": true, \"sortY\": true, \"legend\": {\"traceorder\": \"normal\"}, \"xAxis\": {\"type\": \"-\", \"labels\": {\"enabled\": true}}, \"yAxis\": [{\"type\": \"-\", \"title\": {\"text\": \"Memory Utilization %\"}}, {\"type\": \"-\", \"opposite\": true}], \"alignYAxesAtZero\": false, \"error_y\": {\"type\": \"data\", \"visible\": true}, \"series\": {\"stacking\": null, \"error_y\": {\"type\": \"data\", \"visible\": true}}, \"seriesOptions\": {\"column_530eb64258496\": {\"yAxis\": 0, \"type\": \"column\"}, \"column_530eb64258727\": {\"yAxis\": 0, \"type\": \"column\"}, \"ACCEPTED\": {\"color\": \"#8CFFB4\"}, \"FAILED\": {\"color\": \"#A58AFF\"}, \"FINISHED\": {\"color\": \"#3BD973\"}, \"KILLED\": {\"color\": \"#E92828\"}}, \"valuesOptions\": {}, \"direction\": {\"type\": \"counterclockwise\"}, \"sizemode\": \"diameter\", \"coefficient\": 1, \"numberFormat\": \"0,0[.]00000\", \"percentFormat\": \"0[.]00%\", \"textFormat\": \"\", \"missingValuesAsZero\": true, \"useAggregationsUi\": true, \"swappedAxes\": false, \"dateTimeFormat\": \"YYYY-MM-DD HH:mm:ss\", \"showDataLabels\": false, \"columnConfigurationMap\": {\"x\": {\"column\": \"startDate\", \"id\": \"column_530eb64258254\"}, \"y\": [{\"id\": \"column_530eb64258496\", \"column\": \"MemoryUtilizationPercent\", \"transform\": \"MAX\"}], \"series\": {\"column\": \"state\", \"id\": \"column_530eb64258494\"}}, \"isAggregationOn\": true, \"condensed\": true, \"withRowNumber\": true}",
+                "query_name": "c3ecd142bc084faaa360f676bf5e166f"
+              }
+            }
+          },
+          "position": {
+            "x": 0,
+            "y": 162,
+            "width": 6,
+            "height": 8
+          }
+        },
+        {
+          "widget": {
+            "name": "3380d92a",
+            "queries": [
+              {
+                "name": "c3ecd142bc084faaa360f676bf5e166f",
+                "query": {
+                  "datasetName": "5c94a2fc",
+                  "fields": [
+                    {
+                      "name": "startDate",
+                      "expression": "`startDate`"
+                    },
+                    {
+                      "name": "column_530eb64261707",
+                      "expression": "MAX(`CPUUtilizationPercent`)"
+                    },
+                    {
+                      "name": "state",
+                      "expression": "`state`"
+                    }
+                  ],
+                  "disaggregated": false
+                }
+              }
+            ],
+            "spec": {
+              "version": 0,
+              "viz_spec": {
+                "display_name": "CPU Utilization by Job State - Derive Daily YARN  Utilization Metrics",
+                "viz_type": "CHART",
+                "serialized_options": "{\"version\": 2, \"globalSeriesType\": \"column\", \"sortX\": true, \"sortY\": true, \"legend\": {\"traceorder\": \"normal\"}, \"xAxis\": {\"type\": \"-\", \"labels\": {\"enabled\": true}}, \"yAxis\": [{\"type\": \"-\", \"title\": {\"text\": \"CPU Utilization %\"}}, {\"type\": \"-\", \"opposite\": true}], \"alignYAxesAtZero\": false, \"error_y\": {\"type\": \"data\", \"visible\": true}, \"series\": {\"stacking\": null, \"error_y\": {\"type\": \"data\", \"visible\": true}}, \"seriesOptions\": {\"column_530eb64261707\": {\"yAxis\": 0, \"type\": \"column\"}, \"ACCEPTED\": {\"color\": \"#799CFF\"}, \"KILLED\": {\"color\": \"#E92828\"}, \"FAILED\": {\"color\": \"#FB8D3D\"}}, \"valuesOptions\": {}, \"direction\": {\"type\": \"counterclockwise\"}, \"sizemode\": \"diameter\", \"coefficient\": 1, \"numberFormat\": \"0,0[.]00000\", \"percentFormat\": \"0[.]00%\", \"textFormat\": \"\", \"missingValuesAsZero\": true, \"useAggregationsUi\": true, \"swappedAxes\": false, \"dateTimeFormat\": \"YYYY-MM-DD HH:mm:ss\", \"showDataLabels\": false, \"columnConfigurationMap\": {\"x\": {\"column\": \"startDate\", \"id\": \"column_530eb64261704\"}, \"y\": [{\"id\": \"column_530eb64261707\", \"column\": \"CPUUtilizationPercent\", \"transform\": \"MAX\"}], \"series\": {\"column\": \"state\", \"id\": \"column_530eb64261705\"}}, \"isAggregationOn\": true}",
+                "query_name": "c3ecd142bc084faaa360f676bf5e166f"
+              }
+            }
+          },
+          "position": {
+            "x": 6,
+            "y": 162,
+            "width": 6,
+            "height": 8
+          }
+        },
+        {
+          "widget": {
+            "name": "848dfa12",
+            "queries": [
+              {
+                "name": "c3ecd142bc084faaa360f676bf5e166f",
+                "query": {
+                  "datasetName": "5c94a2fc",
+                  "disaggregated": true
+                }
+              }
+            ],
+            "spec": {
+              "version": 0,
+              "viz_spec": {
+                "display_name": "Memory and Core Utilization Percent",
+                "description": "",
+                "viz_type": "CHART",
+                "serialized_options": "{\"version\": 2, \"globalSeriesType\": \"column\", \"sortX\": true, \"sortY\": true, \"legend\": {\"traceorder\": \"normal\", \"enabled\": true, \"placement\": \"auto\"}, \"xAxis\": {\"type\": \"-\", \"labels\": {\"enabled\": true}, \"title\": {\"text\": \"Run Date\"}}, \"yAxis\": [{\"type\": \"-\", \"title\": {\"text\": null}}, {\"type\": \"-\", \"opposite\": true}], \"alignYAxesAtZero\": false, \"error_y\": {\"type\": \"data\", \"visible\": true}, \"series\": {\"stacking\": \"\", \"error_y\": {\"type\": \"data\", \"visible\": true}, \"percentValues\": false}, \"seriesOptions\": {\"CPUUtilizationPercent\": {\"yAxis\": 1}, \"MemoryUtilizationPercent\": {\"yAxis\": 0}}, \"valuesOptions\": {}, \"direction\": {\"type\": \"counterclockwise\"}, \"sizemode\": \"diameter\", \"coefficient\": 1, \"numberFormat\": \"00[.]\", \"percentFormat\": \"0[.]00%\", \"textFormat\": \"\", \"missingValuesAsZero\": true, \"useAggregationsUi\": false, \"swappedAxes\": false, \"dateTimeFormat\": \"YYYY-MM-DD HH:mm:ss\", \"showDataLabels\": true, \"columnConfigurationMap\": {\"x\": {\"column\": \"startDate\"}, \"y\": [{\"column\": \"CPUUtilizationPercent\"}, {\"column\": \"MemoryUtilizationPercent\"}]}, \"showPlotlyControls\": true}",
+                "query_name": "c3ecd142bc084faaa360f676bf5e166f"
+              }
+            }
+          },
+          "position": {
+            "x": 6,
+            "y": 170,
+            "width": 6,
+            "height": 8
+          }
+        },
+        {
+          "widget": {
+            "name": "a3f2119a",
+            "queries": [
+              {
+                "name": "a897f78b956b462b947d53f30d956a95",
+                "query": {
+                  "datasetName": "4bc9498d",
+                  "disaggregated": true
+                }
+              }
+            ],
+            "spec": {
+              "version": 0,
+              "viz_spec": {
+                "display_name": "Total HBase Region Server",
+                "description": "",
+                "viz_type": "COUNTER",
+                "serialized_options": "{\"counterLabel\": \"Hbase Nodes\", \"counterColName\": \"nodeCount\", \"rowNumber\": 1, \"targetRowNumber\": 1, \"stringDecimal\": 0, \"stringDecChar\": \".\", \"stringThouSep\": \",\", \"tooltipFormat\": \"0,0.000\", \"showPlotlyControls\": true}",
+                "query_name": "a897f78b956b462b947d53f30d956a95"
+              }
+            }
+          },
+          "position": {
+            "x": 6,
+            "y": 14,
+            "width": 2,
+            "height": 3
+          }
+        },
+        {
+          "widget": {
+            "name": "a19e6fa2",
+            "queries": [
+              {
+                "name": "a897f78b956b462b947d53f30d956a95",
+                "query": {
+                  "datasetName": "4bc9498d",
+                  "disaggregated": true
+                }
+              }
+            ],
+            "spec": {
+              "version": 0,
+              "viz_spec": {
+                "display_name": "Total Impala Nodes",
+                "description": "",
+                "viz_type": "COUNTER",
+                "serialized_options": "{\"counterLabel\": \"Impala Nodes\", \"counterColName\": \"nodeCount\", \"rowNumber\": 2, \"targetRowNumber\": 1, \"stringDecimal\": 0, \"stringDecChar\": \".\", \"stringThouSep\": \",\", \"tooltipFormat\": \"0,0.000\", \"showPlotlyControls\": true}",
+                "query_name": "a897f78b956b462b947d53f30d956a95"
+              }
+            }
+          },
+          "position": {
+            "x": 8,
+            "y": 14,
+            "width": 2,
+            "height": 3
+          }
+        },
+        {
+          "widget": {
+            "name": "73944037",
+            "queries": [
+              {
+                "name": "a897f78b956b462b947d53f30d956a95",
+                "query": {
+                  "datasetName": "4bc9498d",
+                  "disaggregated": true
+                }
+              }
+            ],
+            "spec": {
+              "version": 0,
+              "viz_spec": {
+                "display_name": "Total Impala Memory",
+                "description": "",
+                "viz_type": "COUNTER",
+                "serialized_options": "{\"counterLabel\": \"Impala Memory (GB)\", \"counterColName\": \"memory_TB\", \"rowNumber\": 2, \"targetRowNumber\": 1, \"stringDecimal\": 0, \"stringDecChar\": \".\", \"stringThouSep\": \",\", \"tooltipFormat\": \"0,0.000\", \"showPlotlyControls\": true}",
+                "query_name": "a897f78b956b462b947d53f30d956a95"
+              }
+            }
+          },
+          "position": {
+            "x": 10,
+            "y": 14,
+            "width": 2,
+            "height": 3
+          }
+        },
+        {
+          "widget": {
+            "name": "afb89f94",
+            "queries": [
+              {
+                "name": "a897f78b956b462b947d53f30d956a95",
+                "query": {
+                  "datasetName": "4bc9498d",
+                  "disaggregated": true
+                }
+              }
+            ],
+            "spec": {
+              "version": 0,
+              "viz_spec": {
+                "display_name": "CDH Impala vs YARN vs HBase Memory Distribution",
+                "description": "",
+                "viz_type": "CHART",
+                "serialized_options": "{\"version\": 2, \"globalSeriesType\": \"column\", \"sortX\": false, \"legend\": {\"enabled\": true, \"placement\": \"auto\", \"traceorder\": \"normal\"}, \"xAxis\": {\"type\": \"-\", \"labels\": {\"enabled\": true}}, \"yAxis\": [{\"type\": \"-\"}, {\"type\": \"-\", \"opposite\": true}], \"alignYAxesAtZero\": false, \"error_y\": {\"type\": \"data\", \"visible\": true}, \"series\": {\"stacking\": null, \"error_y\": {\"type\": \"data\", \"visible\": true}}, \"seriesOptions\": {\"memory_TB\": {\"yAxis\": 0}}, \"valuesOptions\": {}, \"direction\": {\"type\": \"counterclockwise\"}, \"sizemode\": \"diameter\", \"coefficient\": 1, \"numberFormat\": \"0,0[.]00000\", \"percentFormat\": \"0[.]00%\", \"textFormat\": \"\", \"missingValuesAsZero\": true, \"useAggregationsUi\": false, \"swappedAxes\": true, \"dateTimeFormat\": \"YYYY-MM-DD HH:mm:ss\", \"showDataLabels\": false, \"columnConfigurationMap\": {\"x\": {\"column\": \"measure\"}, \"y\": [{\"column\": \"memory_TB\"}]}, \"showPlotlyControls\": true, \"reverseX\": true, \"hideXAxis\": false}",
+                "query_name": "a897f78b956b462b947d53f30d956a95"
+              }
+            }
+          },
+          "position": {
+            "x": 8,
+            "y": 71,
+            "width": 4,
+            "height": 10
+          }
+        },
+        {
+          "widget": {
+            "name": "e139bd84",
+            "queries": [
+              {
+                "name": "4c88e9643bc844f2b678fee1f4818a51",
+                "query": {
+                  "datasetName": "ff249fa2",
+                  "disaggregated": true
+                }
+              }
+            ],
+            "spec": {
+              "version": 0,
+              "viz_spec": {
+                "display_name": "Average Cluster Memory Utilization Percentage by Date",
+                "description": "",
+                "viz_type": "CHART",
+                "serialized_options": "{\"version\": 2, \"globalSeriesType\": \"area\", \"sortX\": true, \"sortY\": true, \"legend\": {\"traceorder\": \"normal\"}, \"xAxis\": {\"type\": \"-\", \"labels\": {\"enabled\": true}}, \"yAxis\": [{\"type\": \"-\"}, {\"type\": \"-\", \"opposite\": true}], \"alignYAxesAtZero\": false, \"error_y\": {\"type\": \"data\", \"visible\": true}, \"series\": {\"stacking\": null, \"error_y\": {\"type\": \"data\", \"visible\": true}}, \"seriesOptions\": {\"memoryPercentage\": {\"yAxis\": 0, \"type\": \"area\", \"color\": \"#3BD973\"}}, \"valuesOptions\": {}, \"direction\": {\"type\": \"counterclockwise\"}, \"sizemode\": \"diameter\", \"coefficient\": 1, \"numberFormat\": \"0,0[.]00000\", \"percentFormat\": \"0[.]00%\", \"textFormat\": \"\", \"missingValuesAsZero\": true, \"useAggregationsUi\": false, \"swappedAxes\": false, \"dateTimeFormat\": \"YYYY-MM-DD HH:mm:ss\", \"showDataLabels\": false, \"columnConfigurationMap\": {\"x\": {\"column\": \"date\"}, \"y\": [{\"column\": \"memoryPercentage\"}]}, \"showPlotlyControls\": true}",
+                "query_name": "4c88e9643bc844f2b678fee1f4818a51"
+              }
+            }
+          },
+          "position": {
+            "x": 4,
+            "y": 19,
+            "width": 4,
+            "height": 8
+          }
+        },
+        {
+          "widget": {
+            "name": "c677ff70",
+            "queries": [
+              {
+                "name": "4c88e9643bc844f2b678fee1f4818a51",
+                "query": {
+                  "datasetName": "ff249fa2",
+                  "disaggregated": true
+                }
+              }
+            ],
+            "spec": {
+              "version": 0,
+              "viz_spec": {
+                "display_name": "Average Cluster Memory Utilization by Date",
+                "description": "",
+                "viz_type": "CHART",
+                "serialized_options": "{\"version\": 2, \"globalSeriesType\": \"column\", \"sortX\": true, \"sortY\": true, \"legend\": {\"traceorder\": \"normal\"}, \"xAxis\": {\"type\": \"-\", \"labels\": {\"enabled\": true}}, \"yAxis\": [{\"type\": \"-\"}, {\"type\": \"-\", \"opposite\": true}], \"alignYAxesAtZero\": false, \"error_y\": {\"type\": \"data\", \"visible\": true}, \"series\": {\"stacking\": null, \"error_y\": {\"type\": \"data\", \"visible\": true}}, \"seriesOptions\": {\"avgMemoryGB\": {\"yAxis\": 0}, \"total_cluster_memory\": {\"yAxis\": 0, \"type\": \"line\", \"name\": \"Total Cluster Memory\"}}, \"valuesOptions\": {}, \"direction\": {\"type\": \"counterclockwise\"}, \"sizemode\": \"diameter\", \"coefficient\": 1, \"numberFormat\": \"0,0[.]00000\", \"percentFormat\": \"0[.]00%\", \"textFormat\": \"\", \"missingValuesAsZero\": true, \"useAggregationsUi\": false, \"swappedAxes\": false, \"dateTimeFormat\": \"YYYY-MM-DD HH:mm:ss\", \"showDataLabels\": false, \"columnConfigurationMap\": {\"x\": {\"column\": \"date\"}, \"y\": [{\"column\": \"avgMemoryGB\"}, {\"column\": \"total_cluster_memory\"}], \"yError\": {\"column\": null}, \"series\": {\"column\": null}}, \"showPlotlyControls\": true}",
+                "query_name": "4c88e9643bc844f2b678fee1f4818a51"
+              }
+            }
+          },
+          "position": {
+            "x": 8,
+            "y": 19,
+            "width": 4,
+            "height": 8
+          }
+        },
+        {
+          "widget": {
+            "name": "cefcf718",
+            "queries": [
+              {
+                "name": "c789407fe26d4e0a97285a00a9fbef4c",
+                "query": {
+                  "datasetName": "c9edd8c7",
+                  "disaggregated": true
+                }
+              }
+            ],
+            "spec": {
+              "version": 0,
+              "viz_spec": {
+                "display_name": "Cluster Name ",
+                "description": "",
+                "viz_type": "COUNTER",
+                "serialized_options": "{\"counterLabel\": \"Cluster Name\", \"counterColName\": \"clusterName\", \"rowNumber\": 1, \"targetRowNumber\": 1, \"stringDecimal\": 0, \"stringDecChar\": \".\", \"stringThouSep\": \",\", \"tooltipFormat\": \"0,0.000\", \"showPlotlyControls\": true}",
+                "query_name": "c789407fe26d4e0a97285a00a9fbef4c"
+              }
+            }
+          },
+          "position": {
+            "x": 0,
+            "y": 11,
+            "width": 2,
+            "height": 3
+          }
+        },
+        {
+          "widget": {
+            "name": "9abcac08",
+            "queries": [
+              {
+                "name": "c789407fe26d4e0a97285a00a9fbef4c",
+                "query": {
+                  "datasetName": "c9edd8c7",
+                  "disaggregated": true
+                }
+              }
+            ],
+            "spec": {
+              "version": 0,
+              "viz_spec": {
+                "display_name": "Platform Version",
+                "description": "",
+                "viz_type": "COUNTER",
+                "serialized_options": "{\"counterLabel\": \"CDH Version\", \"counterColName\": \"cdhVersion\", \"rowNumber\": 1, \"targetRowNumber\": 1, \"stringDecimal\": 0, \"stringDecChar\": \".\", \"stringThouSep\": \",\", \"tooltipFormat\": \"0,0.000\", \"showPlotlyControls\": true}",
+                "query_name": "c789407fe26d4e0a97285a00a9fbef4c"
+              }
+            }
+          },
+          "position": {
+            "x": 2,
+            "y": 11,
+            "width": 2,
+            "height": 3
+          }
+        },
+        {
+          "widget": {
+            "name": "7ae3e380",
+            "queries": [
+              {
+                "name": "c789407fe26d4e0a97285a00a9fbef4c",
+                "query": {
+                  "datasetName": "c9edd8c7",
+                  "disaggregated": true
+                }
+              }
+            ],
+            "spec": {
+              "version": 0,
+              "viz_spec": {
+                "display_name": "Cloudera Manager Version",
+                "description": "",
+                "viz_type": "COUNTER",
+                "serialized_options": "{\"counterLabel\": \"Cloudera Manager Version\", \"counterColName\": \"cmVersion\", \"rowNumber\": 1, \"targetRowNumber\": 1, \"stringDecimal\": 0, \"stringDecChar\": \".\", \"stringThouSep\": \",\", \"tooltipFormat\": \"0,0.000\", \"showPlotlyControls\": true}",
+                "query_name": "c789407fe26d4e0a97285a00a9fbef4c"
+              }
+            }
+          },
+          "position": {
+            "x": 4,
+            "y": 11,
+            "width": 2,
+            "height": 3
+          }
+        },
+        {
+          "widget": {
+            "name": "1cc3bcec",
+            "queries": [
+              {
+                "name": "c789407fe26d4e0a97285a00a9fbef4c",
+                "query": {
+                  "datasetName": "c9edd8c7",
+                  "disaggregated": true
+                }
+              }
+            ],
+            "spec": {
+              "version": 0,
+              "viz_spec": {
+                "display_name": "Distribution",
+                "description": "",
+                "viz_type": "COUNTER",
+                "serialized_options": "{\"counterLabel\": \"Distribution\", \"counterColName\": \"Distribution\", \"rowNumber\": 1, \"targetRowNumber\": 1, \"stringDecimal\": 0, \"stringDecChar\": \".\", \"stringThouSep\": \",\", \"tooltipFormat\": \"0,0.000\", \"showPlotlyControls\": true}",
+                "query_name": "c789407fe26d4e0a97285a00a9fbef4c"
+              }
+            }
+          },
+          "position": {
+            "x": 0,
+            "y": 14,
+            "width": 2,
+            "height": 3
+          }
+        },
+        {
+          "widget": {
+            "name": "5b410761",
+            "queries": [
+              {
+                "name": "c789407fe26d4e0a97285a00a9fbef4c",
+                "query": {
+                  "datasetName": "c9edd8c7",
+                  "disaggregated": true
+                }
+              }
+            ],
+            "spec": {
+              "version": 0,
+              "viz_spec": {
+                "display_name": "Hadoop Version",
+                "description": "",
+                "viz_type": "COUNTER",
+                "serialized_options": "{\"counterLabel\": \"\", \"counterColName\": \"hadoop_version\", \"rowNumber\": 1, \"targetRowNumber\": 1, \"stringDecimal\": 0, \"stringDecChar\": \".\", \"stringThouSep\": \",\", \"tooltipFormat\": \"0,0.000\", \"showPlotlyControls\": true}",
+                "query_name": "c789407fe26d4e0a97285a00a9fbef4c"
+              }
+            }
+          },
+          "position": {
+            "x": 2,
+            "y": 14,
+            "width": 2,
+            "height": 3
+          }
+        },
+        {
+          "widget": {
+            "name": "0d6d2c98",
+            "queries": [
+              {
+                "name": "2a5162fd75834319b9517a6f5f722f66",
+                "query": {
+                  "datasetName": "63e49f7b",
+                  "disaggregated": true
+                }
+              }
+            ],
+            "spec": {
+              "version": 0,
+              "viz_spec": {
+                "display_name": "DBU Calculator Inputs",
+                "description": "",
+                "viz_type": "TABLE",
+                "serialized_options": "{\"version\": 2}",
+                "query_name": "2a5162fd75834319b9517a6f5f722f66"
+              }
+            }
+          },
+          "position": {
+            "x": 0,
+            "y": 0,
+            "width": 6,
+            "height": 9
+          }
+        },
+        {
+          "widget": {
+            "name": "7003763e",
+            "queries": [
+              {
+                "name": "b7398c495e2f42f4972f1f9e4d39a61a",
+                "query": {
+                  "datasetName": "f8c0976c",
+                  "disaggregated": true
+                }
+              }
+            ],
+            "spec": {
+              "version": 0,
+              "viz_spec": {
+                "display_name": "Total Queries Executed by Date",
+                "description": "",
+                "viz_type": "CHART",
+                "serialized_options": "{\"version\": 2, \"globalSeriesType\": \"column\", \"sortX\": true, \"legend\": {\"enabled\": true, \"placement\": \"auto\", \"traceorder\": \"normal\"}, \"xAxis\": {\"type\": \"-\", \"labels\": {\"enabled\": true}, \"title\": {\"text\": \"Run Date\"}}, \"yAxis\": [{\"type\": \"-\", \"title\": {\"text\": \"Total Queries\"}}, {\"type\": \"-\", \"opposite\": true, \"title\": {\"text\": null}}], \"alignYAxesAtZero\": false, \"error_y\": {\"type\": \"data\", \"visible\": true}, \"series\": {\"stacking\": null, \"error_y\": {\"type\": \"data\", \"visible\": true}, \"percentValues\": false}, \"seriesOptions\": {\"totalQueries\": {\"yAxis\": 0}}, \"valuesOptions\": {}, \"direction\": {\"type\": \"counterclockwise\"}, \"sizemode\": \"diameter\", \"coefficient\": 1, \"numberFormat\": \"0,0[.]00000\", \"percentFormat\": \"0[.]00%\", \"textFormat\": \"\", \"missingValuesAsZero\": true, \"useAggregationsUi\": false, \"swappedAxes\": false, \"dateTimeFormat\": \"YYYY-MM-DD HH:mm:ss\", \"showDataLabels\": true, \"columnConfigurationMap\": {\"x\": {\"column\": \"startDate\"}, \"y\": [{\"column\": \"totalQueries\"}], \"series\": {\"column\": null}}, \"showPlotlyControls\": true}",
+                "query_name": "b7398c495e2f42f4972f1f9e4d39a61a"
+              }
+            }
+          },
+          "position": {
+            "x": 0,
+            "y": 258,
+            "width": 6,
+            "height": 8
+          }
+        },
+        {
+          "widget": {
+            "name": "849077f1",
+            "queries": [
+              {
+                "name": "b7398c495e2f42f4972f1f9e4d39a61a",
+                "query": {
+                  "datasetName": "f8c0976c",
+                  "disaggregated": true
+                }
+              }
+            ],
+            "spec": {
+              "version": 0,
+              "viz_spec": {
+                "display_name": "Total Memory Accrued and Peak Memory Used",
+                "description": "",
+                "viz_type": "CHART",
+                "serialized_options": "{\"version\": 2, \"globalSeriesType\": \"column\", \"sortX\": true, \"legend\": {\"enabled\": true, \"placement\": \"auto\", \"traceorder\": \"normal\"}, \"xAxis\": {\"type\": \"-\", \"labels\": {\"enabled\": true}}, \"yAxis\": [{\"type\": \"-\"}, {\"type\": \"-\", \"opposite\": true}], \"alignYAxesAtZero\": false, \"error_y\": {\"type\": \"data\", \"visible\": true}, \"series\": {\"stacking\": null, \"error_y\": {\"type\": \"data\", \"visible\": true}}, \"seriesOptions\": {\"average_memory_accural_TB\": {\"yAxis\": 0}, \"memory_aggregate_peak_TB\": {\"yAxis\": 1}}, \"valuesOptions\": {}, \"direction\": {\"type\": \"counterclockwise\"}, \"sizemode\": \"diameter\", \"coefficient\": 1, \"numberFormat\": \"0,0[.]00000\", \"percentFormat\": \"0[.]00%\", \"textFormat\": \"\", \"missingValuesAsZero\": true, \"useAggregationsUi\": false, \"swappedAxes\": false, \"dateTimeFormat\": \"YYYY-MM-DD HH:mm:ss\", \"showDataLabels\": false, \"columnConfigurationMap\": {\"x\": {\"column\": \"startDate\"}, \"y\": [{\"column\": \"average_memory_accural_TB\"}, {\"column\": \"memory_aggregate_peak_TB\"}]}, \"showPlotlyControls\": true}",
+                "query_name": "b7398c495e2f42f4972f1f9e4d39a61a"
+              }
+            }
+          },
+          "position": {
+            "x": 6,
+            "y": 258,
+            "width": 6,
+            "height": 8
+          }
+        },
+        {
+          "widget": {
+            "name": "b8e65907",
+            "queries": [
+              {
+                "name": "b7398c495e2f42f4972f1f9e4d39a61a",
+                "query": {
+                  "datasetName": "f8c0976c",
+                  "disaggregated": true
+                }
+              }
+            ],
+            "spec": {
+              "version": 0,
+              "viz_spec": {
+                "display_name": "User Prefix Metrics",
+                "description": "",
+                "viz_type": "CHART",
+                "serialized_options": "{\"version\": 2, \"globalSeriesType\": \"pie\", \"sortX\": true, \"legend\": {\"enabled\": true, \"placement\": \"auto\", \"traceorder\": \"normal\"}, \"xAxis\": {\"type\": \"-\", \"labels\": {\"enabled\": true}}, \"yAxis\": [{\"type\": \"-\"}, {\"type\": \"-\", \"opposite\": true}], \"alignYAxesAtZero\": false, \"error_y\": {\"type\": \"data\", \"visible\": true}, \"series\": {\"stacking\": null, \"error_y\": {\"type\": \"data\", \"visible\": true}}, \"seriesOptions\": {\"memory_accrual_TB\": {\"yAxis\": 0, \"name\": \"Total Memory Accrured(in TB)\"}, \"memory_aggregate_peak_TB\": {\"yAxis\": 1, \"name\": \"Total Aggreagted Peak Memory (in TB)\"}, \"total_thread_cpu_time\": {\"yAxis\": 1, \"name\": \"Total CPU Thread Time (ms)\"}, \"total_rowsProduced\": {\"yAxis\": 1, \"name\": \"Total Rows Produced\"}, \"total_durationMinutes\": {\"yAxis\": 1, \"name\": \"Total Duration (in Minutes)\"}}, \"valuesOptions\": {}, \"direction\": {\"type\": \"counterclockwise\"}, \"sizemode\": \"diameter\", \"coefficient\": 1, \"numberFormat\": \"0,0[.]00000\", \"percentFormat\": \"0[.]00%\", \"textFormat\": \"\", \"missingValuesAsZero\": true, \"useAggregationsUi\": false, \"swappedAxes\": false, \"dateTimeFormat\": \"YYYY-MM-DD HH:mm:ss\", \"showDataLabels\": true, \"columnConfigurationMap\": {\"x\": {\"column\": \"user_prefix\"}, \"y\": [{\"column\": \"memory_accrual_TB\"}, {\"column\": \"memory_aggregate_peak_TB\"}, {\"column\": \"total_thread_cpu_time\"}, {\"column\": \"total_rowsProduced\"}, {\"column\": \"total_durationMinutes\"}]}, \"showPlotlyControls\": true}",
+                "query_name": "b7398c495e2f42f4972f1f9e4d39a61a"
+              }
+            }
+          },
+          "position": {
+            "x": 0,
+            "y": 266,
+            "width": 12,
+            "height": 17
+          }
+        },
+        {
+          "widget": {
+            "name": "d9684054",
+            "queries": [
+              {
+                "name": "c473e7adafc84246a30bfe538befe048",
+                "query": {
+                  "datasetName": "bd38c343",
+                  "fields": [
+                    {
+                      "name": "startDate",
+                      "expression": "`startDate`"
+                    },
+                    {
+                      "name": "queryType",
+                      "expression": "`queryType`"
+                    },
+                    {
+                      "name": "column_2f7020b414195",
+                      "expression": "SUM(`count(1)`)"
+                    }
+                  ],
+                  "disaggregated": false
+                }
+              }
+            ],
+            "spec": {
+              "version": 0,
+              "viz_spec": {
+                "display_name": "By Query count - CM Impala Query Type",
+                "viz_type": "CHART",
+                "serialized_options": "{\"version\": 2, \"globalSeriesType\": \"column\", \"sortX\": true, \"sortY\": true, \"legend\": {\"traceorder\": \"normal\"}, \"xAxis\": {\"type\": \"-\", \"labels\": {\"enabled\": true}, \"title\": {\"text\": \"Date\"}}, \"yAxis\": [{\"type\": \"-\", \"title\": {\"text\": \"Count Of Queries\"}}, {\"type\": \"-\", \"opposite\": true}], \"alignYAxesAtZero\": false, \"error_y\": {\"type\": \"data\", \"visible\": true}, \"series\": {\"stacking\": \"stack\", \"error_y\": {\"type\": \"data\", \"visible\": true}}, \"seriesOptions\": {\"column_2f7020b414195\": {\"name\": \"count(1)\", \"yAxis\": 0, \"type\": \"column\"}}, \"valuesOptions\": {}, \"direction\": {\"type\": \"counterclockwise\"}, \"sizemode\": \"diameter\", \"coefficient\": 1, \"numberFormat\": \"0,0[.]00000\", \"percentFormat\": \"0[.]00%\", \"textFormat\": \"\", \"missingValuesAsZero\": true, \"useAggregationsUi\": true, \"swappedAxes\": false, \"dateTimeFormat\": \"YYYY-MM-DD HH:mm:ss\", \"showDataLabels\": false, \"columnConfigurationMap\": {\"x\": {\"column\": \"startDate\", \"id\": \"column_2f7020b414193\"}, \"series\": {\"column\": \"queryType\", \"id\": \"column_2f7020b414194\"}, \"y\": [{\"column\": \"count(1)\", \"transform\": \"SUM\", \"id\": \"column_2f7020b414195\"}]}, \"isAggregationOn\": true}",
+                "query_name": "c473e7adafc84246a30bfe538befe048"
+              }
+            }
+          },
+          "position": {
+            "x": 0,
+            "y": 283,
+            "width": 12,
+            "height": 12
+          }
+        }
+      ],
+      "pageType": "PAGE_TYPE_CANVAS",
+      "layoutVersion": "GRID_V1"
+    },
+    {
+      "name": "8aae3902",
+      "displayName": "Global Filters",
+      "layout": [
+        {
+          "widget": {
+            "name": "profiler-run-database",
+            "queries": [
+              {
+                "name": "dashboards/01f11397b53c1aec914677ff28f4bb05/datasets/01f11397b53d11d983a71dc7172e37d8_database_name",
+                "query": {
+                  "datasetName": "a78ed73f",
+                  "fields": [
+                    {
+                      "name": "database_name",
+                      "expression": "`database_name`"
+                    },
+                    {
+                      "name": "database_name_associativity",
+                      "expression": "COUNT_IF(`associative_filter_predicate_group`)"
+                    }
+                  ],
+                  "disaggregated": false
+                }
+              }
+            ],
+            "spec": {
+              "version": 2,
+              "frame": {
+                "showTitle": true,
+                "title": "Profiler Run Database"
+              },
+              "disallowAll": true,
+              "widgetType": "filter-single-select",
+              "encodings": {
+                "fields": [
+                  {
+                    "fieldName": "database_name",
+                    "queryName": "dashboards/01f11397b53c1aec914677ff28f4bb05/datasets/01f11397b53d11d983a71dc7172e37d8_database_name"
+                  }
+                ],
+                "parameters": [
+                  {
+                    "keyword": "database",
+                    "datasetName": "a78ed73f"
+                  }
+                ]
+              }
+            }
+          },
+          "position": {
+            "x": 0,
+            "y": 0,
+            "width": 1,
+            "height": 2
+          }
+        }
+      ],
+      "pageType": "PAGE_TYPE_GLOBAL_FILTERS",
+      "layoutVersion": "GRID_V1"
+    }
+  ],
+  "uiSettings": {
+    "theme": {
+      "widgetHeaderAlignment": "ALIGNMENT_UNSPECIFIED"
+    },
+    "applyModeEnabled": true
+  }
+}
