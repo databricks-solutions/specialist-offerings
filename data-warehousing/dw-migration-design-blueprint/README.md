@@ -8,7 +8,7 @@ business_outcome: "Help customers make an informed DW migration decision with co
 tags: [ssa-offering, global, data-warehousing, migration, databricks-sql, unity-catalog, lakebridge, lakehouse-federation, delta-sharing]
 strategic_priority: "High"
 imperative: "Data Warehousing"
-last_certified: "2027-04-01"
+last_certified: "2026-04-01"
 products: "Databricks SQL, Serverless SQL Warehouses, Delta Lake, Unity Catalog, Lakebridge, Lakehouse Federation, Delta Sharing"
 product_lines: "Data Warehousing, Data Engineering"
 ---

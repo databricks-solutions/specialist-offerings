@@ -8,7 +8,7 @@ business_outcome: "Validate DBSQL performance, scalability, and TCO savings vers
 tags: [ssa-offering, global, data-warehousing, databricks-sql, serverless-sql, delta-lake, poc, performance, tco]
 strategic_priority: "High"
 imperative: "Data Warehousing"
-last_certified: "2027-04-01"
+last_certified: "2026-04-01"
 products: "Databricks SQL, Serverless SQL Warehouses, Delta Lake, Databricks Secrets"
 product_lines: "Data Warehousing"
 ---

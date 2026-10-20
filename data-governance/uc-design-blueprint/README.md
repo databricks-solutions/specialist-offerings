@@ -8,7 +8,7 @@ business_outcome: "Simplify and accelerate UC design and deployment for customer
 tags: [ssa-offering, global, data-governance, unity-catalog, lakehouse-federation, delta-sharing, scim, governance]
 strategic_priority: "High"
 imperative: "Data Governance"
-last_certified: "2027-04-01"
+last_certified: "2026-04-01"
 products: "Unity Catalog, Lakehouse Federation, Delta Sharing, SCIM"
 product_lines: "Data Engineering, Data Governance"
 ---
