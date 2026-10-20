@@ -16,6 +16,8 @@ What it enforces:
                      tag; local offerings (any other `region`) name their team
                      and don't carry `global`, so the generated display name
                      and tags match the Salesforce listing.
+  3c. Certified   -- `last_certified`, when set, is a real YYYY-MM-DD date that
+                     is not in the future (it records the last human update).
   4. Engage hint  -- the body carries the `#ssa-offering #<slug>` ASQ hashtag, the
                      stable join key across repo / Sage / ASQ (was auto-injected
                      by the old README generator; now authored, so we check it).
@@ -36,6 +38,7 @@ Usage:  python3 scripts/validate_specs.py
 from __future__ import annotations
 
 import sys
+from datetime import date
 from pathlib import Path
 
 # Reuse the generator's parser, discovery, and slug logic -- one source of truth.
@@ -125,6 +128,22 @@ def main() -> int:
                     f"{rel}: `global` tag is only for Global offerings "
                     f"(region is '{fm.get('region')}')"
                 )
+
+        # 4c. last_certified is a real date, not in the future.
+        certified = str(fm.get("last_certified", "")).strip()
+        if certified:
+            try:
+                certified_on = date.fromisoformat(certified)
+            except ValueError:
+                errors.append(
+                    f"{rel}: last_certified '{certified}' is not a YYYY-MM-DD date"
+                )
+            else:
+                if certified_on > date.today():
+                    errors.append(
+                        f"{rel}: last_certified {certified} is in the future "
+                        f"(use the date of the last human update)"
+                    )
 
         # 5. Body carries the ASQ engage hashtag (`#ssa-offering #<slug>`).
         body = readme.read_text(encoding="utf-8")

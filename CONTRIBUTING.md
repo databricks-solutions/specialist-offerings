@@ -93,6 +93,7 @@ Each offering's `README.md` opens with YAML frontmatter (see the [template](temp
 | `team` | Local offerings only | `FINS`, `DNB`, ... Leave empty for Global offerings |
 | `status` | Yes | `Active`, `Under Review`, `Inactive` |
 | `business_outcome` | Yes | One line; becomes the Sage description |
+| `last_certified` | No | `YYYY-MM-DD` of the last time an owner created or updated the content (not formatting changes). Must not be in the future |
 
 `scripts/gen_sage_manifest.py` turns these into the Sage asset: the display name (`SSA | <title> | Global` or `SSA | <title> | <region> | <team>`, matching the Salesforce Catalog Offering listing) and the quality tier. Tags are passed through as written; Global offerings must include the `global` tag. Embed `images/thumbnail.png` at the top of the README with the pitch deck link right below it.
 

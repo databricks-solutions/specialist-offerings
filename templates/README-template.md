@@ -24,7 +24,7 @@ tags: [ssa-offering, global, data-warehousing, databricks-sql]
 # Recommended
 strategic_priority: "High"                      # High | Medium | Low
 imperative: "Data Warehousing"
-last_certified: "2027-01-15"                    # YYYY-MM-DD
+last_certified: "2026-04-01"                    # YYYY-MM-DD: last time an owner created or updated the content
 products: "Databricks SQL, Delta Lake"          # Comma-separated
 product_lines: "Data Warehousing"               # Comma-separated
 ---
