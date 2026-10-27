@@ -277,3 +277,29 @@ CM_EXTRACT_IMPALA_QUERIES=N
 # YARN captured 132 apps from 11 Oozie medallion-pipeline runs
 # CM timeseries returned "Connection refused" (Activity Monitor not running on QuickStart)
 ```
+
+## Restoring the profiler Delta tables after a sandbox wipe
+
+The shared `aws_sandbox` workspace periodically resets managed storage — it drops
+the `profiler.*` schemas, their Delta data, and the contents of the upload volume.
+The app then shows `DELTA_TABLE_NOT_FOUND`. This is an operational reset, not an
+AWS misconfiguration (no S3 lifecycle rule); recovery is reloading from the local
+DuckDB exports, which are the source of truth
+(`input_json_dont_check_in/<schema>/<schema>.duckdb`, gitignored/confidential).
+
+**One command:**
+```bash
+cd Profiler && ./restore.sh            # DATABRICKS_PROFILE=aws_sandbox by default
+```
+It (1) re-uploads the DuckDB exports to `/Volumes/profiler/demo/profiler_uploads`,
+(2) runs the saved **"Restore Profiler Delta (visa)"** job (DuckDB → Delta via
+`load_profiler_to_delta`, single-node cluster, both `visa_dpi` + `visa_dpi_mar`),
+and (3) verifies row counts. Idempotent (`overwrite=true`).
+
+**From the UI:** Workflows → run **"Restore Profiler Delta (visa)"** — but note it
+reads the volume, so if the volume was also wiped you must run `restore.sh` (or
+re-upload the `.duckdb` files) first.
+
+To restore a different engagement, add its `<schema>.duckdb` locally and add a task
+to the job (or a schema to `SCHEMAS=(...)` in `restore.sh`). Not scheduled by
+default; add a cron/Databricks schedule if you want it to self-heal after resets.
