@@ -75,6 +75,17 @@ export interface DbsqlSizeRow {
 export interface StorageTierRow {
   cloud: string; tier_name: string; volume_min_tb: number; volume_max_tb: number; price_per_gb: number;
 }
+export interface EngineMixRow {
+  application_type: string; apps: number; mem_gb_hours: number; pct: number;
+}
+export interface MeasuredProfile {
+  node_count?: number;
+  vcores_per_node?: number;
+  storage_tb?: number;
+  alloc_vcore_hours?: number;
+  window_days: number;
+  engine_mix: EngineMixRow[];
+}
 
 export const api = {
   listAssumptions: () => fetch('/api/tco/assumptions').then(unwrap<AssumptionSummary[]>),
@@ -97,4 +108,6 @@ export const api = {
   listRuns: () => fetch('/api/tco/runs').then(unwrap<RunSummary[]>),
   getRun: (id: string) => fetch(`/api/tco/runs/${id}`).then(unwrap<RunDetailFull>),
   skuMapping: () => fetch('/api/tco/sku-mapping').then(unwrap<SkuMappingRow[]>),
+  measuredProfile: (catalog: string, schema: string) =>
+    fetch(`/api/tco/measured?catalog=${encodeURIComponent(catalog)}&schema=${encodeURIComponent(schema)}`).then(unwrap<MeasuredProfile>),
 };

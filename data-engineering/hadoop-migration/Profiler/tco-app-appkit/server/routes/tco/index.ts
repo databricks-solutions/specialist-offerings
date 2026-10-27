@@ -6,6 +6,7 @@ import { setupTcoSchema } from '../../db/schema';
 import { registerAssumptionsRoutes } from './assumptions-routes';
 import { registerReferenceRoutes } from './reference-routes';
 import { registerCalculateRoutes } from './calculate-routes';
+import { registerMeasuredRoutes } from './measured-routes';
 import type { EngineAppKit } from '../../engine/cost-engine';
 
 type TcoAppKit = EngineAppKit & {
@@ -24,4 +25,5 @@ export async function setupTco(appkit: TcoAppKit): Promise<void> {
   registerAssumptionsRoutes(appkit);
   registerReferenceRoutes(appkit);
   registerCalculateRoutes(appkit);
+  registerMeasuredRoutes(appkit);
 }

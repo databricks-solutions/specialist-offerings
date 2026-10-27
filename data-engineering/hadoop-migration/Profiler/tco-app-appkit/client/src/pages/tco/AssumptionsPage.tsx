@@ -1,6 +1,7 @@
 import { useState, useEffect } from 'react';
 import { Button, Card, CardContent, CardHeader, CardTitle, Label } from '@databricks/appkit-ui/react';
-import { api, type AssumptionSummary } from '@/lib/api';
+import { api, type AssumptionSummary, type MeasuredProfile } from '@/lib/api';
+import { useCatalogSchema } from '@/lib/catalog';
 import type { Assumptions } from '../../../../shared/tco-types';
 
 // The fields the form edits (others fall back to engine defaults). Grouped for layout.
@@ -30,11 +31,40 @@ export function AssumptionsPage() {
   const [form, setForm] = useState<Record<string, string>>(blank());
   const [editId, setEditId] = useState<string | null>(null);
   const [status, setStatus] = useState<{ kind: 'ok' | 'err'; msg: string } | null>(null);
+  const { catalog, database } = useCatalogSchema();
+  const [measured, setMeasured] = useState<MeasuredProfile | null>(null);
 
   const refresh = () => { void api.listAssumptions().then(setList).catch((e) => setStatus({ kind: 'err', msg: String((e as Error).message || e) })); };
   useEffect(() => { refresh(); }, []);
 
+  // Pull profiler-measured values for the selected source so fields can show "measured: X [use]".
+  useEffect(() => {
+    let cancelled = false;
+    api.measuredProfile(catalog, database)
+      .then((m) => { if (!cancelled) setMeasured(m); })
+      .catch(() => { if (!cancelled) setMeasured(null); });
+    return () => { cancelled = true; };
+  }, [catalog, database]);
+
   const set = (k: string, v: string) => setForm((f) => ({ ...f, [k]: v }));
+
+  // Measured hint for a field: {raw to adopt, display label} or null when not measurable.
+  // Utilization is computed against the form's current nodes × vCores (lights up once capacity is entered).
+  function measuredHint(key: string): { raw: number; label: string } | null {
+    if (!measured) return null;
+    if (key === 'hadoop_node_count' && measured.node_count != null) return { raw: measured.node_count, label: measured.node_count.toLocaleString() };
+    if (key === 'hadoop_vcores_per_node' && measured.vcores_per_node != null) return { raw: measured.vcores_per_node, label: String(measured.vcores_per_node) };
+    if (key === 'storage_total_tb' && measured.storage_tb != null) return { raw: measured.storage_tb, label: `${measured.storage_tb.toLocaleString()} TB` };
+    if (key === 'hadoop_utilization_pct') {
+      const nodes = Number(form.hadoop_node_count) || 0;
+      const vcores = Number(form.hadoop_vcores_per_node) || 0;
+      if (measured.alloc_vcore_hours && nodes > 0 && vcores > 0 && measured.window_days > 0) {
+        const util = (measured.alloc_vcore_hours / (nodes * vcores * measured.window_days * 24)) * 100;
+        return { raw: Math.round(util * 100) / 100, label: `${(Math.round(util * 100) / 100).toLocaleString()}%` };
+      }
+    }
+    return null;
+  }
 
   function toBody(): Assumptions {
     const b: Record<string, unknown> = {
@@ -119,6 +149,12 @@ export function AssumptionsPage() {
       <Card>
         <CardHeader><CardTitle>{editId ? 'Edit set' : 'New set'}</CardTitle></CardHeader>
         <CardContent className="space-y-4">
+          {measured && (
+            <div className="text-xs text-muted-foreground">
+              Measured from <span className="font-mono">{catalog}.{database}</span> · {measured.window_days}-day window.
+              Fields below show profiler-measured values where available — click <span className="font-medium">use</span> to adopt, or keep your manual value.
+            </div>
+          )}
           <div className="grid grid-cols-1 md:grid-cols-4 gap-3">
             <div className="md:col-span-2">
               <Label>Name</Label>
@@ -134,14 +170,30 @@ export function AssumptionsPage() {
             ))}
           </div>
           <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
-            {NUM_FIELDS.map(([k, label]) => (
-              <div key={k as string}>
-                <Label>{label}</Label>
-                <input type="number" className="w-full h-9 rounded-md border px-3 text-sm bg-background"
-                  value={form[k as string] ?? ''} onChange={(e) => set(k as string, e.target.value)} />
-              </div>
-            ))}
+            {NUM_FIELDS.map(([k, label]) => {
+              const hint = measuredHint(k as string);
+              return (
+                <div key={k as string}>
+                  <Label>{label}</Label>
+                  <input type="number" className="w-full h-9 rounded-md border px-3 text-sm bg-background"
+                    value={form[k as string] ?? ''} onChange={(e) => set(k as string, e.target.value)} />
+                  {hint && (
+                    <div className="mt-1 text-xs text-muted-foreground">
+                      measured: {hint.label}{' '}
+                      <button type="button" className="text-blue-600 hover:underline"
+                        onClick={() => set(k as string, String(hint.raw))}>use</button>
+                    </div>
+                  )}
+                </div>
+              );
+            })}
           </div>
+          {measured && measured.engine_mix.length > 0 && (
+            <div className="text-xs text-muted-foreground">
+              Profiler engine mix (reference — set the ETL/Interactive/BI split manually):{' '}
+              {measured.engine_mix.slice(0, 4).map((e) => `${e.application_type} ${e.pct}%`).join(' · ')}
+            </div>
+          )}
           <div className="flex items-center gap-3">
             <Button onClick={() => void save()}>{editId ? 'Update' : 'Save'} assumption</Button>
             {editId && <Button variant="ghost" onClick={() => { setForm(blank()); setEditId(null); }}>Cancel</Button>}

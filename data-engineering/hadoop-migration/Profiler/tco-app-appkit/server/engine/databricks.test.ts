@@ -41,6 +41,13 @@ describe('Measured DBU (port of cost_engine.py loop)', () => {
     const r = computeMeasuredDbu([{ job_type: 'MapReduce', total_jobs: 5, total_memory_gb_hours: 100 }], skuMap, {}, 1);
     expect(r.streamCosts.etl).toBeCloseTo(29.7 * 0.15, 2);
   });
+
+  it('empty workload (no profiler data) yields zero cost, no throw — supports the no-profiler path', () => {
+    const r = computeMeasuredDbu([], skuMap, {}, 1);
+    expect(r.totalCompute).toBe(0);
+    expect(r.streamCosts).toEqual({ etl: 0, interactive: 0, bisql: 0 });
+    expect(r.details).toEqual([]);
+  });
 });
 
 describe('Capacity DBU (#6) — reconciles to the sheet Run-Rate chain', () => {

@@ -31,7 +31,7 @@ const round2 = (n: number) => Math.round(n * 100) / 100;
 const num = (v: unknown, d = 0): number => (v == null || Number.isNaN(Number(v)) ? d : Number(v));
 
 /** Run a warehouse query (via the analytics plugin) and return rows as objects. */
-async function warehouse(appkit: EngineAppKit, q: string, params?: Record<string, QueryParam | null | undefined>): Promise<Record<string, unknown>[]> {
+export async function warehouse(appkit: EngineAppKit, q: string, params?: Record<string, QueryParam | null | undefined>): Promise<Record<string, unknown>[]> {
   const res = await appkit.analytics.query(q, params);
   // AppKit analytics returns { chunk_index, row_offset, row_count, data: [...rows] }.
   // Tolerate a bare array or a {rows} wrapper as well. Numeric cells arrive as strings.
@@ -45,12 +45,12 @@ async function warehouse(appkit: EngineAppKit, q: string, params?: Record<string
   return [];
 }
 
-function identifier(table: string): string {
+export function identifier(table: string): string {
   return `IDENTIFIER(:catalog || '.' || :database || '.${table}')`;
 }
 
 /** Measure the profiler observation window → annualization factor (port of get_observation_window_days). */
-async function getObservationWindow(appkit: EngineAppKit, catalog: string, database: string): Promise<ObservationWindow> {
+export async function getObservationWindow(appkit: EngineAppKit, catalog: string, database: string): Promise<ObservationWindow> {
   const fallback: ObservationWindow = { window_days: 1, distinct_days: 0, span_days: 0, annualization_factor: DAYS_PER_YEAR, floored: true };
   try {
     const rows = await warehouse(
@@ -104,11 +104,19 @@ export async function calculateTco(appkit: EngineAppKit, req: CalculateRequest):
 
   // 4. Observation window + profiler workload (warehouse).
   const window = await getObservationWindow(appkit, catalog, database);
-  const workloadRaw = await warehouse(
-    appkit,
-    `SELECT job_type, total_jobs, total_memory_gb_hours FROM ${identifier('workload_summary_by_type')} ORDER BY total_memory_gb_hours DESC`,
-    { catalog: sql.string(catalog), database: sql.string(database) },
-  );
+  // Guarded: an empty/never-profiled schema has no workload_summary_by_type. Treat a
+  // missing table as "no measured workload" so a pure-manual capacity run still works
+  // (DBU from assumptions; measured mode just yields zero workload rows).
+  let workloadRaw: Record<string, unknown>[] = [];
+  try {
+    workloadRaw = await warehouse(
+      appkit,
+      `SELECT job_type, total_jobs, total_memory_gb_hours FROM ${identifier('workload_summary_by_type')} ORDER BY total_memory_gb_hours DESC`,
+      { catalog: sql.string(catalog), database: sql.string(database) },
+    );
+  } catch {
+    workloadRaw = [];
+  }
   const workloadRows: WorkloadRow[] = workloadRaw.map((r) => ({
     job_type: String(r.job_type),
     total_jobs: num(r.total_jobs),
