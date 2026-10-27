@@ -20,7 +20,7 @@ PROFILE="${DATABRICKS_PROFILE:-aws_sandbox}"
 WAREHOUSE_ID="${WAREHOUSE_ID:-80bb9cfd8c6e5b05}"
 VOL="/Volumes/profiler/demo/profiler_uploads"
 JOB_NAME="Restore Profiler Delta (visa)"
-SCHEMAS=(visa_dpi_mar visa_dpi)
+SCHEMAS=(demo visa_dpi_mar visa_dpi)
 
 HERE="$(cd "$(dirname "$0")" && pwd)"
 SRC="$HERE/input_json_dont_check_in"

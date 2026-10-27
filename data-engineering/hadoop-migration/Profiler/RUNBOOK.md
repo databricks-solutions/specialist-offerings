@@ -293,8 +293,9 @@ cd Profiler && ./restore.sh            # DATABRICKS_PROFILE=aws_sandbox by defau
 ```
 It (1) re-uploads the DuckDB exports to `/Volumes/profiler/demo/profiler_uploads`,
 (2) runs the saved **"Restore Profiler Delta (visa)"** job (DuckDB → Delta via
-`load_profiler_to_delta`, single-node cluster, both `visa_dpi` + `visa_dpi_mar`),
-and (3) verifies row counts. Idempotent (`overwrite=true`).
+`load_profiler_to_delta`, single-node cluster, `demo` + `visa_dpi` + `visa_dpi_mar`),
+and (3) verifies row counts. Idempotent (`overwrite=true`). `demo` is the CDH
+QuickStart sample — restoring it keeps the typegen reference schema valid too.
 
 **From the UI:** Workflows → run **"Restore Profiler Delta (visa)"** — but note it
 reads the volume, so if the volume was also wiped you must run `restore.sh` (or
