@@ -79,7 +79,7 @@ This repository is organized into five main domains, each containing content foc
 - Security architecture and design patterns
 
 ### 📦 Archive (`/z-archive`)
-**Purpose:** Preserve retired Specialist offerings for reference. The `z-` prefix sorts this folder **last** in the repository root so active domain folders appear first. Folders here mirror domain structure (`z-archive/data-warehousing`, etc.) but are **not** part of active Field Catalog ingestion—downstream tooling should exclude `z-archive/` when syncing offering `README.md` frontmatter.
+**Purpose:** Preserve retired Specialist offerings for reference. The `z-` prefix sorts this folder **last** in the repository root so active domain folders appear first. Folders here mirror domain structure (`z-archive/data-warehousing`, etc.) but are **not** part of active Sage ingestion—downstream tooling should exclude `z-archive/` when syncing offering `README.md` frontmatter.
 
 See [z-archive/README.md](z-archive/README.md) for policy and layout.
 

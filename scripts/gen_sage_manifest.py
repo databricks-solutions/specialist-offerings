@@ -229,9 +229,9 @@ def discover_offerings() -> list[Path]:
     return sorted(paths, key=lambda p: str(p.relative_to(REPO)))
 
 
-def render_asset(listing: Path) -> list[str]:
-    fm = read_frontmatter(listing)
-    offering_dir = listing.parent
+def render_asset(readme: Path) -> list[str]:
+    fm = read_frontmatter(readme)
+    offering_dir = readme.parent
     rel_dir = offering_dir.relative_to(REPO).as_posix()
     slug = offering_dir.name
     category = offering_dir.parent.name
@@ -266,8 +266,8 @@ def render() -> str:
         f"domain: {DOMAIN}",
         "assets:",
     ]
-    for listing in offerings:
-        lines.extend(render_asset(listing))
+    for readme in offerings:
+        lines.extend(render_asset(readme))
     return "\n".join(lines) + "\n"
 
 

@@ -55,7 +55,7 @@ from gen_sage_manifest import (  # noqa: E402
 
 # Frontmatter keys every offering must carry with a non-empty value. These are
 # the fields the manifest depends on (title/description/owner), the health
-# status, and the region that drives the display name and geo tag. `team` is
+# status, and the region that drives the display name. `team` is
 # checked separately because it must be empty for Global offerings.
 REQUIRED_KEYS = ("title", "owner", "region", "status", "business_outcome")
 
