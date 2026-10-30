@@ -113,3 +113,8 @@ Databricks support doesn't cover this content. For questions or bugs, please ope
 
 | library                                | description             | license    | source                                              |
 |----------------------------------------|-------------------------|------------|-----------------------------------------------------|
+| pydantic                               | data validation         | MIT        | https://github.com/pydantic/pydantic                |
+| PyYAML                                 | YAML parser             | MIT        | https://github.com/yaml/pyyaml                      |
+| databricks-sdk                         | Databricks REST SDK     | Apache-2.0 | https://github.com/databricks/databricks-sdk-py     |
+| pyspark                                | Apache Spark for Python | Apache-2.0 | https://github.com/apache/spark                     |
+| boto3                                  | AWS SDK for Python      | Apache-2.0 | https://github.com/boto/boto3                       |

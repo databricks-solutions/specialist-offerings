@@ -4,3 +4,4 @@ Active offerings listed here are indexed for the Field Catalog via each folder's
 
 #### Table of Contents:
 - [lakeflow-migration-design-blueprint](lakeflow-migration-design-blueprint/catalog-listing.yml): Help customers make an informed Lakeflow migration decision with confidence and clarity
+- [onpremhdfs2managediceberg](onpremhdfs2managediceberg/catalog-listing.yml): Migrate an on-prem Hadoop estate (HDFS + Hive Metastore, Hive and OSS Iceberg tables) into Unity Catalog managed Iceberg with validated, resumable incremental sync (h2mi)
