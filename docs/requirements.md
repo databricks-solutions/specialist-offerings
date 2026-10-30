@@ -1,6 +1,6 @@
 # HDFS → UC Managed Iceberg Migration Utility — Requirements
 
-**Status:** draft v0.2 · **Internal** · 2026-10-30 (v0.1: 2026-10-20; v0.2 adds ARC-08/09, DDL-15/16, INC-16/18, VAL-12/13, SEC-10, NFR-11, backlog #19–24)
+**Status:** draft v0.2 · 2026-10-30 (v0.1: 2026-10-20; v0.2 adds ARC-08/09, DDL-15/16, INC-16/18, VAL-12/13, SEC-10, NFR-11, backlog #19–24)
 **Scope:** on-prem Hadoop (HDFS + Hive Metastore; Hive tables and OSS Iceberg tables) → Databricks
 Unity Catalog **managed Iceberg** (MI), one-time historical load + incremental sync until cutover.
 
@@ -8,7 +8,7 @@ This document is the input to the technical design, process flow, implementation
 that live in this repository (`h2mi`). It consolidates (a) what we have already **tested** in our labs, (b)
 customer statements and decisions from discovery and follow-up calls, and (c) new asks from the
 most recent call. It supersedes nothing: the earlier requirement set
-(`visa_utils/topics/03_migration_approaches/docs/migration_requirements.md`,
+(lab evidence (Appendix C),
 IDs `R-01`…`R-55`) is mapped into this one in [Appendix A](#appendix-a--traceability-to-legacy-r-ids).
 
 ---
@@ -26,11 +26,11 @@ IDs `R-01`…`R-55`) is mapped into this one in [Appendix A](#appendix-a--tracea
 | `DT` | Hive date/time types | `VER` | Spark / Iceberg versions |
 | `DDL` | target design & registration | `OPS` | operations & reliability |
 | `INI` | initial (historical) load | `NFR` | non-functional |
-| `ADF` | distcp + `add_files` path | `Q` | open questions for Visa |
+| `ADF` | distcp + `add_files` path | `Q` | open questions for the customer |
 
 **Priority:** **M** = Must · **S** = Should · **C** = Could.
 
-**Status:** ✅ tested in lab · 🟡 partially tested · 🔵 test needed · ❓ open with Visa · 🔮 roadmap-dependent ·
+**Status:** ✅ tested in lab · 🟡 partially tested · 🔵 test needed · ❓ open with the customer · 🔮 roadmap-dependent ·
 ⚠️ risk.
 
 **Evidence tags** (full list in [Appendix B](#appendix-b--references)): `[MA]` Migration Approaches doc ·
@@ -59,10 +59,10 @@ Repo files are linked relatively.
 
 | Non-goal | Where it is covered |
 |---|---|
-| Glue-registered Iceberg tables → UC | `visa_utils/topics/05_federation/README.md` |
+| Glue-registered Iceberg tables → UC | lab evidence (Appendix C) |
 | Reverse / exit sync (MI → on-prem or → Glue; `rewrite_table_path`) | `[FA]` #5, exit runbook |
 | Cutover runbook (repointing writers/consumers, retiring on-prem copy) | later artifact |
-| Managed **Delta** targets | `visa_utils/topics/03_migration_approaches/README.md` |
+| Managed **Delta** targets | lab evidence (Appendix C) |
 | Approach C — federation / foreign tables (on-prem HDFS not supported; roadmap) | `[MA]` §6 |
 | AWS-native Iceberg estate (separate track) | R-05 |
 | Migrating Hive **views**, UDF code, and downstream jobs (HiveQL → Spark SQL) | separate track |
@@ -75,8 +75,8 @@ Repo files are linked relatively.
 |---|---|---|---|---|
 | SCP-10 | **No inbound connectivity** into the data centre. All traffic is initiated **outbound** from on-prem. | M | ✅ ⚠️ | R-35, [FA] #7 |
 | SCP-11 | On-prem HDFS and HMS are **Kerberized**. Kerberos stays on-prem; nothing in the cloud authenticates to it. | M | ✅ ⚠️ | R-36 |
-| SCP-12 | Estate is **PB scale (40–80 PB)**. Bandwidth, not compute or format, sets the timeline. | M | ✅ | R-13, R-38 |
-| SCP-13 | Scaling problem is **breadth**: many tables × many daily partitions. A candidate table is **15–20 GB/day**. Commit and metadata overhead matter more than throughput. | M | ✅ | R-14, R-15, R-16 |
+| SCP-12 | Estate is **PB scale (tens of PB)**. Bandwidth, not compute or format, sets the timeline. | M | ✅ | R-13, R-38 |
+| SCP-13 | Scaling problem is **breadth**: many tables × many daily partitions. A typical candidate table grows by **tens of GB/day**. Commit and metadata overhead matter more than throughput. | M | ✅ | R-14, R-15, R-16 |
 | SCP-14 | The **HMS transaction/event log is disabled** (space cost). HMS notifications cannot be used for change detection. | M | ✅ | [FA] #3 |
 | SCP-15 | On-prem Iceberg is **format v2**, with both CoW and MoR tables. Hive tables are mostly append-only daily partitions. | M | ✅ | R-31, R-39, [MA] scope |
 | SCP-16 | The current on-prem stack is older than required. A **newer-stack migration cluster** (Iceberg ≥ 1.11) is a prerequisite. | M | ✅ ⚠️ | [A13] prerequisite |
@@ -133,7 +133,7 @@ Repo files are linked relatively.
 | SRC-05 | All non-Parquet sources (Hive ORC/Avro/text/RCFile and Iceberg ORC data files) shall be **read and rewritten** to Parquet-backed MI. | M | ✅ | R-21, R-21a, R-27 |
 | SRC-06 | Hive **partition columns** that exist only in the directory path shall be materialized as real columns in the target. | M | ✅ | [QA] Q9, [FA] #4 |
 | SRC-07 | For **text tables**, the HMS schema may be stale or all-STRING. The scanner shall sample files and flag HMS-vs-file schema disagreements for review before DDL generation. | S | 🟡 | [TM] migration solution step 1 |
-| SRC-08 | Iceberg sources with **partition evolution** shall be migrated by compute-copy (not `CONVERT`/register). | S | 🟡 (evolved source built; `CONVERT TO DELTA` fails as expected) | `visa_utils/topics/03_migration_approaches/README.md` |
+| SRC-08 | Iceberg sources with **partition evolution** shall be migrated by compute-copy (not `CONVERT`/register). | S | 🟡 (evolved source built; `CONVERT TO DELTA` fails as expected) | lab evidence (Appendix C) |
 | SRC-09 | Iceberg sources with **ORC or mixed Parquet+ORC** data files shall be read through the Iceberg reader and written as Parquet. | M | 🔵 | R-08a, R-26a |
 | SRC-10 | The scanner shall **detect Iceberg delete files** (position / equality) and record them, because they drive the sync mode (§9). | M | 🔵 | — |
 | SRC-11 | Hive **views** shall be inventoried (definition captured) but not migrated as data. | C | — | non-goal |
@@ -145,8 +145,8 @@ Repo files are linked relatively.
 ### 4.1 Mapping matrix (non-date types; date/time types are in §5)
 
 Verified against MI format-version 2 and 3 unless noted. Sources: [TM],
-`visa_utils/topics/01_datatypes/hive3_to_databricks_type_mapping.md`,
-`visa_utils/topics/01_datatypes/hive_type_addendum.md`.
+lab evidence (Appendix C),
+lab evidence (Appendix C).
 
 | Hive type | Spark reads as | MI target (DDL) | Class | Note | Status |
 |---|---|---|---|---|---|
@@ -209,11 +209,11 @@ Verified against MI format-version 2 and 3 unless noted. Sources: [TM],
 | ID | Requirement | Pri | Status | Evidence |
 |---|---|---|---|---|
 | DDL-01 | **Generate** target DDL per table from the inventory (SRC-01) + type mapping (§4, §5) + table config. Write it as a **reviewable file** (one per table, version-controlled). | M | — | decision 2026-10-20 |
-| DDL-02 | **Apply** DDL through the **Databricks SQL Statement Execution API / SDK** on a SQL warehouse. Apply is **idempotent**: create if absent; if present, diff against the expected DDL and **refuse silent drift**. | M | ✅ API path used in lab | `_run_sql.py` pattern in `visa_utils/src/visa_utils/sql_runner.py` |
+| DDL-02 | **Apply** DDL through the **Databricks SQL Statement Execution API / SDK** on a SQL warehouse. Apply is **idempotent**: create if absent; if present, diff against the expected DDL and **refuse silent drift**. | M | ✅ API path used in lab | `_run_sql.py` pattern in lab evidence (Appendix C) |
 | DDL-03 | Every DDL operation shall support **dry-run** (print plan and diff, change nothing). | M | — | — |
 | DDL-04 | **Format version per table**, driven by its consumers: **v2** if any v2-only reader must read it; **v3** otherwise (deletion vectors, row lineage). Set it explicitly (`'format-version'='3'`, numeric). | M | ✅ | [MA] §3.3, R-22, R-42 |
-| DDL-05 | **Layout per table config:** `CLUSTER BY` (replacing source Z-ORDER columns) or identity `PARTITIONED BY`. With `CLUSTER BY`, set row-tracking / DV state explicitly (a bare CLUSTER BY is rejected). Rules for partitioning vs liquid clustering, and whether Iceberg partition transforms are accepted on MI, are 🔵. | M | ✅ CLUSTER BY rules · 🔵 transforms | `visa_utils/topics/03_migration_approaches/README.md`, R-17, R-23 |
-| DDL-06 | Never set **prohibited / locked properties**: `schema.name-mapping.default` (prohibited); `delta.enableChangeDataFeed` on v3 (rejected); `gc.enabled`, `history.expire.max-snapshot-age-ms` (locked). | M | ✅ | `visa_utils/topics/03_migration_approaches/snapshots_cdc/snapshot_retention.md` |
+| DDL-05 | **Layout per table config:** `CLUSTER BY` (replacing source Z-ORDER columns) or identity `PARTITIONED BY`. With `CLUSTER BY`, set row-tracking / DV state explicitly (a bare CLUSTER BY is rejected). Rules for partitioning vs liquid clustering, and whether Iceberg partition transforms are accepted on MI, are 🔵. | M | ✅ CLUSTER BY rules · 🔵 transforms | lab evidence (Appendix C), R-17, R-23 |
+| DDL-06 | Never set **prohibited / locked properties**: `schema.name-mapping.default` (prohibited); `delta.enableChangeDataFeed` on v3 (rejected); `gc.enabled`, `history.expire.max-snapshot-age-ms` (locked). | M | ✅ | lab evidence (Appendix C) |
 | DDL-07 | **Retention per table class:** set `delta.logRetentionDuration` and `delta.deletedFileRetentionDuration` ≥ max(validation lag, rollback window, required time-travel look-back). Do **not** rely on `history.expire.min-snapshots-to-keep` (UC reverts it to 100 on any ALTER-family DDL). | M | ✅ | snapshot_retention.md, R-46, Q-04 |
 | DDL-08 | **Two SP roles:** `ddl-admin` (DDL, GRANT, RESTORE via the Statement API) and a per-domain `sync` SP (data writes over IRC; no CREATE). **Grants** in the same apply step: sync SP gets `USE CATALOG`, `USE SCHEMA`, `SELECT`, `MODIFY`, `EXTERNAL USE SCHEMA`; all other principals read-only. Owner = a group, not the SP. | M | ✅ grants · — owner rule | [A13] resolved items |
 | DDL-09 | **Registration metadata:** column/table comments carried over from HMS; UC **tags** (source system, source `db.table`, data domain, migration wave, sync mode). Custom table properties for lineage are 🔵 (confirm allowed on MI). | S | 🔵 | — |
@@ -238,7 +238,7 @@ Verified against MI format-version 2 and 3 unless noted. Sources: [TM],
 | INI-05 | **Wave planning** from the inventory: the utility emits a wave plan (tables, bytes, partitions, estimated duration at a given bandwidth). | S | — | R-18 |
 | INI-06 | **Engine selection per table** (`onprem-push` or `cloud-landing`) is a config rule driven by size, available bandwidth, on-prem capacity and format. | M | — | ARC-03 |
 | INI-07 | **`cloud-landing` engine:** bulk-copy raw files (distcp or equivalent) to an S3 landing external location; a Databricks job reads them with the **inventory schema** (not HMS) and the §4/§5 mapping, writes MI, and cleans the landing area after VALIDATED. Hive path partitions are injected by Spark path discovery. | M | 🔵 end-to-end · ✅ path discovery | [QA] Q9 |
-| INI-08 | **Offline transfer** (e.g. physical appliance) for cold history: ❓ acceptable to Visa? | C | ❓ | Q-09 |
+| INI-08 | **Offline transfer** (e.g. physical appliance) for cold history: ❓ acceptable to the customer? | C | ❓ | Q-09 |
 | INI-09 | **Bandwidth model.** The utility shall report estimated transfer time per wave from measured throughput (reference below). DX sizing is the critical path. | S | — | R-38, Q-02 |
 | INI-10 | **Target layout on write:** right-sized files, zstd, clustering per DDL-05, so no post-load rewrite is needed. | S | ✅ | [MA] §3.4 |
 | INI-11 | **Hand-off to incremental:** the first incremental cycle starts from S0 (Iceberg) or from the pinned partition fingerprints (Hive), so changes made during a long copy are captured. | M | ✅ Iceberg | [MA] §3.3 |
@@ -263,7 +263,7 @@ not the **transfer**.
 |---|---|---|---|---|
 | ADF-01 | **Eligibility.** A table may use Approach A only if **all** of these hold: Hive **Parquet**; **append-only**; **unpartitioned, or the partition column is present inside the data files**; stable schema; acceptable file layout (size histogram within thresholds). Everything else uses Approach B. | M | ✅ rules | [MA] §2, [FA] #4, [A13] #4 |
 | ADF-02 | Use **PyIceberg** `add_files` committing through the IRC. **Never** the Spark `CALL system.add_files` procedure: it commits the prohibited `schema.name-mapping.default` and always fails on MI, regardless of file location or field IDs. | M | ✅ | Lab 2026-09-01, test `a_` |
-| ADF-03 | Files shall be copied **under the table's `write.data.path`** first, because UC vends credentials only inside the table path. | M | ✅ | ADF doc (`visa_utils/topics/03_migration_approaches/docs/addfiles_and_migration.md`) |
+| ADF-03 | Files shall be copied **under the table's `write.data.path`** first, because UC vends credentials only inside the table path. | M | ✅ | ADF doc (lab evidence (Appendix C)) |
 | ADF-04 | Each file must contain **exactly one value per partition column**. A path-only Hive partition cannot be inferred, so the table is ineligible. | M | ✅ | [MA] §2, [QA] Q9 |
 | ADF-05 | ⚠️ The working PyIceberg path relies on **in-memory name-mapping injection** (PyIceberg internals; undocumented). Pin the PyIceberg version and keep a regression test. | M | ✅ ⚠️ | test `a_addfiles_pyiceberg.py` |
 | ADF-06 | Keep a **registration ledger** of source file paths. Idempotency is by path only: a re-extract written to a new filename would duplicate rows. | M | ✅ | [MA] §2 |
@@ -357,7 +357,7 @@ and runs asynchronously. A full target scan happens twice per table: after the h
 
 ## 11. Audit & identity — who on-prem used the SP
 
-**Problem.** UC records the **service principal** as the actor of every IRC call. Visa needs to know
+**Problem.** UC records the **service principal** as the actor of every IRC call. The customer needs to know
 **which on-prem identity** (person or service account) ran the job that used the SP.
 
 | ID | Requirement | Pri | Status | Evidence |
@@ -382,7 +382,7 @@ and runs asynchronously. A full target scan happens twice per table: after the h
 | SEC-02 | The SP secret is **injected from a vault** at session start. Never put it in `spark-defaults`, Spark conf files or the command line (the Spark UI Environment tab exposes it; CLI args get logged). | M | ✅ | [QA] Q8, [A13] |
 | SEC-03 | **Least privilege** for the sync SP (DDL-08). Rotate secrets on a schedule; respect the SP secret-count and lifetime limits. | M | ✅ | [QA] Q8 |
 | SEC-04 | **Outbound-only network:** HTTPS 443 from the on-prem driver **and every executor** to (a) the workspace host (IRC + `/oidc/v1/token`) and (b) the regional S3 endpoint. | M | ✅ | [FA] #7 |
-| SEC-05 | Workspace reachability through **either** the IP access list (allow-listed on-prem egress IPs) **or front-end PrivateLink** over DX. **Back-end PrivateLink alone does not serve IRC.** | M | ✅ analysis | `visa_utils/topics/04_uc_from_external_engines/docs/emr_uc_irc_privatelink_runbook.md` |
+| SEC-05 | Workspace reachability through **either** the IP access list (allow-listed on-prem egress IPs) **or front-end PrivateLink** over DX. **Back-end PrivateLink alone does not serve IRC.** | M | ✅ analysis | lab evidence (Appendix C) |
 | SEC-06 | **Storage credentials:** UC-vended (default for `onprem-push`) or an IAM role (for `cloud-landing` and any non-table staging path). | M | ✅ | [FA] #5, #7 |
 | SEC-07 | If buckets are SSE-KMS, grant `kms:GenerateDataKey/Decrypt/Encrypt` to the writing identities. Proxies and TLS inspection must allow the S3 and workspace endpoints. | M | ✅ checklist | [QA] Q10, [FA] #7 |
 | SEC-08 | On-prem reads use the existing **Kerberos** setup (job principal + keytab). No Kerberos dependency in the cloud. | M | — | SCP-11 |
@@ -397,13 +397,13 @@ and runs asynchronously. A full target scan happens twice per table: after the h
 |---|---|---|---|---|
 | VER-01 | **Iceberg ≥ 1.11.0** on every utility client. It is the single floor covering both needs: (a) **v3 target writes** need ≥ 1.9.2 (1.5.2–1.7.1 fail to parse a v3 `LoadTableResponse`; 1.5.2 works for v2 targets only); (b) **jobs longer than ~1 h** need 1.11+ **and `token-exchange-enabled=false`** (SEC-01). In the lab (2026-10-22), one 70-min write against UC **failed on both 1.11.0 and 1.12.0** with default settings. Databricks OIDC rejects the catalog's token-exchange refresh (`requested_token_type is empty`), so the OAuth token expires at ~60 min and the commit fails. With `token-exchange-enabled=false`, **both versions pass**. S3FileIO's vended-credential refresh does **not** engage against UC: loadTable omits `client.refresh-credentials-endpoint`, giving `Invalid credentials endpoint: null`. Executor data writes still succeeded after 70 min, even though a held vended credential died at ~60 min in an earlier probe (2026-09-03), and why is open (§16 #9). 1.11 also provides `rewrite_table_path`. Latest release: 1.12.0 (2026-09-29). | M | ✅ (b) partial | Lab 2026-08-27, 2026-09-03, 2026-10-22; [QA] Q1 |
 | VER-02 | **Avoid Iceberg 1.8.x**: its OAuth client-credentials flow returns 401 against UC. | M | ✅ | Lab 2026-08-27 |
-| VER-03 | **Interim Spark baseline = Spark 4.1 + Iceberg ≥ 1.11** (verified: Spark 4.1.3 / Iceberg 1.11.0 → MI v3; Hive 3.1.3 metastore reads on Spark 4.1.1). **Fallback:** Spark 3.5 + Iceberg 1.11 if Visa cannot run 4.x on-prem (3.5.2 verified). Never pair the Iceberg 4.1 runtime with Spark 4.2 (reported `IncompatibleClassChangeError`). | M | ✅ | [MA] intro, Lab 2026-09-24 |
+| VER-03 | **Interim Spark baseline = Spark 4.1 + Iceberg ≥ 1.11** (verified: Spark 4.1.3 / Iceberg 1.11.0 → MI v3; Hive 3.1.3 metastore reads on Spark 4.1.1). **Fallback:** Spark 3.5 + Iceberg 1.11 if the customer cannot run 4.x on-prem (3.5.2 verified). Never pair the Iceberg 4.1 runtime with Spark 4.2 (reported `IncompatibleClassChangeError`). | M | ✅ | [MA] intro, Lab 2026-09-24 |
 | VER-04 | **Target Spark = 4.3**, the first OSS Spark with **nanosecond timestamps** (`TIMESTAMP_NTZ(9)` / `TIMESTAMP_LTZ(9)`, SPARK-56822, behind `spark.sql.types.framework.enabled` and `spark.sql.timestampNanosTypes.enabled`). It closes the silent µs truncation (§5). **Gated on:** (1) Spark 4.3 GA (not released as of 2026-10-21; latest is 4.2.0, 2026-07-14); (2) an Iceberg `iceberg-spark-runtime-4.3` (none yet; Iceberg 1.12 ships runtimes for Spark 3.5/4.0/4.1, and 4.2 is still under validation, apache/iceberg#17959); (3) MI `timestamp_ns` GA and the connector mapping `TIMESTAMP_*(9)` → v3 `timestamp_ns`/`timestamptz_ns`. | S | 🔮 | public release info 2026-10-21 |
 | VER-05 | The **4.1 → 4.3 upgrade must be a config/jar swap**: Scala 2.13 and Java 17+ from day one; no `.option("snapshot-id")` (removed in Spark 4, so use `VERSION AS OF`); version-pinned jars isolated from production jobs. | M | ✅ API change | [MA] §4.2 |
 | VER-06 | Spark's Hive metastore client supports **Hive ≤ 3.1.x** (`spark.sql.hive.metastore.version` + jars). The three read-barrier types fail identically on 3.5 and 4.1; re-check on 4.3. | M | ✅ · 🔵 4.3 | Lab 2026-09-24 |
 | VER-07 | Catalog configuration follows the verified template ([MA] §3.2): `type=rest`, `rest.auth.type=oauth2`, `oauth2-server-uri`, `scope=all-apis`, `io-impl=S3FileIO`, header `X-Iceberg-Access-Delegation=vended-credentials`, `client.region`. Use the `/iceberg-rest` endpoint, not the deprecated `/iceberg`. | M | ✅ | [MA] §3.2 |
 | VER-08 | **Spark 4 ANSI mode** (default on): invalid casts **throw** instead of returning NULL. Reparse/enrichment paths shall catch them and route bad rows to a quarantine table with a count in the run record. Never disable ANSI to "make it pass". | M | — | SRC-03 |
-| VER-09 | ❓ Visa's current on-prem Spark / Hadoop / Hive / Java versions. Can a Spark 4.x job (Hadoop 3.4 client) read their Kerberized HDFS? Is a dedicated newer-stack migration cluster available? | M | ❓ | Q-06 |
+| VER-09 | ❓ the customer's current on-prem Spark / Hadoop / Hive / Java versions. Can a Spark 4.x job (Hadoop 3.4 client) read their Kerberized HDFS? Is a dedicated newer-stack migration cluster available? | M | ❓ | Q-06 |
 
 ---
 
@@ -437,7 +437,7 @@ and runs asynchronously. A full target scan happens twice per table: after the h
 | NFR-06 | **Config-driven onboarding:** adding a table requires config only, no code change. | M | — | — |
 | NFR-07 | **Dry-run** available for every mutating command. | M | — | DDL-03 |
 | NFR-08 | **Portable:** no environment identifiers in code. Workspace, catalog, buckets and SPs come from per-environment config. | M | — | — |
-| NFR-09 | **Reproducible in the lab** (on-prem simulated on EC2 + Hive 3.1.3 metastore) for regression tests. | S | ✅ lab exists | `visa_utils/topics/03_migration_approaches/README.md` |
+| NFR-09 | **Reproducible in the lab** (on-prem simulated on EC2 + Hive 3.1.3 metastore) for regression tests. | S | ✅ lab exists | lab evidence (Appendix C) |
 | NFR-10 | **Cost visibility:** bytes moved, compute hours and commits per table and per wave. | S | — | — |
 | NFR-11 | **Download visibility.** Bytes expected and actually read from the target per batch (`expected_download_bytes`, candidate files / bytes) are recorded and dashboarded; a batch over `onprem_merge_budget_bytes` is routed to Databricks (INC-16) and an upload-only cycle with non-zero download raises an alert. | S | — | ARC-08, SCP-12 |
 
@@ -476,7 +476,7 @@ Ranked by impact on design decisions.
 
 ---
 
-## 17. Open questions for Visa
+## 17. Open questions for the customer
 
 | # | Question | Blocks |
 |---|---|---|
@@ -504,7 +504,7 @@ Ranked by impact on design decisions.
 
 ## Appendix A — Traceability to legacy R-IDs
 
-From `visa_utils/topics/03_migration_approaches/docs/migration_requirements.md`.
+From lab evidence (Appendix C).
 
 | Legacy | New ID(s) | Note |
 |---|---|---|
@@ -556,25 +556,34 @@ From `visa_utils/topics/03_migration_approaches/docs/migration_requirements.md`.
 
 ## Appendix B — References
 
-**Repo (relative to this folder)**
-- `visa_utils/topics/03_migration_approaches/docs/migration_requirements.md`: legacy requirements R-01…R-55
-- `visa_utils/topics/03_migration_approaches/docs/migration_approaches.md`: Approaches A/B/C, local copy of [MA]
-- `visa_utils/topics/03_migration_approaches/docs/addfiles_and_migration.md`: `add_files` deep dive
-- `visa_utils/topics/03_migration_approaches/snapshots_cdc/snapshot_retention.md`: retention properties
-- `internal discovery notes (not in the shared repos)`: discovery notes
-- `visa_utils/topics/03_migration_approaches/incremental/README.md`: tests `a_`…`j_` and findings
-- `visa_utils/topics/01_datatypes/hive3_to_databricks_type_mapping.md`: type mapping + SerDes
-- `visa_utils/topics/01_datatypes/hive_type_addendum.md`: metastore read barrier, bridges
-- `visa_utils/topics/04_uc_from_external_engines/docs/emr_uc_irc_privatelink_runbook.md`: front-end PrivateLink for IRC
+**Engagement documents** (internal, not included in this repository; cited by tag in the Evidence columns)
+- `[MA]` Migration Approaches: Approaches A/B/C, the verified IRC configuration, the changelog → MERGE ordering
+- `[QA]` Follow-up Questions & Test Results
+- `[A13]` POC follow-up questions (August call)
+- `[FA]` Follow-up Answers
+- `[TM]` Hive → Databricks Type Mapping Reference
 
-**Google docs**
-- `[MA]` On-prem Hadoop to Databricks UC Managed Iceberg — Migration Approaches — https://docs.google.com/document/d/1pfC4uiLADWadJmu_JEFP2mAD0ToHWDuNUJ9-y4flcE4
-- `[QA]` Visa — Managed Iceberg Migration: Follow-up Questions & Test Results — https://docs.google.com/document/d/16ypx0cZ7HxF9vgPkg7xn9aWcR6SoxQBEAm2fPcPwsjQ
-- `[A13]` Visa–Databricks Iceberg POC — Follow-up Questions (Aug 13 call) — https://docs.google.com/document/d/1g75xMGPe4XICVaRlW7MdUqVtpulZLbu0FYdZBgkAjUU
-- `[FA]` Visa–Databricks Iceberg POC — Follow-up Answers — https://docs.google.com/document/d/1LKjB-jKqds_UnVTUXnOuvSqhQq10HeIfmP2m4-twbIE
-- `[TM]` Hive → Databricks Type Mapping Reference (+ addendum) — https://docs.google.com/document/d/12kHIxZpuR5hPp1psoX_cXdM-r2hgAzLc1qs8bAv3MmU
+**Lab evidence**: Appendix C. **Legacy requirement IDs** `R-01`…`R-55`: Appendix A.
 
-**Public**
-- Apache Spark nanosecond timestamps: SPARK-56822
-- Apache Iceberg Spark 4.2 runtime tracking: apache/iceberg#17959
-- Apache Iceberg releases / multi-engine support: https://iceberg.apache.org/releases/
+## Appendix C — Lab evidence
+
+Every ✅ in this document comes from a hands-on test on an internal lab rig: an EC2 simulation of the on-prem side (HDFS,
+YARN, Hive 3.1.3 metastore on Postgres, Spark 4.1 and 3.5, Iceberg 1.11 and 1.12) writing to a Unity Catalog sandbox
+catalog over the Iceberg REST catalog and the SQL Statement API. The probe scripts live in that internal repository and are
+not part of `h2mi`; the results they established are:
+
+| Date | Versions | Result |
+|---|---|---|
+| 2026-08-06 | Iceberg 1.9 → UC | external snapshot history is visible over IRC; version ↔ snapshot mapping characterized (INC-15) |
+| 2026-09-14 | OSS Spark → UC | every external write is a UC catalog commit; IRC `createTable` yields a `catalogManaged` table on a different commit path (ARC-05, DDL-13) |
+| 2026-10 (various) | Spark 4.1 + Iceberg 1.12 | append read exact on append-only ranges, including insert-only MoR ranges; changelog → net per key → MERGE in sync (L0/L1/L2); the MERGE source must be materialized on Spark 4.1; keyless full-row MERGE fails on duplicates, row-value replace keeps the multiset exact; `create_changelog_view` rejects any range with live delete files; snapshot-diff → MERGE reconciles MoR sources; compaction does not unlock the changelog for earlier ranges |
+| 2026-10-22 | Iceberg 1.11.0 and 1.12.0 | a 70-minute write commits only with `token-exchange-enabled=false`; `overwritePartitions()` on a `PARTITIONED BY` target carries snapshot tags, filter-`overwrite` on a `CLUSTER BY` target fails; MI v3 accepts merge-on-read write modes and external MERGE then writes deletion vectors; a partition replace shows in Databricks CDF as delete + insert of every row |
+| 2026-10-30 | Spark 4.1 + Iceberg 1.12, MI format-version 2 | `writeTo().overwritePartitions()` and `.overwrite(<partition predicate>)` replace one partition; the V1 `mode("overwrite").saveAsTable` path is REPLACE TABLE AS SELECT over IRC and a MODIFY-only SP dropped the partition spec and history (ARC-09, R12); storage layout: hashed object-storage prefixes, `_delta_log` + `_iceberg` side by side (§7.5) |
+| 2026-10-30 | same | `Dataset.observe()` fires on the Iceberg V2 append and equals a separate aggregation; the commit's `added-records` matches; the added files scoped via `_file` on-prem and `_metadata.file_path` on Databricks SQL return the same digest (VAL-12, VAL-13) |
+| 2026-10-30 | Databricks SQL on a v3 `CLUSTER BY` managed table | `INSERT INTO … REPLACE WHERE` and `MERGE … WHEN NOT MATCHED BY SOURCE … DELETE` restate one slice atomically (INC-04, L-14) |
+
+Type-mapping evidence (TYP-*, DT-*): Hive 3.1.3 `TINYINT`/`SMALLINT` are rejected by managed Iceberg at CREATE; zone-less
+`TIMESTAMP` maps to `TIMESTAMP_NTZ`; `TIMESTAMP WITH LOCAL TIME ZONE`, `UNIONTYPE` and `INTERVAL` columns make Spark's
+metastore read fail (`CANNOT_RECOGNIZE_HIVE_TYPE`) and need a materialized bridge copy; `VOID` cannot be CTAS'd in Hive 3.
+SerDe evidence (SRC-*): Parquet / ORC / Avro / RCFile read through unchanged; text, CSV, JSON and Regex SerDes need a
+reparse with explicit casts; Avro stores Hive `TINYINT` as `int`.

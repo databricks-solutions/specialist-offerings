@@ -16,9 +16,9 @@ Roughly 10 % of the Phase-1 code exists and none of it has been exercised end to
 ## 2. Assumptions
 
 - Two engineers (A, B) from the FDE team, full time, from **week 1 = 2026-11-03**; one SSA reviewer for design questions.
-- The `visa_utils` EC2 rig (HDFS + YARN + Hive 3.1.3 + Spark 4.1 + Iceberg 1.12) and a UC sandbox catalog are available for
-  the live suite; Visa's own cluster only from the pilot (M4).
-- Visa answers the open questions in `requirements.md` §17 by the dates in §7 below. Where they don't, the plan carries a
+- An internal EC2 lab rig (HDFS + YARN + Hive 3.1.3 + Spark 4.1 + Iceberg 1.12) and a UC sandbox catalog are available for
+  the live suite; the customer's own cluster only from the pilot (M4).
+- The customer answers the open questions in `requirements.md` §17 by the dates in §7 below. Where they don't, the plan carries a
   default (noted per item).
 - Phase 1 only (`onprem-push`). Phase 2 (`cloud-landing`, `add_files`) is sized in §8 but not scheduled.
 
@@ -30,7 +30,7 @@ Roughly 10 % of the Phase-1 code exists and none of it has been exercised end to
 | M1 | **Walking skeleton** | one Hive table and one Iceberg table: `inventory → scan → ddl plan/apply → load` into a local HadoopCatalog target, batch tagged, tier M validated, state in a local Iceberg `h2mi_ctl`; the integration suite runs it in CI | end of week 3 |
 | M2 | **Incremental** | all four sync modes with staging + Statement-API MERGE against the UC sandbox from the rig; leases; reconcile-by-tag; HDFS spool → `h2mi_ctl` on the rig's HMS; mirror | end of week 6 |
 | M3 | **Verified** | tiered validation (M / scoped L2 async / L2-full), drill-down, restore, audit context + tags, dashboards and alerts on the mirror; L-2, L-3, L-4, L-8, L-9 passed | end of week 8 |
-| M4 | **Pilot** | a Visa pilot table set through historical load + ≥ 7 incremental cycles with VERIFIED watermarks on Visa's cluster; runbook; hand-over | weeks 9–12 (calendar depends on Visa access) |
+| M4 | **Pilot** | a customer pilot table set through historical load + ≥ 7 incremental cycles with VERIFIED watermarks on the customer's cluster; runbook; hand-over | weeks 9–12 (calendar depends on customer access) |
 
 ## 4. Work packages
 
@@ -82,7 +82,7 @@ integration test for the Spark parts, docstring placeholder text removed, requir
 - **Closes:** OPS-08, OPS-09, AUD-04..09, NFR-10, NFR-11.
 
 ### WP9 — Packaging and pilot readiness (A+B, 5 d) → M4
-- Wheel + conda-pack `h2mi_env.tar.gz` per tag; `spark-submit` templates for profile A (Spark 4.1) and B (3.5); keytab/principal handling (SEC-08); `secrets/vault.py` for Visa's store (needs the Q answer; default `aws-sm`); scope the IAM / UC grants (DDL-08, SEC-03); handover of the evidence appendix in `docs/`; CODEOWNERS / license / branch protection.
+- Wheel + conda-pack `h2mi_env.tar.gz` per tag; `spark-submit` templates for profile A (Spark 4.1) and B (3.5); keytab/principal handling (SEC-08); `secrets/vault.py` for the customer's store (needs the Q answer; default `aws-sm`); scope the IAM / UC grants (DDL-08, SEC-03); handover of the evidence appendix in `docs/`; CODEOWNERS / license / branch protection.
 - **Closes:** VER-03, VER-05, SEC-02, SEC-08, NFR-09, §5.1.
 
 ### WP10 — Test suites (continuous, both) 
@@ -114,7 +114,7 @@ gantt
   M1 walking skeleton               :milestone, m1, 2026-11-21, 0d
   M2 incremental on the rig         :milestone, m2, 2026-12-12, 0d
   M3 verified                       :milestone, m3, 2026-12-24, 0d
-  M4 pilot start (Visa cluster)     :milestone, m4, 2027-01-05, 0d
+  M4 pilot start (customer cluster)     :milestone, m4, 2027-01-05, 0d
 ```
 
 Working days only, no holidays modelled; expect M3 to slip into early January in practice. Total ≈ **64 engineer-days**
@@ -128,9 +128,9 @@ validation on top of it, then the orchestration that ties them together).
 | M1 | unit; integration end-to-end on the local target; L-16 ✅ (observe), L-17 spec guard |
 | M2 | L-2 MoR snapshot-diff (keyed / keyless, clustered / partitioned), L-9 leases, L-8 HMS load (go/no-go on D8), L-10 ✅, L-11 ✅, L-14 ✅, L-15 external MERGE tag, L-13 pruning on ~100 GB |
 | M3 | L-3 hash determinism, L-4 audit capture, L-7 scale, L-18 hash-diff vs replace, chaos reconcile run |
-| M4 | pilot set: historical + ≥ 7 cycles VERIFIED; L-12 credential vending without direct S3 access on Visa's network |
+| M4 | pilot set: historical + ≥ 7 cycles VERIFIED; L-12 credential vending without direct S3 access on the customer's network |
 
-## 7. Decisions needed from Visa (and the default if silent)
+## 7. Decisions needed from the customer (and the default if silent)
 
 | Need by | Question (requirements §17) | Default |
 |---|---|---|
@@ -154,7 +154,7 @@ validation on top of it, then the orchestration that ties them together).
 |---|---|---|
 | L-8 says the HMS cannot take the control-table load (R1) | WP4 rework: invert D8 (UC primary over IRC, HMS mirror) | the `StateStore` interface is the first thing WP4 builds; both backends implement it |
 | py4j access to the Hive 3 metastore client from Spark 4.1 (WP1) | inventory of barrier types blocked | fallback Java helper jar; or `hive --orcfiledump`-style CLI parsing as a last resort |
-| Visa cluster access for M4 slips | pilot starts late | M1–M3 run entirely on the rig; pilot artifacts (runbook, templates) are ready at M3 |
+| customer cluster access for M4 slips | pilot starts late | M1–M3 run entirely on the rig; pilot artifacts (runbook, templates) are ready at M3 |
 | hash determinism across engines fails for some type (R3) | L2 false mismatches | exclude the type from L2 and keep L1 for it; documented in `validate.canonical` |
 | the FDE team is one engineer | ≈ 13 calendar weeks to M3 | order: WP1 → WP2 → WP3 → WP4 → WP5 → WP6 → WP7 → WP8 → WP9 |
 

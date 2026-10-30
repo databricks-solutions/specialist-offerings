@@ -1,6 +1,6 @@
 # Machine-readable Hive 3 -> Unity Catalog managed Iceberg (MI) type matrix.
 # Read by h2mi.scanner.typemap (policy keys at the top; the rows document the rules the code implements, D5).
-# Sources: visa_utils/topics/01_datatypes/hive3_to_databricks_type_mapping.md and hive_type_addendum.md (lab evidence),
+# Sources: the Hive 3 -> managed Iceberg type-mapping lab results (docs/requirements.md Appendix C),
 # docs/requirements.md TYP-* / DT-* (the rules; IDs in `req`).
 #
 # action:

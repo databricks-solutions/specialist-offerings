@@ -10,7 +10,7 @@ It runs on-prem as a PySpark application (`spark-submit` on YARN), talks to Data
 | [`docs/requirements.md`](docs/requirements.md) | the requirement set, area-prefixed IDs (`SCP`, `ARC`, `INC`, `VAL`, ...), lab evidence, test backlog |
 | [`docs/technical_design.md`](docs/technical_design.md) | the design: decisions D1-D12, components, state model, sync modes, validation tiers, risks |
 | [`docs/process_flow.md`](docs/process_flow.md) | mermaid views: table lifecycle, one sync cycle, apply-method ladder, cycle states, reconciliation, what crosses the network |
-| [`docs/implementation_plan.md`](docs/implementation_plan.md) | work packages WP1-WP10 with IDs closed, acceptance tests, estimates, two-engineer schedule, milestones M1-M4, Visa decisions needed |
+| [`docs/implementation_plan.md`](docs/implementation_plan.md) | work packages WP1-WP10 with IDs closed, acceptance tests, estimates, two-engineer schedule, milestones M1-M4, the customer decisions needed |
 
 ## Status: scaffold (v0.1.0.dev0)
 
@@ -63,11 +63,16 @@ tests/              unit (CI), integration (nightly, local Spark), live (opt-in,
 - Prohibited / locked table properties are refused at DDL generation (DDL-06).
 - `scripts/scan_secrets.sh` keeps keys, tokens and environment identifiers out of the tree.
 
-## Relationship to `visa_utils`
-The lab probes, findings and the EC2 "on-prem" rig that produced the evidence cited in the docs live in the
-`visa_utils` repository (`topics/`, `setup/onprem_lab/`). `h2mi` does not import it; the helpers it needed were copied
-in and are owned here. `tests/live` can be pointed at that rig or at a real cluster.
+## Lab evidence
+Every ✅ in the docs comes from a hands-on test on an internal lab rig (EC2 simulation of HDFS + YARN + Hive 3.1.3,
+Spark 4.1 / 3.5, Iceberg 1.11 / 1.12, writing to a Unity Catalog sandbox). The results are summarized in
+[`docs/requirements.md` Appendix C](docs/requirements.md#appendix-c--lab-evidence); the probe scripts are not part of this
+project. `tests/live` can be pointed at such a rig or at a real cluster.
 
-## Before sharing outside Databricks
-Replace the lab citations in `docs/` (dates and `visa_utils/...` paths) with a self-contained evidence appendix, set
-`CODEOWNERS`, choose a license, and run `make check` one last time.
+## Owners
+- Primary: akshay.amin@databricks.com
+- Secondary: TBD
+
+## License
+Provided under the Databricks License (see the repository's `LICENSE.md`). Third-party libraries: pydantic (MIT),
+PyYAML (MIT), databricks-sdk (Apache-2.0), pyspark (Apache-2.0), boto3 (Apache-2.0).

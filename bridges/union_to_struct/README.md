@@ -10,4 +10,4 @@ hive --hivevar DB=<db> -e "ADD JAR out/union_to_struct.jar;
   CREATE TEMPORARY FUNCTION union_to_struct AS 'UnionToStruct';
   CREATE TABLE <db>.<t>_bridge STORED AS PARQUET AS SELECT ..., union_to_struct(u) AS u FROM <db>.<t>;"
 ```
-`h2mi bridge` (scanner/bridges.py) will emit these scripts per table; lab evidence: `visa_utils/topics/01_datatypes/`.
+`h2mi bridge` (scanner/bridges.py) will emit these scripts per table; lab evidence: `docs/requirements.md` Appendix C.

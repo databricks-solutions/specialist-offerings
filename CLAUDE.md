@@ -27,4 +27,5 @@ section they cite and add tests in the same change.
 - MoR changelog is unusable while live delete files exist -> snapshot-diff + MERGE or partition replace.
 - `overwritePartitions()` works on `PARTITIONED BY` managed Iceberg targets and carries snapshot tags; filter-overwrite
   fails on `CLUSTER BY` targets. MERGE commits carry no tags (staging does).
-- Lab evidence and probe scripts live in the `visa_utils` repo; this repo must not import it.
+- Lab evidence is summarized in `docs/requirements.md` Appendix C; the probe scripts live in an internal lab repository
+  that this project must never import or reference by path.

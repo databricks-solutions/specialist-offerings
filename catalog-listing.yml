@@ -1,0 +1,57 @@
+# On-prem HDFS / Hive -> Unity Catalog managed Iceberg migration utility (h2mi)
+# Catalog listing for the Field Catalog (template: /templates/catalog-listing-template.yml)
+
+# Required fields
+title: "On-prem HDFS / Hive to Unity Catalog Managed Iceberg Migration Utility (h2mi)"
+
+# Industry: omitted -> global offering (all verticals)
+
+# Status and priority
+status: "In Progress"            # design v0.2 complete and lab-backed; package scaffold with unit-tested core; Phase-1 build pending
+strategic_priority: "High"
+
+# Ownership and responsibility
+demo_owner: "akshay.amin@databricks.com"
+industry_lead: "akshay.amin@databricks.com"   # TODO: replace with the data-engineering specialization lead
+
+# Links
+links:
+  github: https://github.com/databricks-solutions/specialist-offerings/tree/main/data-engineering/onpremhdfs2managediceberg
+
+# Business alignment
+imperative: "Platform Modernization"
+business_outcome: "Move a PB-scale on-prem Hadoop estate (Hive and OSS Iceberg tables) into Unity Catalog managed Iceberg with validated, resumable incremental sync and no inbound connectivity into the data centre"
+
+# Quality and maintenance flags
+needs_fix: false
+business_user_friendly: false
+
+# Timeline
+expected_delivery: "Q4 FY27"
+last_certified: "2026-10-30"
+
+# Products and features
+products: "Unity Catalog, Managed Iceberg, Iceberg REST Catalog, Databricks SQL, Predictive Optimization, Lakehouse Federation"
+product_lines: "Data Engineering"
+
+# Partner information
+partner_developed: false
+partner: ""
+
+# Description and details
+demo_description: |
+  **h2mi** migrates an on-prem Hadoop estate (HDFS + Hive Metastore, holding Hive tables and OSS Iceberg tables) into
+  Databricks Unity Catalog **managed Iceberg**: a one-time historical load, then incremental sync per table until cutover.
+  It runs on-prem as a PySpark application (`spark-submit` on YARN), talks to Databricks over outbound HTTPS only (Iceberg
+  REST catalog + SQL Statement API), uploads data in one direction, and keeps its own append-only state.
+
+  What's in the repo today: the requirements and technical design (lab-backed on the critical mechanics: IRC auth and
+  long writes, sync modes for CoW/MoR/keyless sources, partition replace vs MERGE, tiered validation, the REPLACE TABLE
+  hazard), process-flow diagrams, an implementation plan, and the Python package skeleton with its unit-tested core
+  (config, type map, DDL generation, planner, validation primitives). The data-moving modules are the Phase-1 build.
+
+  Use it when a customer asks how to move Hive / Iceberg tables off HDFS into UC managed Iceberg at PB scale with
+  no inbound network path, exact validation, and a clean audit trail of who moved what.
+
+# Installation availability
+installable: true

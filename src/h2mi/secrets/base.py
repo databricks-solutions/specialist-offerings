@@ -1,7 +1,7 @@
 """Resolve a secret *reference* to its value at runtime.
 
 Reference forms (design §6, §9.1):
-    vault:<path>#<key>            Visa's secret store (provider to be wired in vault.py)
+    vault:<path>#<key>            the customer's secret store (provider to be wired in vault.py)
     aws-sm:<name>[#<json-key>]    AWS Secrets Manager (lab / cloud-landing)
     env:<NAME>                    environment variable injected by the scheduler or a vault agent
     dbx-profile:<profile>         client_secret of a ~/.databrickscfg profile (local development only)

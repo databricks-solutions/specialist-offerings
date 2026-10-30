@@ -1,6 +1,6 @@
 # h2mi — HDFS → UC Managed Iceberg Migration Utility — Technical Design
 
-**Status:** draft v0.2 · **Internal** · 2026-10-30 (v0.1: 2026-10-21; changes listed in §15)
+**Status:** draft v0.2 · 2026-10-30 (v0.1: 2026-10-21; changes listed in §15)
 **Implements:** [`requirements.md`](requirements.md) (requirement IDs in brackets, e.g. `[INC-08]`).
 **Companions:** [`process_flow.md`](process_flow.md) · [`implementation_plan.md`](implementation_plan.md) (both 2026-10-30; package scaffold landed the same day).
 
@@ -8,7 +8,7 @@
 
 ## 1. Context, goals, non-goals
 
-`h2mi` moves Visa's on-prem Hadoop estate into Databricks Unity Catalog **managed Iceberg (MI)**. The estate is
+`h2mi` moves an on-prem Hadoop estate into Databricks Unity Catalog **managed Iceberg (MI)**. The estate is
 HDFS + Hive Metastore (HMS), holding Hive tables and OSS Iceberg tables. The utility does a one-time
 historical load, then incremental sync until per-table cutover [SCP-01, SCP-02].
 
@@ -37,7 +37,7 @@ plus the `add_files` path if the ADF-09 benchmark says go.
 | D7 | **Engines behind one interface**; everything else is shared | build push first, add landing without rework | ARC-03, ARC-04 |
 | D8 | **State store = append-only OSS Iceberg tables in the on-prem HMS** (`h2mi_ctl`), **mirrored to UC** | next to the runtime, inside the Kerberos boundary, no new ports; designed around HMS limits (§7.2) | ARC-07 |
 | D9 | **Targets are created only through the Statement API**, never IRC `createTable` | full control of TBLPROPERTIES; avoids `catalogManaged` creation-path divergence | DDL-02, DDL-13 |
-| D10 | **Python/PySpark package `h2mi`** run with `spark-submit` on YARN; databricks-sdk; PyIceberg (phase 2 only) | matches the lab code; readable by Visa | — |
+| D10 | **Python/PySpark package `h2mi`** run with `spark-submit` on YARN; databricks-sdk; PyIceberg (phase 2 only) | matches the lab code; readable by the customer's engineers | — |
 | D11 | **On-prem uploads only; every target-side *data* read runs on Databricks.** MERGE / REPLACE WHERE / target fingerprints go through the Statement API; an on-prem MERGE over IRC is allowed only under the planner's download budget (§8.4) | the DX link is the shared, scarce resource of the whole migration; a mis-pruned on-prem MERGE pulls TBs down and delays every other table, while a Databricks MERGE has bounded, predictable cost | SCP-10, INC-03, NFR-03 |
 | D12 | **Writers use the DataFrameWriterV2 (`writeTo`) or SQL path only.** `DataFrameWriter.mode("overwrite").saveAsTable` is forbidden | lab 2026-10-30: the V1 path is REPLACE TABLE AS SELECT over IRC; a MODIFY-only SP dropped the target's partition spec and history with it (§7.5, R12) | DDL-13, OPS-03 |
 
@@ -63,7 +63,7 @@ plus the `add_files` path if the ADF-09 benchmark says go.
 ```mermaid
 flowchart LR
   subgraph ONPREM["On-prem data centre (Kerberized)"]
-    SCHED["Scheduler<br/>(Visa's, TBD Q-08)"]
+    SCHED["Scheduler<br/>(the customer's, TBD Q-08)"]
     subgraph YARN["YARN queue: h2mi"]
       DRV["h2mi driver<br/>(PySpark)"]
       EXE["Spark executors"]
@@ -81,7 +81,7 @@ flowchart LR
     MIRROR[("UC h2mi_ctl mirror")]
     AUDIT[("system.access.audit")]
   end
-  subgraph AWS["Visa AWS account"]
+  subgraph AWS["customer AWS account"]
     S3MI[("S3: UC managed storage")]
     S3LAND[("S3: landing<br/>(phase 2)")]
   end
@@ -214,7 +214,7 @@ spark-submit --master yarn --deploy-mode cluster --queue h2mi \
 | `spark.sql.catalog.uc.credential` | `<client_id>:<secret>`, **set at runtime** from `secrets` before first `uc` access (catalogs initialize lazily) | refreshing OAuth; not in files or CLI [SEC-01, SEC-02] |
 | `spark.sql.catalog.uc.token-exchange-enabled` | `false` | Databricks OIDC rejects the default token-exchange refresh, so the OAuth token dies at ~60 min and long jobs fail at commit. Lab 2026-10-22: 70-min write fails without it and passes with it, on 1.11.0 and 1.12.0 [SEC-01, VER-01] |
 | `spark.sql.catalog.uc.header.X-H2MI-Run-Id` | `<run_id>` | request-level attribution, 🔵 [AUD-04] |
-| `spark.redaction.regex` | default + `\|credential` | hide the secret in the Spark UI (🔵 confirm on Visa's build) |
+| `spark.redaction.regex` | default + `\|credential` | hide the secret in the Spark UI (🔵 confirm on the customer's build) |
 | `spark.sql.session.timeZone` | `UTC` (recorded) | stable timestamp semantics [DT-02] |
 | `spark.sql.readSideCharPadding` | explicit, per the table's CHAR policy (recorded) | [TYP-05] |
 | `spark.sql.ansi.enabled` | `true` (Spark 4 default; forced on 3.5 too) | bad casts throw → quarantine, never NULL [VER-08] |
@@ -378,7 +378,7 @@ store, so the design compensates:
 | Limit | Mitigation |
 |---|---|
 | Row updates are expensive (CoW rewrites / MoR deletes) | **Append-only events**; current state comes from views. No UPDATE/MERGE on control tables. |
-| Every commit takes an HMS lock and writes metadata | Events are **spooled to HDFS (JSONL) during the run and appended once per run per control table** (one commit instead of 4–6 per cycle); a spool left behind by a crash is replayed at the next start. Dedicated `h2mi_ctl` database. Commit-retry tuning. Optional lock-free commits (`engine.hive.lock-enabled=false`) **only** if Visa's HMS includes HIVE-26882 (🔵 Q-19). **Scale test** before production (§11, test L-8). |
+| Every commit takes an HMS lock and writes metadata | Events are **spooled to HDFS (JSONL) during the run and appended once per run per control table** (one commit instead of 4–6 per cycle); a spool left behind by a crash is replayed at the next start. Dedicated `h2mi_ctl` database. Commit-retry tuning. Optional lock-free commits (`engine.hive.lock-enabled=false`) **only** if the customer's HMS includes HIVE-26882 (🔵 Q-19). **Scale test** before production (§11, test L-8). |
 | No row locks → no safe leases | Leases are **atomic HDFS files** (§7.3), not table rows. |
 | Small files / metadata growth | `h2mi state maintain` (scheduled): `rewrite_data_files`, `expire_snapshots`, `remove_orphan_files`, `rewrite_manifests`. These are on-prem OSS tables, so external maintenance is allowed (unlike MI). |
 | Invisible to the cloud | **UC mirror** (§7.4). |
@@ -403,7 +403,7 @@ fence():     before every target commit -> re-read lock; abort if not ours  [OPS
 release():   delete lock (only if still ours)
 ```
 
-The TTL is greater than the longest expected stall. Clock-skew tolerance is in `grace`. 🔵 test: concurrent acquire/takeover on Visa's HDFS version.
+The TTL is greater than the longest expected stall. Clock-skew tolerance is in `grace`. 🔵 test: concurrent acquire/takeover on the customer's HDFS version.
 
 ### 7.4 UC mirror and audit join
 
@@ -493,7 +493,7 @@ Rules apply recursively inside `array/map/struct` (struct fields are forced null
 
 `h2mi bridge` emits Hive-side scripts for REDESIGN columns: materialized CTAS (never a view) for LTZ / INTERVAL, and
 `ADD JAR` + `CREATE TEMPORARY FUNCTION union_to_struct` + CTAS for UNION (UDF from `bridges/union_to_struct/`) [TYP-08].
-After Visa runs a bridge, the table config points `source` at the materialized table.
+After the customer runs a bridge, the table config points `source` at the materialized table.
 
 ### 8.3 DDL — `h2mi ddl plan|apply` [DDL-01..14]
 
@@ -622,7 +622,7 @@ manifests in every Iceberg release to date, including the latest (1.12.0), and o
 touched = distinct data_file.partition of <src>.all_entries WHERE snapshot_id IN (range, by parent_id walk)
           AND status IN (1 ADDED, 2 DELETED), all content types (DATA, POSITION_DELETES, EQUALITY_DELETES);
           skip `replace` (compaction) snapshots; map partitions per data_file.spec_id; equality deletes in an
-          unpartitioned spec = whole table (lab-verified query: visa_utils/topics/03_migration_approaches/incremental/lab_box/mor_partition_test.py)
+          unpartitioned spec = whole table (lab-verified query: the lab evidence (Appendix C))
 for P in touched (batched):
    old = src VERSION AS OF wm  WHERE P      # reads apply deletes
    new = src VERSION AS OF cur WHERE P
@@ -806,7 +806,7 @@ the live target (Statement API `DESCRIBE`).
 | Safe widening (int→bigint, float→double, decimal precision ↑) | halt by default; auto only if `allow_widening` and MI supports it (🔵) |
 | Drop / narrowing / type change outside the typemap / Hive rename (looks like drop+add) | **BLOCKED** + alert; human review |
 
-`h2mi ddl apply --table … --from-source` is the proactive hook for Visa's change pipeline [INC-13].
+`h2mi ddl apply --table … --from-source` is the proactive hook for the customer's change pipeline [INC-13].
 
 ### 8.10 Rollback & recovery — `h2mi restore` [VAL-05, VAL-11]
 
@@ -889,7 +889,7 @@ SQL alerts on the mirror (FAILED, BLOCKED, lag > SLA, expired snapshot) [OPS-09]
 | `h2mi doctor` | connectivity + version preflight | no | run before first use |
 | `h2mi inventory [--db/--table]` | §8.1 | state only | re-runnable |
 | `h2mi scan --table/--wave` | §8.2 | state only | exit 4 if REDESIGN/BLOCK |
-| `h2mi bridge --table` | emit Hive-side bridge scripts | files | Visa runs them |
+| `h2mi bridge --table` | emit Hive-side bridge scripts | files | The customer runs them |
 | `h2mi ddl plan\|apply` | §8.3 | target (apply) | `plan` = dry-run |
 | `h2mi load --table/--wave` | historical load at the pinned S0 | target + state | resumable per batch |
 | `h2mi sync --table/--wave` | reconcile → incremental cycle(s) | target + state | the scheduled command |
@@ -915,8 +915,8 @@ Common flags: `--env`, `--dry-run` (all mutating commands) [NFR-07], `--json`. E
 | **Live (opt-in)** | the same suites against a UC sandbox catalog over IRC + Statement API | lab EC2 "on-prem" box |
 | **Bench** | ADF-09 (A vs B), scale (commits/partitions), HMS control-table load | lab |
 
-Fixtures port the lab generators (`visa_utils/src/visa_utils/datagen.py`,
-the visa_utils lab source builders) and the Hive 3.1.3 type repro.
+Fixtures port the lab generators (lab evidence (Appendix C),
+the lab's source builders) and the Hive 3.1.3 type repro.
 
 **Closing the requirements test backlog** (requirements.md §16) and the new design tests:
 
@@ -970,13 +970,13 @@ the visa_utils lab source builders) and the Hive 3.1.3 type repro.
 
 | # | Risk / decision | Impact | Plan |
 |---|---|---|---|
-| R1 | **HMS lock/commit load** from `h2mi_ctl` plus source partition listing on Visa's production HMS | metastore contention for Visa's workloads | one spooled append per run, dedicated DB, HIVE-26882 lock-free option, L-8 before go-live; fallback: invert D8 (UC mirror becomes primary over IRC, HMS the mirror; D1 still holds because on-prem initiates) |
+| R1 | **HMS lock/commit load** from `h2mi_ctl` plus source partition listing on the customer's production HMS | metastore contention for the customer's workloads | one spooled append per run, dedicated DB, HIVE-26882 lock-free option, L-8 before go-live; fallback: invert D8 (UC mirror becomes primary over IRC, HMS the mirror; D1 still holds because on-prem initiates) |
 | R2 | `iceberg-mor` snapshot-diff cost on wide/unpartitioned tables | long cycles | planner flags; recommend keys / reload cadence; L-2 |
 | R3 | Cross-engine canonical hash equality (floats, nested decimals, maps) | false mismatches | L-3; fallback: exclude unstable types from L2, keep their L1 |
 | R4 | Snapshot properties on `overwritePartitions` / filter-`overwrite` commits | reconcile-by-tag gap for hive/mor | L-10; fallback: tag via a 0-row marker append in the same cycle |
 | R5 | Audit log does not capture custom header / user agent | attribution only `time+ip` | L-4; per-domain SPs; one run per SP at a time if exact attribution is mandatory |
 | R6 | Partitioning vs liquid clustering per table; partition transforms on MI | DDL rules, Hive restate path | decide in the implementation plan from L-2/L-10 results |
-| R7 | HDFS lease semantics on Visa's HDFS version (create/rename atomicity, clock skew) | double writers | L-9; fence before every commit |
+| R7 | HDFS lease semantics on the customer's HDFS version (create/rename atomicity, clock skew) | double writers | L-9; fence before every commit |
 | R8 | `metadata_log_entries` version mapping relies on a naming convention | wrong RESTORE target | cross-check `DESCRIBE HISTORY` before RESTORE (§8.7) |
 | R9 | Spark 4.3 / Iceberg runtime timing | ns columns held | `ns_policy`, profile swap (§5.3) |
 | R10 | Mirror lag | stale dashboards/audit | catch-up command; lag metric |
@@ -1016,10 +1016,10 @@ the visa_utils lab source builders) and the Hive 3.1.3 type repro.
 
 ---
 
-## Appendix — References
+## Appendix — References (lab evidence: `requirements.md` Appendix C)
 
 - [`requirements.md`](requirements.md): requirement IDs used throughout
-- `visa_utils/topics/03_migration_approaches/docs/migration_approaches.md`: `[MA]`, the verified IRC config and upsert pattern
-- `visa_utils/topics/01_datatypes/hive3_to_databricks_type_mapping.md`, `visa_utils/topics/01_datatypes/hive_type_addendum.md`: typemap content
-- `visa_utils/topics/03_migration_approaches/incremental/README.md`: lab tests the design ports (`d_`, `e_`, `f_`, `j_`, `a_`, `h_`)
-- `visa_utils/topics/04_uc_from_external_engines/docs/emr_uc_irc_privatelink_runbook.md`: front-end PrivateLink for IRC
+- lab evidence (Appendix C): `[MA]`, the verified IRC config and upsert pattern
+- lab evidence (Appendix C), lab evidence (Appendix C): typemap content
+- lab evidence (Appendix C): lab tests the design ports (`d_`, `e_`, `f_`, `j_`, `a_`, `h_`)
+- lab evidence (Appendix C): front-end PrivateLink for IRC

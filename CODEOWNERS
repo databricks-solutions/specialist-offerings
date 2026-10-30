@@ -1,3 +1,0 @@
-# Code owners are requested for review on every PR touching these paths.
-* akshay.amin@databricks.com            # scan-secrets: allow
-docs/ akshay.amin@databricks.com        # scan-secrets: allow

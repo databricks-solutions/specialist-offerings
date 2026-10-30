@@ -15,7 +15,7 @@ flowchart TD
   A["Onboard: write tables/&lt;table&gt;.yaml<br/>(source, domain, keys, layout, locality column)"] --> B["h2mi inventory<br/>raw HMS types, partitions, files, Iceberg metadata (§8.1)"]
   B --> C["h2mi scan<br/>classify columns PASS / AUTO_MAP / REDESIGN / BLOCK, SerDe findings (§8.2)"]
   C -->|any REDESIGN or BLOCK| D["h2mi bridge<br/>emit Hive CTAS scripts (LTZ, INTERVAL, UNION)"]
-  D --> E["Visa runs the bridge in Hive;<br/>table yaml points source at the materialized copy"]
+  D --> E["the customer runs the bridge in Hive;<br/>table yaml points source at the materialized copy"]
   E --> B
   C -->|all PASS / AUTO_MAP| F["h2mi ddl plan<br/>generated DDL + diff vs live target: CREATE / NO-OP / ALTER / DRIFT (§8.3)"]
   F -->|DRIFT| X1["stop: human review"]
@@ -39,7 +39,7 @@ flowchart TD
 ```mermaid
 sequenceDiagram
   autonumber
-  participant S as Scheduler (Visa)
+  participant S as Scheduler (customer)
   participant D as h2mi driver (PySpark on YARN)
   participant H as HMS + HDFS (on-prem)
   participant ST as State store h2mi_ctl (HMS Iceberg) + HDFS leases
@@ -48,12 +48,12 @@ sequenceDiagram
   participant S3 as S3 (UC managed storage)
 
   S->>D: spark-submit h2mi sync --table X
-  D->>ST: acquire lease (atomic HDFS create); exit 3 if held
+  D->>ST: acquire lease (atomic HDFS create), exit 3 if held
   D->>ST: read v_cycle_state, v_watermark
-  D->>IRC: loadTable(target); find snapshot with h2mi.batch_id of any STARTED cycle
+  D->>IRC: loadTable(target), find the snapshot tagged h2mi.batch_id for any STARTED cycle
   Note over D,IRC: reconcile (§8.7): COMMITTED if the tag exists, FAILED if not, re-MERGE from staging if needed
   D->>SQL: spec guard: DESCRIBE target layout / spec / format-version == registry (DDL-16)
-  D->>H: source schema at to_wm; drift check vs target (§8.9)
+  D->>H: source schema at to_wm, drift check vs target (§8.9)
   D->>H: snapshot range or partition fingerprints since watermark
   D->>D: plan: mode (§8.4), apply method (INC-18 ladder), batches, executor budget
   loop per batch
@@ -71,7 +71,7 @@ sequenceDiagram
     D->>ST: COMMITTED, then VALIDATED when tier M matches the observation
   end
   D->>SQL: queue scoped L2 (added files / changed keys) → VERIFIED asynchronously
-  D->>ST: run_events SUCCEEDED; spool → one append per control table
+  D->>ST: run_events SUCCEEDED, spool → one append per control table
   D->>IRC: mirror new events to uc_catalog.h2mi_ctl (best effort)
   D->>ST: release lease
   D-->>S: exit code 0 / 2 / 3 / 4
@@ -177,7 +177,7 @@ flowchart LR
     SQL["SQL warehouse"]
     MIR[("h2mi_ctl mirror")]
   end
-  subgraph AWS["Visa AWS"]
+  subgraph AWS["customer AWS"]
     S3[("S3 managed storage")]
   end
   DRV <--> HMS
