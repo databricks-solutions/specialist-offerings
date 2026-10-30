@@ -1,6 +1,6 @@
 # HDFS → UC Managed Iceberg Migration Utility — Requirements
 
-**Status:** draft v0.2 · **Internal** · 2026-10-30 (v0.1: 2026-10-20; v0.2 adds ARC-08/09, DDL-15/16, INC-16/17, VAL-12/13, SEC-10, NFR-11, backlog #19–23)
+**Status:** draft v0.2 · **Internal** · 2026-10-30 (v0.1: 2026-10-20; v0.2 adds ARC-08/09, DDL-15/16, INC-16/18, VAL-12/13, SEC-10, NFR-11, backlog #19–24)
 **Scope:** on-prem Hadoop (HDFS + Hive Metastore; Hive tables and OSS Iceberg tables) → Databricks
 Unity Catalog **managed Iceberg** (MI), one-time historical load + incremental sync until cutover.
 
@@ -305,6 +305,7 @@ not the **transfer**.
 | INC-14 | Sync **cadence** configurable per table. The staleness SLA is ❓ (Q-03). | M | ❓ | R-04 |
 | INC-15 | **Version ↔ snapshot mapping** for audit: record target version and snapshot ID per cycle, and expose the `metadata_log_entries` mapping query. External snapshot history **is** visible over IRC. | S | ✅ | [MA] §4.1, test `e_`, tests README (correction 2026-08-06) |
 | INC-16 | **MERGE executor.** The net change set is appended to the tagged staging table over IRC (upload only), then `MERGE INTO target USING staging WHERE batch = :b` runs on the **SQL warehouse via the Statement API** by default. `merge_executor: onprem` (MERGE from on-prem Spark over IRC) is allowed only when the planner's estimate of the target bytes it would download (candidate files from `<tgt>.files` bounds vs the batch's key/locality ranges) is under `onprem_merge_budget_bytes`. The estimate and the chosen executor are recorded in the control table. | M | 🔵 | ARC-08, design §8.4/§8.6 |
+| INC-18 | **Apply ladder; partition replace is chosen, not defaulted.** For a range or partition with row changes the planner picks the cheapest exact method: keyed → MERGE (partition replace only on a partitioned target with dense change); keyless Iceberg → row-value replace from the local snapshot-diff; keyless Hive with only new files → file-delta append; keyless Hive rewritten with a sparse change → **bucketed hash-diff** (4096-bucket digests both sides, exchange hashes of mismatched buckets only, then row-value replace on Databricks); dense change (≥ `replace_density_threshold`) or partition < `small_partition_bytes` → `overwritePartitions()` (Databricks `REPLACE WHERE` on clustered targets). Rewriting GBs for a few changed rows is a planner defect, not a mode. | M | 🟡 row-value replace ✅ · REPLACE WHERE ✅ · hash-diff 🔵 (test #24) | Lab 2026-10-22, 2026-10-30; design §8.6 |
 | INC-17 | **Change-locality column.** Keyed MERGE targets declare the column that correlates with where changes land (typically the event/business date). It leads the `CLUSTER BY`, and the planner appends its range for the batch to the MERGE `ON` clause and to the scoped validation predicate, so clustering actually prunes. Tables with no such column are flagged (near-full scans per cycle) and get a full-reload cadence recommendation. | S | 🔵 (test #19) | DDL-15 |
 
 ---
@@ -471,6 +472,7 @@ Ranked by impact on design decisions.
 | 21 | **Tagging an external MERGE commit** (`CommitMetadata.withCommitProperties`, `spark.wap.id`) | whether staging stays a correctness mechanism or becomes a pure upload buffer | INC-08 |
 | 22 | **`Dataset.observe()` on Iceberg V2 writes** and `_metadata.file_path` filtering on MI — ✅ Lab 2026-10-30: observation fires and matches; the commit's added files scoped via `_file` (on-prem) and `_metadata.file_path` (DBSQL) give the same digest | one-pass source fingerprint, file-scoped L2 | VAL-13, VAL-12 |
 | 23 | **Spec guard + RESTORE after a REPLACE TABLE over IRC** (replace observed and characterised 2026-10-30; the RESTORE path is open) | integrity guard | DDL-16, ARC-09 |
+| 24 | **Bucketed hash-diff vs partition replace** on a TB-class rewritten Hive partition with 1–2 changed rows: bytes uploaded, DBSQL bytes scanned, wall time, CDF rows seen downstream | keyless apply ladder, threshold calibration | INC-18 |
 
 ---
 

@@ -73,7 +73,8 @@ class Defaults(BaseModel):
     onprem_merge_budget_bytes: int = 50 * GIB
     l2_mode: Literal["scoped_async", "sync", "off"] = "scoped_async"
     l2_sample_partitions_per_cycle: int = 2
-    replace_density_threshold: float = 0.25
+    replace_density_threshold: float = 0.25       # changed rows / rows in the touched partitions at which replace wins
+    small_partition_bytes: int = 1 * GIB         # below this, partition replace beats a hash-diff regardless (INC-18)
 
 
 class EnvConfig(BaseModel):

@@ -24,13 +24,25 @@ def test_configured_mode_is_a_ceiling():
         resolve_mode("iceberg", ["append"], False, [], configured="hive-partition")
 
 
-def test_choose_method():
-    assert choose_method([], None, 10, 100) == "partition_replace"
-    assert choose_method(["k"], ["dt", "k"], 10, 100) == "merge"
+def test_choose_method_keyed():
+    assert choose_method(["k"], ["dt", "k"], 90, 100) == "merge"            # clustered: always merge
     assert choose_method(["k"], None, 30, 100) == "partition_replace"       # dense -> replace
     assert choose_method(["k"], None, 1, 100) == "merge"                    # sparse -> merge
-    with pytest.raises(BlockedError, match="DDL-15"):
-        choose_method([], ["k"], 1, 1)
+    assert choose_method(["k"], None, 1, 100, partition_bytes=10 * 1024 ** 2) == "partition_replace"   # tiny partition
+
+
+def test_choose_method_keyless_ladder():
+    big = 50 * GIB
+    # 2 changed rows in a 50 GiB partition: never a whole-partition rewrite
+    assert choose_method([], None, 2, 10_000_000, source_kind="iceberg", partition_bytes=big) == "row_value_replace"
+    assert choose_method([], None, 2, 10_000_000, source_kind="hive", partition_bytes=big) == "hash_diff_replace"
+    assert choose_method([], None, 2, 10_000_000, source_kind="hive", files_added_only=True,
+                         partition_bytes=big) == "append_files"
+    # dense change or a small partition: replace is the cheap and simple choice
+    assert choose_method([], None, 5_000_000, 10_000_000, source_kind="hive", partition_bytes=big) == "partition_replace"
+    assert choose_method([], None, 2, 10_000_000, source_kind="hive", partition_bytes=200 * 1024 ** 2) == "partition_replace"
+    # clustered keyless target: the replace is the Databricks REPLACE WHERE, no longer blocked
+    assert choose_method([], ["k"], 9, 10, source_kind="hive") == "partition_replace"
 
 
 def test_pack_and_cap():

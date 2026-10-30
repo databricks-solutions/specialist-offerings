@@ -270,6 +270,8 @@ defaults:
   onprem_merge_budget_bytes: 53687091200   # 50 GiB: max estimated download for an on-prem MERGE over IRC
   l2_mode: scoped_async              # tier M gates the watermark; L2 is batch-scoped and asynchronous (§8.8)
   l2_sample_partitions_per_cycle: 2  # standard tier: rotating L2 sample so every partition gets L2 within N cycles
+  replace_density_threshold: 0.25    # changed rows / rows in the touched partitions at which partition replace wins (INC-18)
+  small_partition_bytes: 1073741824  # below 1 GiB a partition replace beats a hash-diff regardless
 retention_classes:
   standard: { log_retention: "interval 30 days", deleted_file_retention: "interval 7 days" }
 ```
@@ -663,9 +665,13 @@ from `all_entries`), changed rows (snapshot summaries), and the key/target layou
 - **File-scoped extraction** (MoR sources, position deletes): old row images = rows at (`_file`, `_pos`) from the delete files
   added in range, read at the start snapshot from only those data files; new rows = data files added in range, read at the
   end snapshot. Cost scales with changed files, not partitions. Equality deletes fall back to partition-scoped diff.
-- **Rule:** append-only range → append read. Keyless → partition replace (alert if `P` exceeds the cycle budget). Keyed →
-  partition replace if the target is partitioned **and** changed rows / rows(`P`) ≥ `replace_density_threshold` (default 0.25);
-  otherwise MERGE (file-scoped when available, else partition-scoped). Liquid clustering and partitioning can't be combined, so
+- **Rule (the apply ladder, INC-18):** append-only range → append read. **Partition replace is chosen, never defaulted**:
+  replacing GBs because two rows changed is the expensive case (upload = whole partition, plus a full delete+insert for every
+  CDF consumer). Keyed → MERGE, except on a partitioned target when changed rows / rows(`P`) ≥ `replace_density_threshold`
+  (default 0.25). Keyless → Iceberg: **row-value replace** from the local snapshot-diff (exact rows, upload = changed rows);
+  Hive with only new files in the partition: **file-delta append** (read just those files); Hive partition rewritten with a
+  sparse change: **bucketed hash-diff** (below); dense change or a partition under `small_partition_bytes` (1 GiB):
+  `overwritePartitions()`. On a `CLUSTER BY` target the replace is the Databricks `REPLACE WHERE` (L-14). Liquid clustering and partitioning can't be combined, so
   the target layout is chosen per table from the expected change pattern (keyed sparse updates → `CLUSTER BY` key).
 
 **Keyless sources: row-value replace (lab 2026-10-22).** Capture without identifiers: CoW → `create_changelog_view(...,
@@ -677,6 +683,17 @@ UNION ALL the end-state copies of those values (`_k='INS'`), `ON` null-safe equa
 equality-comparable (no MAP); add touched-partition predicates to `ON` so the target scan is pruned; wide tables make the
 all-column match expensive. Fallback: partition replace.
 
+**Bucketed hash-diff restate (keyless Hive partition rewritten in place, INC-18).** When a Hive partition's files were
+rewritten (`INSERT OVERWRITE`, compaction) the rows are unknown but mostly unchanged. Reuse the §8.8 drill-down for sync:
+(1) both sides compute `GROUP BY pmod(row_hash, 4096)` → `count, sum(row_hash)` over the partition, source on on-prem Spark
+(local scan), target on DBSQL (pruned to the partition); only 4096 digests cross the network. (2) Compare; two changed rows
+touch at most two buckets. (3) For the mismatched buckets only, exchange `row_hash, count` lists (tiny) → the exact multiset
+of removed and added rows. (4) Stage the added rows (upload = changed rows) plus the removed hashes and apply one atomic
+`MERGE … ON row_hash … WHEN NOT MATCHED BY SOURCE AND <partition> THEN DELETE` on Databricks (L-14 proved the statement).
+The bucket digests double as the L2-scoped validation of that partition, so restate and validation share one scan. Needs
+every column hashable (`validate.canonical` encodes MAP / ARRAY / STRUCT as JSON). Cost: one local source scan, one pruned
+DBSQL scan, upload ≈ changed rows, versus upload = `P` for a partition replace. 🔵 L-18 measures it on a TB-class partition.
+
 **`hive-partition`** [INC-05, INC-06, INC-07]
 ```
 parts   = HMS listPartitions + HDFS fingerprint (files, bytes, max_mtime) per partition
@@ -685,7 +702,9 @@ pending = {p > HWM}                                              # backlog of N 
         ∪ {explicit --partitions / --from --to}                  # backfill; does not move the HWM
 for batch in pack(pending):
    df = spark.table(src).where(p IN batch) -> projection          # partition cols materialized from path [SRC-06]
-   target partitioned by same cols -> writeTo(tgt).options(tags).overwritePartitions()   # 🔵 tags on this commit
+   method per partition (INC-18): only new files since last SYNCED -> append those files' rows (file-delta)
+                                  files rewritten, sparse change   -> bucketed hash-diff -> row-value replace on Databricks
+                                  dense change or small partition  -> writeTo(tgt).options(tags).overwritePartitions()  (tag carried ✅)
    else (clustered target)         -> BLOCK at plan time: hive-partition mode requires PARTITIONED BY the Hive keys
    re-check fingerprints after the write; if changed -> mark CHANGED, re-queue (source mutated mid-copy)
 HWM advances per partition after VALIDATED; dropped source partitions -> DROPPED event + alert
@@ -920,6 +939,7 @@ the visa_utils lab source builders) and the Hive 3.1.3 type repro.
 | **L-15 tagging an external MERGE commit** via `CommitMetadata.withCommitProperties` / `wap.id` | §8.11 |
 | **L-16 `observe()` on Iceberg V2 writes** (fused source fingerprint) and `_metadata.file_path` filtering on MI ✅ lab 2026-10-30: observation fires on `writeTo().append()` and equals a separate aggregation; `added-records` matches; `_file`-scoped read on-prem and `_metadata.file_path`-scoped read on DBSQL return the same digest | §8.8 |
 | **L-17 spec guard**: detect a REPLACE TABLE over IRC and RESTORE the Delta version ✅ replace observed and characterised 2026-10-30 (`overwrite_partitions_probe.py`); 🔵 RESTORE path | R12 |
+| **L-18 bucketed hash-diff vs partition replace** on a TB-class rewritten Hive partition with 1–2 changed rows: bytes up, DBSQL bytes scanned, wall time, CDF rows seen by a consumer | INC-18 |
 
 ---
 
@@ -964,6 +984,7 @@ the visa_utils lab source builders) and the Hive 3.1.3 type repro.
 | R12 | **A MODIFY-only SP can REPLACE TABLE over IRC** (lab 2026-10-30: V1 `mode("overwrite").saveAsTable` dropped the partition spec and history). No grant prevents it | silent loss of layout and history on a target | D12 (V2 writers only, lint test); spec guard at every start (§8.7); RESTORE via the Delta log; alert on `REPLACE TABLE` in `system.access.audit` / `DESCRIBE HISTORY` |
 | R13 | **Poor change locality** (scattered updates on surrogate/UUID keys) defeats pruning on any layout | near-full target scans per MERGE / L2, or an over-budget download | locality column in `CLUSTER BY` and in the `ON` clause; planner alert when `candidate_bytes` ≈ table size; recommend a full-reload cadence for such tables; L-13 |
 | R14 | **DX link contention** between on-prem MERGE downloads and the uploads of every other table | migration-wide slowdown | D11 routing + `onprem_merge_budget_bytes`; `expected_download_bytes` as a dashboard metric; default `merge_executor: databricks` for PB tables |
+| R15 | **Over-use of partition replace** on sparse changes (GBs rewritten for a few rows; CDF consumers see full-partition churn) | wasted link capacity, noisy downstream change feeds | the INC-18 ladder in the planner (`choose_method`): replace only when dense or small; L-18 to calibrate `replace_density_threshold` / `small_partition_bytes` |
 
 ---
 
@@ -990,6 +1011,8 @@ the visa_utils lab source builders) and the Hive 3.1.3 type repro.
 - `iceberg-mor`: touched partitions from the range's manifests, not `all_entries`; clustered keyless restate via Databricks
   `REPLACE WHERE` (L-14).
 - New tests L-13 … L-17, risks R12 … R14, `cycle_events` columns, §7.5 storage layout, warehouse `CAN USE` for the sync SP.
+- Later the same day: the keyless **apply ladder** (INC-18, R15, L-18): partition replace only when dense or small; file-delta
+  append, row-value replace and bucketed hash-diff for sparse changes.
 
 ---
 

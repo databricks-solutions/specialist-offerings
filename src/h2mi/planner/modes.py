@@ -33,15 +33,34 @@ def resolve_mode(source_kind: str, operations: list[str], has_live_delete_files:
     return resolved
 
 
+GIB = 1024 ** 3
+METHODS = ("append_files", "merge", "row_value_replace", "hash_diff_replace", "partition_replace")
+
+
 def choose_method(keys: list[str], cluster_by: list[str] | None, changed_rows: int, rows_in_touched: int,
-                  replace_density_threshold: float = 0.25) -> str:
-    """For a range with row changes: `partition_replace` or `merge` (§8.6 rule). Keyless must replace, clustered must
-    merge; keyed+partitioned picks replace when the changes are dense."""
-    if not keys:
-        if cluster_by:
-            raise BlockedError("keyless source on a clustered target: needs keys or a PARTITIONED BY target (DDL-15)")
-        return "partition_replace"
-    if cluster_by:
-        return "merge"
+                  replace_density_threshold: float = 0.25, *, source_kind: str = "iceberg",
+                  files_added_only: bool = False, partition_bytes: int | None = None,
+                  small_partition_bytes: int = 1 * GIB) -> str:
+    """Apply method for a range / partition with row changes (§8.6 ladder, INC-18).
+
+    Partition replace is *chosen*, never defaulted: replacing GBs because two rows changed is the expensive case.
+      keyed    -> merge (always on clustered targets; on partitioned targets only when the change is sparse)
+      keyless  -> Hive, only new files in the partition  -> append_files (file-delta, new rows only)
+                  Iceberg, sparse                        -> row_value_replace (exact rows from the local snapshot-diff)
+                  Hive rewritten, sparse                 -> hash_diff_replace (bucketed digests, then row-value replace)
+      dense change (>= threshold) or a small partition   -> partition_replace
+    On a CLUSTER BY target, partition_replace means the Databricks-side REPLACE WHERE (lab 2026-10-30), never an
+    on-prem filter-overwrite; the executor routing (planner.executor) decides where it runs.
+    """
     density = changed_rows / rows_in_touched if rows_in_touched else 1.0
-    return "partition_replace" if density >= replace_density_threshold else "merge"
+    dense = density >= replace_density_threshold
+    small = partition_bytes is not None and partition_bytes < small_partition_bytes
+    if keys:
+        if cluster_by:
+            return "merge"
+        return "partition_replace" if dense or small else "merge"
+    if source_kind == "hive" and files_added_only:
+        return "append_files"
+    if dense or small:
+        return "partition_replace"
+    return "row_value_replace" if source_kind == "iceberg" else "hash_diff_replace"
