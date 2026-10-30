@@ -1,0 +1,31 @@
+# --- secrets & local config (never commit) ---
+.env
+*.env
+!*.env.example
+*.pem
+*.key
+*.p12
+*.keytab
+*secret*.txt
+conf/local/
+conf/*/env.yaml
+!conf/examples/env.yaml
+
+# --- build / runtime ---
+__pycache__/
+*.py[cod]
+.venv/
+venv/
+*.egg-info/
+build/
+dist/
+.pytest_cache/
+.ruff_cache/
+logs/
+*.log
+metastore_db/
+spark-warehouse/
+derby.log
+.DS_Store
+scripts/.scan_denylist
+bridges/union_to_struct/out/
