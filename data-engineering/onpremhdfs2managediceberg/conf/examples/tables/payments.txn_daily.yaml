@@ -1,0 +1,15 @@
+# Keyed Iceberg source with sparse late corrections: clustered target, MERGE on Databricks (design §6, §8.3).
+source: hive_db.txn_daily
+domain: payments
+target: payments.txn_daily                 # optional; else naming rules
+mode: auto                                 # auto | iceberg-append | iceberg-upsert | iceberg-mor | hive-partition
+keys: [txn_id]
+locality_column: txn_date                  # where changes land; leads CLUSTER BY and bounds the MERGE ON (INC-17)
+layout: { cluster_by: [txn_date, txn_id] } # exactly one of cluster_by | partitioned_by (DDL-15)
+format_version: 2                          # a v2-only reader (Athena) reads this table (DDL-04)
+char_policy: trim
+column_decisions:
+  duration:    { redesign: bigint_seconds }        # INTERVAL decision (DT-04)
+  event_ts_ns: { ns_policy: accept_truncation }    # sign-off recorded (DT-05)
+validation_tier: financial                 # tier M every cycle + scoped L2 every cycle + L2-full at cutover
+propagate_partition_drops: false
