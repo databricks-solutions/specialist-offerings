@@ -1,0 +1,8 @@
+# Keyless daily-partitioned Hive table: identity-partitioned target, partition replace (design §8.6 hive-partition).
+source: hive_db.clicks_raw
+domain: events
+mode: auto                                 # resolves to hive-partition
+keys: []
+layout: { partitioned_by: [dt] }           # the only layout overwritePartitions() works on (DDL-15)
+validation_tier: standard                  # tier M every cycle, rotating scoped-L2 sample
+propagate_partition_drops: false

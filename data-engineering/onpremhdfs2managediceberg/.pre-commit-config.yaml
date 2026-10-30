@@ -1,0 +1,18 @@
+repos:
+  - repo: https://github.com/astral-sh/ruff-pre-commit
+    rev: v0.6.9
+    hooks:
+      - id: ruff
+        args: [--fix]
+  - repo: local
+    hooks:
+      - id: no-v1-overwrite
+        name: D12 / ARC-09 - writers use DataFrameWriterV2 or SQL only
+        entry: python scripts/lint_no_v1_overwrite.py src
+        language: system
+        pass_filenames: false
+      - id: scan-secrets
+        name: scan for keys, tokens and environment identifiers
+        entry: bash scripts/scan_secrets.sh .
+        language: system
+        pass_filenames: false

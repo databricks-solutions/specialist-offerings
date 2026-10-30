@@ -1,0 +1,5 @@
+# Runtime dependencies (mirrors pyproject.toml; install with `pip install -e .` for the console script and extras).
+pydantic>=2.5
+pyyaml>=6
+databricks-sdk>=0.40
+# optional: pyspark>=3.5,<4.2 (Spark-facing modules), boto3>=1.34 (aws-sm: secret references)

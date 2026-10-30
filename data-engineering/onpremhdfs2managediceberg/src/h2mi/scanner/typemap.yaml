@@ -1,0 +1,236 @@
+# Machine-readable Hive 3 -> Unity Catalog managed Iceberg (MI) type matrix.
+# Read by h2mi.scanner.typemap (policy keys at the top; the rows document the rules the code implements, D5).
+# Sources: the Hive 3 -> managed Iceberg type-mapping lab results (docs/requirements.md Appendix C),
+# docs/requirements.md TYP-* / DT-* (the rules; IDs in `req`).
+#
+# action:
+#   pass     same type in MI, no cast
+#   convert  different MI type and/or a read-side cast (see target / read_cast)
+#   bridge   Spark cannot read the Hive type (metastore read barrier). Materialize a Spark-readable copy in Hive with CTAS
+#            (never a view: Spark re-resolves the base table), then convert the copy. See `bridge`.
+#   block    not migrated until a person decides (fail closed). See `notes`.
+#
+# spark_read: the dtype Spark 4.1 reports for the column when it reads the Hive table through the metastore
+#             ("barrier" = schema resolution fails; the error is in `barrier_error`).
+# mi_create:  whether Databricks managed Iceberg accepts the type in CREATE TABLE ... USING ICEBERG (doc claim).
+
+char_policy_default: preserve_padded      # TYP-05 (Q-10 open with the customer). Options: preserve_padded | trim
+session_timezone: UTC                     # DT-02: pinned on every job and recorded in the run record
+target_format_version: 3                  # Iceberg format-version default (DDL-04: v2 only when a v2-only reader exists)
+
+barrier_error_markers:                    # any of these in the Spark exception = read barrier
+  - CANNOT_RECOGNIZE_HIVE_TYPE
+  - UNSUPPORTED_DATATYPE
+  - ParseException
+
+types:
+  - hive: TINYINT
+    action: convert
+    target: INT
+    read_cast: "CAST({c} AS INT)"
+    spark_read: tinyint
+    mi_create: reject            # IcebergWriterCompat: does not support byte (V1 and V3, independent of format-version)
+    req: [TYP-03]
+    notes: >-
+      Managed Iceberg CREATE fails. OSS Spark + Iceberg silently upcasts byte to int, so never rely on engine widening.
+      Declare INT in the target DDL.
+
+  - hive: SMALLINT
+    action: convert
+    target: INT
+    read_cast: "CAST({c} AS INT)"
+    spark_read: smallint
+    mi_create: reject            # IcebergWriterCompat: does not support short
+    req: [TYP-03]
+    notes: Same as TINYINT (short -> int).
+
+  - hive: INT / INTEGER
+    action: pass
+    target: INT
+    spark_read: int
+    mi_create: accept
+
+  - hive: BIGINT
+    action: pass
+    target: BIGINT               # Iceberg spec name: long
+    spark_read: bigint
+    mi_create: accept
+
+  - hive: FLOAT
+    action: pass
+    target: FLOAT
+    spark_read: float
+    mi_create: accept
+
+  - hive: DOUBLE
+    action: pass
+    target: DOUBLE
+    spark_read: double
+    mi_create: accept
+
+  - hive: "DECIMAL(p,s)"
+    action: pass
+    target: "DECIMAL(p,s)"       # p <= 38; always pin p and s
+    spark_read: "decimal(p,s)"
+    mi_create: accept
+    req: [TYP-04]
+
+  - hive: DECIMAL (unqualified)
+    action: convert
+    target: "DECIMAL(10,0)"      # Hive default; the scanner flags it for review
+    read_cast: "CAST({c} AS DECIMAL(10,0))"
+    spark_read: "decimal(10,0)"
+    mi_create: accept
+    req: [TYP-04]
+    notes: Unqualified Hive DECIMAL is (10,0). Flag it, because the source may have meant a wider type.
+
+  - hive: STRING
+    action: pass
+    target: STRING
+    spark_read: string
+    mi_create: accept
+
+  - hive: "CHAR(n)"
+    action: convert
+    target: STRING               # Iceberg has no CHAR; a managed-Iceberg string stores the value verbatim
+    read_cast: "{char_policy}"   # preserve_padded: keep the padded value Spark returns; trim: trim({c})
+    spark_read: string           # Spark pads to width on read: readSideCharPadding=true (default since Spark 3.4)
+    mi_create: accept            # DBSQL CHAR(n) also accepted, but the external (IRC) view is string
+    req: [TYP-05]
+    notes: >-
+      Value change if not handled. Hive 'ab' in CHAR(10) reads as 'ab' + 8 spaces in OSS Spark. Set
+      spark.sql.readSideCharPadding explicitly and record it. The policy decides whether the padding lands.
+
+  - hive: "VARCHAR(n)"
+    action: convert
+    target: STRING               # no padding; external readers see string either way
+    read_cast: "{c}"
+    spark_read: string
+    mi_create: accept
+
+  - hive: BOOLEAN
+    action: pass
+    target: BOOLEAN
+    spark_read: boolean
+    mi_create: accept
+
+  - hive: BINARY
+    action: pass
+    target: BINARY
+    spark_read: binary
+    mi_create: accept
+
+  - hive: DATE
+    action: pass
+    target: DATE
+    spark_read: date
+    mi_create: accept
+
+  - hive: "TIMESTAMP (zone-less)"
+    action: convert
+    target: TIMESTAMP_NTZ        # Iceberg 'timestamp' without zone. Plain TIMESTAMP would land as timestamptz and can shift
+    read_cast: "CAST({c} AS TIMESTAMP_NTZ)"
+    spark_read: timestamp        # LTZ instant: displayed value shifts with spark.sql.session.timeZone
+    mi_create: accept
+    req: [DT-01, DT-02]
+    notes: Pin spark.sql.session.timeZone (UTC). The wall clock is stable only through TIMESTAMP_NTZ.
+
+  - hive: "TIMESTAMP (sub-microsecond digits, ns source)"
+    action: convert
+    target: TIMESTAMP_NTZ        # micro-second precision today
+    read_cast: "CAST({c} AS TIMESTAMP_NTZ)"
+    spark_read: timestamp        # truncated to microseconds on read (silent)
+    mi_create: reject            # timestamp_ns is not accepted by MI today (ErrorCode 2017)
+    req: [DT-05, DT-06]
+    ns_policy: accept_truncation   # or hold. Count rows with non-zero sub-us digits first (see 03_migrate)
+    notes: >-
+      Nanosecond roadmap: OSS Spark 4.3 (not released as of the doc) and MI timestamp_ns (beta ~Oct 2026). Until then
+      audit the source and accept or hold.
+
+  - hive: "TIMESTAMP WITH LOCAL TIME ZONE"
+    action: bridge
+    target: TIMESTAMP            # Spark TIMESTAMP (LTZ) = Databricks timestamptz. A true instant: do NOT use NTZ
+    spark_read: barrier
+    barrier_error: "CANNOT_RECOGNIZE_HIVE_TYPE (Spark 3.5.2 and 4.1.1; the type string is not parseable)"
+    mi_create: accept            # as timestamptz
+    bridge: ltz_ctas
+    req: [DT-03, TYP-08]
+    storage: [TEXTFILE]          # Parquet and ORC cannot store it (Hive "Unknown field type")
+    notes: >-
+      Materialize: CREATE TABLE ... STORED AS PARQUET AS SELECT id, CAST(col AS TIMESTAMP) FROM <ltz table>. Run the Hive
+      session with hive.local.time.zone=UTC so the instant is stable.
+
+  - hive: "INTERVAL_YEAR_MONTH / INTERVAL_DAY_TIME"
+    action: bridge
+    target: STRING               # or BIGINT (total months / seconds) for aggregation. Decision per column (DT-04)
+    spark_read: barrier
+    barrier_error: "CANNOT_RECOGNIZE_HIVE_TYPE / UNSUPPORTED_DATATYPE (Spark has interval types, but not under Hive's spelling)"
+    mi_create: reject            # Iceberg has no interval type; not persistable as a column anywhere
+    bridge: interval_ctas
+    req: [DT-04, TYP-08]
+    storage: [TEXTFILE]          # Parquet, ORC and Avro all reject it
+    notes: >-
+      Redesign required. Materialize as STRING ('1 02:03:04.000000000') or BIGINT seconds in Hive, then convert.
+      Blocked until the per-column decision is recorded.
+
+  - hive: "UNIONTYPE<...>"
+    action: bridge
+    target: "STRUCT<tag:INT, field0:..., field1:...>"   # tag is tinyint in the bridge output; cast to INT for MI
+    spark_read: barrier
+    barrier_error: "CANNOT_RECOGNIZE_HIVE_TYPE (ParseException on the type string)"
+    mi_create: accept            # as a struct, never as a union
+    bridge: union_udf_ctas
+    req: [TYP-08]
+    storage: [ORC, AVRO]         # Parquet rejects uniontype; the UDF output struct is Parquet-friendly
+    notes: >-
+      No SQL-only bridge: CAST(union AS STRUCT) and CAST(union AS STRING) fail, and a view keeps the barrier. Use the
+      GenericUDF in UnionToStruct.java (tag + fieldN struct) and materialize with CTAS. Or fix the producer.
+
+  - hive: "ARRAY<T>"
+    action: pass
+    target: "ARRAY<T'>"         # element type mapped recursively; Iceberg spec calls it list
+    spark_read: "array<T>"
+    mi_create: accept
+
+  - hive: "MAP<K,V>"
+    action: pass
+    target: "MAP<K',V'>"
+    spark_read: "map<K,V>"
+    mi_create: accept
+
+  - hive: "STRUCT<...>"
+    action: pass
+    target: "STRUCT<...>"       # every field declared nullable (TYP-07)
+    spark_read: "struct<...>"
+    mi_create: accept
+    req: [TYP-07]
+
+  - hive: VOID (NULL-typed column, for example from CTAS of an untyped NULL)
+    action: convert
+    target: STRING               # lossless: the column holds only NULLs
+    read_cast: "CAST({c} AS STRING)"
+    spark_read: void
+    mi_create: reject            # 'does not support void'. Delta accepts void
+    req: [TYP-06]
+
+  - hive: "anything else"
+    action: block
+    target: null
+    req: [TYP-09]
+    notes: Fail closed. Add a row here with a decision before the table loads.
+
+# Columns in the topic fixtures that map to a bridge output. The bridge copies are what Spark reads.
+bridges:
+  ltz_ctas:
+    source_type: "TIMESTAMP WITH LOCAL TIME ZONE"
+    hive_sql: "CREATE TABLE <db>.<t>_bridged STORED AS PARQUET AS SELECT id, CAST(<col> AS TIMESTAMP) AS <col> FROM <db>.<t>;"
+  interval_ctas:
+    source_type: "INTERVAL_DAY_TIME"
+    # Hive 3.1.3 has no CAST(interval AS STRING) (lab 2026-10-28); total seconds via timestamp arithmetic works.
+    hive_sql: "CREATE TABLE <db>.<t>_bridged STORED AS PARQUET AS SELECT id, unix_timestamp(CAST('2000-01-01 00:00:00' AS TIMESTAMP) + <col>) - unix_timestamp(CAST('2000-01-01 00:00:00' AS TIMESTAMP)) AS <col>_s FROM <db>.<t>;"
+  union_udf_ctas:
+    source_type: "UNIONTYPE<...>"
+    hive_sql: |
+      ADD JAR <path>/union_to_struct.jar;
+      CREATE TEMPORARY FUNCTION union_to_struct AS 'UnionToStruct';
+      CREATE TABLE <db>.<t>_bridged STORED AS PARQUET AS SELECT id, union_to_struct(<col>) AS <col> FROM <db>.<t>;
