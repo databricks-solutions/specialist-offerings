@@ -2,7 +2,7 @@
 
 **Status:** draft v0.2 · **Internal** · 2026-10-30 (v0.1: 2026-10-21; changes listed in §15)
 **Implements:** [`requirements.md`](requirements.md) (requirement IDs in brackets, e.g. `[INC-08]`).
-**Next artifacts:** process-flow doc → implementation plan → code (this repository; package scaffold landed 2026-10-30).
+**Companions:** [`process_flow.md`](process_flow.md) · [`implementation_plan.md`](implementation_plan.md) (both 2026-10-30; package scaffold landed the same day).
 
 ---
 

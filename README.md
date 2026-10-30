@@ -9,6 +9,8 @@ It runs on-prem as a PySpark application (`spark-submit` on YARN), talks to Data
 |---|---|
 | [`docs/requirements.md`](docs/requirements.md) | the requirement set, area-prefixed IDs (`SCP`, `ARC`, `INC`, `VAL`, ...), lab evidence, test backlog |
 | [`docs/technical_design.md`](docs/technical_design.md) | the design: decisions D1-D12, components, state model, sync modes, validation tiers, risks |
+| [`docs/process_flow.md`](docs/process_flow.md) | mermaid views: table lifecycle, one sync cycle, apply-method ladder, cycle states, reconciliation, what crosses the network |
+| [`docs/implementation_plan.md`](docs/implementation_plan.md) | work packages WP1-WP10 with IDs closed, acceptance tests, estimates, two-engineer schedule, milestones M1-M4, Visa decisions needed |
 
 ## Status: scaffold (v0.1.0.dev0)
 
