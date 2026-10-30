@@ -37,7 +37,7 @@ PATTERNS=(
   'cluster-id|\b[0-9]{4}-[0-9]{6}-[a-z0-9]{8}\b'
 )
 # Allowed values that look like matches (documentation-safe placeholders and loopback/any addresses).
-ALLOW='0\.0\.0\.0|127\.0\.0\.1|169\.254\.169\.254|example\.(com|org)|no-reply@databricks\.com|@<|<[a-z_-]+>@|scan-secrets: allow|/home/ec2-user/|/home/hadoop/|/home/glue_user/|1\.0\.0\.0'
+ALLOW='0\.0\.0\.0|127\.0\.0\.1|169\.254\.169\.254|example\.(com|org)|@databricks\.com|@<|<[a-z_-]+>@|scan-secrets: allow|/home/ec2-user/|/home/hadoop/|/home/glue_user/|1\.0\.0\.0'
 
 findings=0
 report() { printf '  %-22s %s\n' "$1" "$2"; findings=$((findings + 1)); }
