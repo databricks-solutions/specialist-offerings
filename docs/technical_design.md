@@ -626,8 +626,8 @@ for P in touched (batched):
    new = src VERSION AS OF cur WHERE P
    keyed:   full outer join on keys, compare canonical row hash -> upserts + deletes -> staging -> MERGE (as upsert)
    keyless: target partitioned like P -> projection(new).writeTo(tgt).options(tags).overwritePartitions()
-            clustered target -> stage (tagged) + Databricks `INSERT INTO tgt REPLACE WHERE <P> SELECT … FROM stg` (🔵 L-14;
-            fallback MERGE … WHEN NOT MATCHED BY SOURCE … DELETE), never an on-prem filter-overwrite: it only drops whole files
+            clustered target -> stage (tagged) + Databricks `INSERT INTO tgt REPLACE WHERE <P> SELECT … FROM stg` (✅ L-14,
+            2026-10-30; MERGE … WHEN NOT MATCHED BY SOURCE … DELETE also works), never an on-prem filter-overwrite: it only drops whole files
 ```
 - **Slice restates need a target partitioned on the slice columns.** Lab (2026-10-22, Iceberg 1.11/1.12, MI v2+v3):
   `overwritePartitions()` on a `PARTITIONED BY (dt)` target replaces only `dt` and **carries the snapshot tag** ✅; the
@@ -755,8 +755,8 @@ convention (lab caveat), so it is cross-checked with `DESCRIBE HISTORY` through 
 
 **Source side, one pass.** The fingerprint of the projected rows is computed in the same Spark action as the write, with
 `Observation` / `df.observe("fp", count, null counts, min/max, sum(row_hash))` on the projected DataFrame before
-`writeTo(...)`: no second source scan, and no window for a mid-copy mutation to hide in (🔵 confirm `observe` fires on
-Iceberg's V2 write; fallback `persist()` + two actions, still one source read).
+`writeTo(...)`: no second source scan, and no window for a mid-copy mutation to hide in (✅ lab 2026-10-30: the
+observation fires on Iceberg's V2 append and equals a separate aggregation of the same rows).
 
 **Target side, three tiers by cost** (transport corruption is already covered by S3 checksums and Iceberg file sizes; the
 residual risk is systematic projection/type logic, which sampling and the type-aware checks catch as well as exhaustive
@@ -765,7 +765,7 @@ hashing does):
 | Tier | Target side | Cost | When |
 |---|---|---|---|
 | **M** (metadata) | Iceberg commit metadata over IRC: snapshot summary `added-records`, `added-files-size`, and `<tgt>.files` `record_count`, `null_value_counts`, `lower_bounds`/`upper_bounds` of the files added by the commit | zero data scan on either side, zero DBSQL | every cycle; **gates the watermark** (`VALIDATED`) |
-| **L2-scoped** | DBSQL `sum(row_hash)` over the **files added by the commit** (`WHERE _metadata.file_path IN (…)`, 🔵 on MI) or, for MERGE targets, over the **changed keys** (`WHERE key IN (SELECT key FROM stg WHERE batch = :b) AND <locality range>`) | proportional to changed data, never to the partition or table | every cycle on `financial`, rotating `l2_sample_partitions_per_cycle` on `standard`; **asynchronous** (`VERIFIED`), batched per table per day |
+| **L2-scoped** | DBSQL `sum(row_hash)` over the **files added by the commit** (`WHERE _metadata.file_path IN (…)`, ✅ on MI, lab 2026-10-30) or, for MERGE targets, over the **changed keys** (`WHERE key IN (SELECT key FROM stg WHERE batch = :b) AND <locality range>`) | proportional to changed data, never to the partition or table | every cycle on `financial`, rotating `l2_sample_partitions_per_cycle` on `standard`; **asynchronous** (`VERIFIED`), batched per table per day |
 | **L2-full** | full fingerprint at a pinned source snapshot vs a full DBSQL scan | one full scan | once after the historical load; as the **cutover gate** on the frozen source; on demand |
 
 Both sides land in `validation_events` and are compared [VAL-07]. An L2 mismatch found asynchronously triggers RESTORE to
@@ -916,9 +916,9 @@ the visa_utils lab source builders) and the Hive 3.1.3 type repro.
 | **L-11 > 1 h write** ✅ lab: 70 min passes on 1.11.0/1.12.0 only with `token-exchange-enabled=false`. S3FileIO refresh doesn't engage (UC omits `client.refresh-credentials-endpoint`); executor S3 writes past the ~60 min TTL still unexplained (🔵 TTL probe + > 2 h hold) | VER-01, SEC-01 |
 | L-12 credential vending without direct S3 access | SEC-06 |
 | **L-13 pruning efficiency** of `CLUSTER BY (locality, key)` vs key-only under local vs scattered updates: measure `candidate_bytes` and DBSQL bytes scanned | D11, R13 |
-| **L-14 `REPLACE WHERE` / `WHEN NOT MATCHED BY SOURCE` on MI** for slice restates on clustered targets | §8.6 |
+| **L-14 `REPLACE WHERE` / `WHEN NOT MATCHED BY SOURCE` on MI** for slice restates on clustered targets ✅ lab 2026-10-30: both work on a v3 `CLUSTER BY` target via the Statement API; `REPLACE WHERE` shows as `WRITE mode=Overwrite predicate=(dt = …)` in DESCRIBE HISTORY | §8.6 |
 | **L-15 tagging an external MERGE commit** via `CommitMetadata.withCommitProperties` / `wap.id` | §8.11 |
-| **L-16 `observe()` on Iceberg V2 writes** (fused source fingerprint) and `_metadata.file_path` filtering on MI | §8.8 |
+| **L-16 `observe()` on Iceberg V2 writes** (fused source fingerprint) and `_metadata.file_path` filtering on MI ✅ lab 2026-10-30: observation fires on `writeTo().append()` and equals a separate aggregation; `added-records` matches; `_file`-scoped read on-prem and `_metadata.file_path`-scoped read on DBSQL return the same digest | §8.8 |
 | **L-17 spec guard**: detect a REPLACE TABLE over IRC and RESTORE the Delta version ✅ replace observed and characterised 2026-10-30 (`overwrite_partitions_probe.py`); 🔵 RESTORE path | R12 |
 
 ---
