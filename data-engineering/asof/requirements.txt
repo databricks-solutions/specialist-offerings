@@ -1,0 +1,9 @@
+# Runtime (Databricks notebooks). pyspark / pandas / pyarrow ship with Databricks Runtime.
+databricks-feature-engineering   # 02_feature_engineering_point_in_time.py
+pykx==3.1.5                      # 03_pykx_asof_join.py (needs a kdb+ license file, see the notebook)
+pytz>=2022.1                     # pykx dependency
+toml~=0.10.2                     # pykx dependency
+
+# Local unit tests (tests/): python -m venv .venv && pip install -r requirements.txt
+pyspark==3.5.*
+pytest>=8
