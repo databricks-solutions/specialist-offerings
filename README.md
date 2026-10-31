@@ -113,3 +113,8 @@ Databricks support doesn't cover this content. For questions or bugs, please ope
 
 | library                                | description             | license    | source                                              |
 |----------------------------------------|-------------------------|------------|-----------------------------------------------------|
+| pyspark                                | Apache Spark for Python | Apache-2.0 | https://github.com/apache/spark                     |
+| pandas                                 | DataFrames for Python   | BSD-3-Clause | https://github.com/pandas-dev/pandas               |
+| pyarrow                                | Apache Arrow for Python | Apache-2.0 | https://github.com/apache/arrow                     |
+| pykx                                   | kdb+/q from Python      | Apache-2.0 | https://github.com/KxSystems/pykx                   |
+| databricks-feature-engineering         | Feature Engineering in Unity Catalog client | Databricks License | https://pypi.org/project/databricks-feature-engineering/ |

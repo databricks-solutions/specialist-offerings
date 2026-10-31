@@ -3,6 +3,15 @@
 version: 1
 domain: ssa-offerings
 assets:
+  - external_ref: ssa-offering-asof
+    name: "SSA | As-of Joins for Time-Series Data | AMER | FINS"
+    asset_type: docs
+    resource_url: https://github.com/databricks-solutions/specialist-offerings/tree/main/data-engineering/asof
+    description: "Join every trade to the latest quote at scale on Databricks with native Spark, Feature Engineering point-in-time lookups or PyKX, with no external tick database"
+    quality_level: gold
+    is_customer_facing: false
+    maintained_by: akshay.amin@databricks.com
+    tags: [ssa-offering, data-engineering, as-of-join, point-in-time, time-series, tick-data, capital-markets, feature-engineering, pykx, kdb, liquid-clustering, fins]
   - external_ref: ssa-offering-lakeflow-migration-design-blueprint
     name: "SSA | Lakeflow Migration Design Blueprint | AMER | FINS"
     asset_type: docs
