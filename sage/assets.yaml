@@ -13,14 +13,14 @@ assets:
     maintained_by: nouran.younis@databricks.com
     tags: [ssa-offering, data-engineering, lakeflow, migration, lakeflow-jobs, lakeflow-pipelines, lakeflow-connect, serverless, unity-catalog, fins]
   - external_ref: ssa-offering-abac
-    name: "SSA | ABAC with Governed Tags | Global"
+    name: "SSA | Lake Formation TBAC to Unity Catalog ABAC Migration | Global"
     asset_type: docs
     resource_url: https://github.com/databricks-solutions/specialist-offerings/tree/main/data-governance/abac
-    description: "Enforce row- and column-level access uniformly across native and federated tables with a single tag-driven Unity Catalog ABAC policy model"
+    description: "Translate AWS Lake Formation tag-based access control rules into Unity Catalog ABAC policies so governance moves to Databricks without rewriting entitlements table by table"
     quality_level: gold
     is_customer_facing: false
     maintained_by: akshay.amin@databricks.com
-    tags: [ssa-offering, global, data-governance, unity-catalog, abac, governed-tags, row-filters, column-masks, lakehouse-federation, aws-glue]
+    tags: [ssa-offering, global, data-governance, unity-catalog, abac, governed-tags, lake-formation, tbac, migration, row-filters, column-masks, lakehouse-federation, aws-glue]
   - external_ref: ssa-offering-uc-design-blueprint
     name: "SSA | UC Design Blueprint | Global"
     asset_type: docs
