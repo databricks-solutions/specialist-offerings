@@ -3,4 +3,5 @@
 Active offerings listed here are indexed into Sage from each folder's `README.md`. Retired offerings are kept under [`/z-archive/data-governance`](../z-archive/README.md) (see the z-archive index when present).
 
 #### Table of Contents:
+- [abac](abac/): Translate AWS Lake Formation tag-based access control rules into Unity Catalog ABAC policies so governance moves to Databricks without rewriting entitlements table by table
 - [uc-design-blueprint](uc-design-blueprint/): Simplify and accelerate UC design and deployment for customers with complex data governance needs
